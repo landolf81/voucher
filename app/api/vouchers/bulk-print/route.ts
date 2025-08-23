@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { supabaseServer } from '@/lib/supabase';
 import { makePayload } from '@/lib/hmac';
 import QRCode from 'qrcode';
 
@@ -200,10 +200,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
+    const supabase = supabaseServer();
 
     // Fetch vouchers data - 대량 데이터 처리를 위해 배치로 조회
     let allVouchers: VoucherData[] = [];

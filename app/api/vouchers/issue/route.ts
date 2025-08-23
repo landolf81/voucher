@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { supabaseServer } from '@/lib/supabase';
 import { z } from 'zod';
 
 // 교환권 발행 스키마
@@ -28,10 +28,7 @@ export async function POST(request: NextRequest) {
 
     const { voucher_ids } = validation.data;
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = supabaseServer();
 
     // 발행할 교환권들의 상태 확인
     const { data: vouchers, error: selectError } = await supabase

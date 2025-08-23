@@ -3,6 +3,21 @@
 import React, { useState, useRef } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 
+// QR 코드 페이로드 파싱 함수
+function parseQRPayload(payload: string) {
+  if (!payload?.startsWith?.("VCH:")) {
+    // 일반 텍스트인 경우 그대로 일련번호로 사용
+    return { serial: payload, fullPayload: payload };
+  }
+  
+  // VCH: 형식인 경우 일련번호만 추출
+  const parts = Object.fromEntries(payload.split("|").map(kv => kv.split(":") as [string, string]));
+  return { 
+    serial: parts["VCH"], 
+    fullPayload: payload 
+  };
+}
+
 interface VoucherData {
   id: string;
   serial_no: string;
@@ -78,11 +93,20 @@ export function MobileSearchPage() {
 
       await codeReader.decodeFromVideoDevice(deviceId, videoRef.current!, (res) => {
         if (res) {
-          const scannedSerial = res.getText();
-          setSearchInput(scannedSerial);
+          const scannedPayload = res.getText();
+          console.log('조회용 QR 스캔 결과:', scannedPayload);
+          
+          // QR 페이로드에서 일련번호만 추출
+          const { serial, fullPayload } = parseQRPayload(scannedPayload);
+          console.log('추출된 일련번호 (조회용):', serial);
+          
+          // 검색창에는 일련번호만 표시
+          setSearchInput(serial);
           setIsScanning(false);
           codeReader.reset();
-          performSearch(scannedSerial);
+          
+          // 검색은 일련번호로 수행
+          performSearch(serial);
         }
       });
     } catch (e: any) {

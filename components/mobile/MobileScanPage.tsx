@@ -4,6 +4,21 @@ import React, { useState, useRef, useEffect } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import { useAuth } from '@/lib/contexts/AuthContext';
 
+// QR 코드 페이로드 파싱 함수
+function parseQRPayload(payload: string) {
+  if (!payload?.startsWith?.("VCH:")) {
+    // 일반 텍스트인 경우 그대로 일련번호로 사용
+    return { serial: payload, fullPayload: payload };
+  }
+  
+  // VCH: 형식인 경우 일련번호만 추출
+  const parts = Object.fromEntries(payload.split("|").map(kv => kv.split(":") as [string, string]));
+  return { 
+    serial: parts["VCH"], 
+    fullPayload: payload 
+  };
+}
+
 interface VoucherInfo {
   serial_no: string;
   amount: number;
@@ -133,11 +148,16 @@ export function MobileScanPage() {
         await codeReader.decodeFromVideoDevice(deviceId, videoRef.current!, (res) => {
           if (!isMounted) return;
           if (res) {
-            const scannedSerial = res.getText();
-            console.log('QR 스캔 결과:', scannedSerial);
-            // 중복 스캔 방지
-            if (!scannedVouchers.find(v => v.serial_no === scannedSerial)) {
-              handleVoucherScan(scannedSerial);
+            const scannedPayload = res.getText();
+            console.log('QR 스캔 결과:', scannedPayload);
+            
+            // QR 페이로드에서 일련번호와 전체 페이로드 분리
+            const { serial, fullPayload } = parseQRPayload(scannedPayload);
+            console.log('추출된 일련번호:', serial);
+            
+            // 중복 스캔 방지 (일련번호 기준)
+            if (!scannedVouchers.find(v => v.serial_no === serial)) {
+              handleVoucherScan(serial, fullPayload);
             }
           }
         });
@@ -171,16 +191,17 @@ export function MobileScanPage() {
   }, [scannedVouchers]);
 
   // 교환권 정보 조회
-  const handleVoucherScan = async (serialNo: string) => {
+  const handleVoucherScan = async (serialNo: string, fullPayload?: string) => {
     setIsLoadingVoucherInfo(true);
     
     try {
+      // API에는 검증을 위해 전체 페이로드 전송, 없으면 일련번호만 전송
       const response = await fetch('/api/v1/vouchers/verify', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ payload: serialNo })
+        body: JSON.stringify({ payload: fullPayload || serialNo })
       });
 
       const data = await response.json();
