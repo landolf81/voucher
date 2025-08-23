@@ -1,0 +1,361 @@
+import { NextRequest, NextResponse } from "next/server";
+import PdfPrinter from "pdfmake";
+import { TDocumentDefinitions } from "pdfmake/interfaces";
+
+export const runtime = "nodejs";
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { user_info, report_data, date_range, selected_template, selected_site } = body;
+
+    if (!user_info || !report_data) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'USER_INFO_AND_REPORT_DATA_REQUIRED' 
+      }, { status: 400 });
+    }
+
+    const { summary, byDate, byTemplate, vouchers } = report_data;
+    const { start, end } = date_range || {};
+
+    // 필터링 정보
+    const isTemplateFiltered = selected_template && selected_template.id;
+    const isSiteFiltered = selected_site && selected_site.id;
+    
+    const templateFilterText = isTemplateFiltered ? 
+      ` (${selected_template.voucher_name})` : 
+      ' (전체 템플릿)';
+      
+    const siteFilterText = isSiteFiltered ? 
+      ` (${selected_site.site_name})` : 
+      '';
+
+    // PDF 테이블 데이터 구성
+    const vouchersTableBody = [
+      [
+        { text: "사용일시", bold: true, alignment: "center" },
+        { text: "템플릿", bold: true, alignment: "center" },
+        { text: "영농회/단체", bold: true, alignment: "center" },
+        { text: "성명", bold: true, alignment: "center" },
+        { text: "금액", bold: true, alignment: "center" },
+        { text: "사용처", bold: true, alignment: "center" }
+      ],
+      ...vouchers.map((voucher: any) => [
+        { 
+          text: voucher.used_at ? new Date(voucher.used_at).toLocaleString('ko-KR', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          }) : '-',
+          fontSize: 9
+        },
+        { 
+          text: voucher.template_info?.voucher_name || '알 수 없음',
+          fontSize: 9
+        },
+        { 
+          text: voucher.association || '-',
+          fontSize: 9
+        },
+        { 
+          text: voucher.name || '-',
+          fontSize: 9
+        },
+        { 
+          text: `${Number(voucher.amount).toLocaleString()}원`,
+          fontSize: 9,
+          alignment: "right"
+        },
+        { 
+          text: voucher.site_name || '-',
+          fontSize: 9
+        }
+      ])
+    ];
+
+    // 일자별 통계 테이블
+    const byDateTableBody = [
+      [
+        { text: "날짜", bold: true, alignment: "center" },
+        { text: "건수", bold: true, alignment: "center" },
+        { text: "금액", bold: true, alignment: "center" }
+      ],
+      ...byDate.map((item: any) => [
+        { 
+          text: new Date(item.date).toLocaleDateString('ko-KR'),
+          fontSize: 10
+        },
+        { 
+          text: `${item.count}건`,
+          fontSize: 10,
+          alignment: "center"
+        },
+        { 
+          text: `${item.amount.toLocaleString()}원`,
+          fontSize: 10,
+          alignment: "right"
+        }
+      ])
+    ];
+
+    // 템플릿별 통계 테이블
+    const byTemplateTableBody = [
+      [
+        { text: "템플릿명", bold: true, alignment: "center" },
+        { text: "유형", bold: true, alignment: "center" },
+        { text: "건수", bold: true, alignment: "center" },
+        { text: "금액", bold: true, alignment: "center" }
+      ],
+      ...byTemplate.map((item: any) => [
+        { 
+          text: item.template_name,
+          fontSize: 10
+        },
+        { 
+          text: item.template_type,
+          fontSize: 10
+        },
+        { 
+          text: `${item.count}건`,
+          fontSize: 10,
+          alignment: "center"
+        },
+        { 
+          text: `${item.amount.toLocaleString()}원`,
+          fontSize: 10,
+          alignment: "right"
+        }
+      ])
+    ];
+
+    // PDF 폰트 설정 (빈 폰트 - 기본 폰트 사용)
+    const fonts = { 
+      Roboto: { 
+        normal: Buffer.from([]), 
+        bold: Buffer.from([]), 
+        italics: Buffer.from([]), 
+        bolditalics: Buffer.from([]) 
+      } 
+    };
+
+    const printer = new PdfPrinter(fonts);
+
+    const docDefinition: TDocumentDefinitions = {
+      pageSize: "A4",
+      pageMargins: [40, 40, 40, 40],
+      content: [
+        // 헤더
+        {
+          text: `교환권 사용등록 내역서${templateFilterText}${siteFilterText}`,
+          style: "title",
+          alignment: "center",
+          margin: [0, 0, 0, 20] as [number, number, number, number]
+        },
+        
+        // 기본 정보
+        {
+          columns: [
+            {
+              width: "*",
+              text: [
+                { text: "작성자: ", bold: true },
+                { text: user_info.name || '알 수 없음' }
+              ]
+            },
+            {
+              width: "*",
+              text: [
+                { text: "작성일: ", bold: true },
+                { text: new Date().toLocaleDateString('ko-KR') }
+              ],
+              alignment: "right"
+            }
+          ],
+          margin: [0, 0, 0, 10]
+        },
+        
+        {
+          text: [
+            { text: "조회기간: ", bold: true },
+            { text: `${start || '전체'} ~ ${end || '전체'}` }
+          ],
+          margin: [0, 0, 0, 10]
+        },
+
+        // 필터링 정보 (선택된 경우에만)
+        ...(isTemplateFiltered || isSiteFiltered ? [
+          ...(isTemplateFiltered ? [
+            {
+              text: [
+                { text: "선택 템플릿: ", bold: true },
+                { text: `${selected_template.voucher_name} (${selected_template.voucher_type})` }
+              ],
+              margin: [0, 0, 0, 10] as [number, number, number, number]
+            }
+          ] : []),
+          ...(isSiteFiltered ? [
+            {
+              text: [
+                { text: "선택 사용처: ", bold: true },
+                { text: selected_site.site_name }
+              ],
+              margin: [0, 0, 0, 20] as [number, number, number, number]
+            }
+          ] : [])
+        ] : [
+          {
+            text: "",
+            margin: [0, 0, 0, 10] as [number, number, number, number]
+          }
+        ]),
+
+        // 전체 요약
+        {
+          text: "■ 전체 요약",
+          style: "sectionHeader",
+          margin: [0, 0, 0, 10]
+        },
+        {
+          columns: [
+            {
+              width: "*",
+              text: [
+                { text: "총 사용 건수: ", bold: true },
+                { text: `${summary.totalCount}건`, fontSize: 14, color: "#2563eb" }
+              ]
+            },
+            {
+              width: "*",
+              text: [
+                { text: "총 사용 금액: ", bold: true },
+                { text: `${summary.totalAmount.toLocaleString()}원`, fontSize: 14, color: "#dc2626" }
+              ],
+              alignment: "right"
+            }
+          ],
+          margin: [0, 0, 0, 20] as [number, number, number, number]
+        },
+
+        // 일자별 통계 (상위 10개)
+        ...(byDate.length > 0 ? [
+          {
+            text: "■ 일자별 사용 현황",
+            style: "sectionHeader",
+            margin: [0, 10, 0, 10] as [number, number, number, number]
+          },
+          {
+            table: {
+              headerRows: 1,
+              widths: ["*", "auto", "auto"],
+              body: byDateTableBody.slice(0, 11) // 헤더 + 상위 10개
+            },
+            layout: {
+              hLineWidth: () => 0.5,
+              vLineWidth: () => 0.5,
+              hLineColor: () => '#cccccc',
+              vLineColor: () => '#cccccc'
+            },
+            margin: [0, 0, 0, 20] as [number, number, number, number]
+          }
+        ] : []),
+
+        // 템플릿별 통계
+        ...(byTemplate.length > 0 ? [
+          {
+            text: "■ 템플릿별 사용 현황",
+            style: "sectionHeader",
+            margin: [0, 10, 0, 10] as [number, number, number, number]
+          },
+          {
+            table: {
+              headerRows: 1,
+              widths: ["*", "auto", "auto", "auto"],
+              body: byTemplateTableBody
+            },
+            layout: {
+              hLineWidth: () => 0.5,
+              vLineWidth: () => 0.5,
+              hLineColor: () => '#cccccc',
+              vLineColor: () => '#cccccc'
+            },
+            margin: [0, 0, 0, 20] as [number, number, number, number]
+          }
+        ] : []),
+
+        // 상세 내역 (최근 50개)
+        ...(vouchers.length > 0 ? [
+          {
+            text: `■ 상세 사용 내역 ${vouchers.length > 50 ? '(최근 50건)' : ''}`,
+            style: "sectionHeader",
+            margin: [0, 10, 0, 10] as [number, number, number, number],
+            pageBreak: (byDate.length > 5 || byTemplate.length > 5 ? 'before' : undefined) as 'before' | undefined
+          },
+          {
+            table: {
+              headerRows: 1,
+              widths: ["auto", "*", "*", "auto", "auto", "auto"],
+              body: vouchersTableBody.slice(0, 51) // 헤더 + 최근 50개
+            },
+            layout: {
+              hLineWidth: () => 0.5,
+              vLineWidth: () => 0.5,
+              hLineColor: () => '#cccccc',
+              vLineColor: () => '#cccccc'
+            }
+          }
+        ] : [])
+      ],
+      
+      styles: {
+        title: {
+          fontSize: 18,
+          bold: true
+        },
+        sectionHeader: {
+          fontSize: 14,
+          bold: true,
+          color: "#374151"
+        }
+      },
+
+      footer: (currentPage: number, pageCount: number) => ({
+        text: `${currentPage} / ${pageCount}`,
+        alignment: "center",
+        margin: [0, 10, 0, 0] as [number, number, number, number],
+        fontSize: 10,
+        color: "#666666"
+      })
+    };
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+    const chunks: Buffer[] = [];
+    
+    await new Promise<void>((resolve) => {
+      pdfDoc.on("data", (chunk: Buffer) => chunks.push(chunk));
+      pdfDoc.on("end", () => resolve());
+      pdfDoc.end();
+    });
+
+    const pdfBuffer = Buffer.concat(chunks);
+    const templateName = isTemplateFiltered ? `_${selected_template.voucher_name}` : '';
+    const siteName = isSiteFiltered ? `_${selected_site.site_name}` : '';
+    const fileName = `사용등록내역_${user_info.name || 'user'}${templateName}${siteName}_${start || 'all'}_${end || 'all'}.pdf`;
+
+    return new Response(pdfBuffer, {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${encodeURIComponent(fileName)}"`
+      }
+    });
+
+  } catch (error) {
+    console.error('PDF 생성 오류:', error);
+    return NextResponse.json({ 
+      success: false, 
+      error: 'PDF_GENERATION_ERROR' 
+    }, { status: 500 });
+  }
+}

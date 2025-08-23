@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "mcp__supabase-community-supabase-mcp__get_project",
+      "mcp__supabase-community-supabase-mcp__get_advisors",
+      "mcp__supabase-community-supabase-mcp__get_logs",
+      "Bash(rm:*)",
+      "Bash(curl:*)",
+      "mcp__microsoft-playwright-mcp__browser_navigate",
+      "Bash(psql:*)",
+      "Bash(npm run typecheck:*)"
+    ],
+    "defaultMode": "acceptEdits"
+  }
+}

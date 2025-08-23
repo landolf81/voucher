@@ -1,0 +1,130 @@
+/* 전역 CSS 스타일 */
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 255, 255, 255;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-start-rgb));
+}
+
+/* Next.js wrapper elements */
+#__next {
+  height: 100%;
+}
+
+body > div {
+  height: 100%;
+}
+
+/* Select and option 기본 스타일 */
+select {
+  color: #374151 !important;
+  background-color: white !important;
+}
+
+select option {
+  color: #374151 !important;
+  background-color: white !important;
+}
+
+/* 다크모드 대응 */
+@media (prefers-color-scheme: dark) {
+  select {
+    color: #e5e7eb !important;
+    background-color: #1f2937 !important;
+  }
+  
+  select option {
+    color: #e5e7eb !important;
+    background-color: #1f2937 !important;
+  }
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* 다크 모드 스키마 설정 */
+@media (prefers-color-scheme: dark) {
+  html {
+    color-scheme: dark;
+  }
+}
+
+/* 기본 버튼 스타일 */
+button {
+  cursor: pointer;
+  border: none;
+  outline: none;
+  font-family: inherit;
+}
+
+/* 기본 입력 필드 스타일 */
+input, textarea, select {
+  font-family: inherit;
+  outline: none;
+}
+
+/* 기본 링크 스타일 */
+a:hover {
+  text-decoration: underline;
+}
+
+/* 기본 제목 스타일 */
+h1, h2, h3, h4, h5, h6 {
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* 기본 단락 스타일 */
+p {
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+/* 기본 리스트 스타일 */
+ul, ol {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+}
+
+li {
+  margin-bottom: 0.5rem;
+}
+
+/* 로딩 스피너 애니메이션 */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

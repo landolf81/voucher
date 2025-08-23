@@ -1,0 +1,48 @@
+{
+  "name": "voucher-starter-a4",
+  "private": true,
+  "version": "0.2.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fontsource/pretendard": "^5.2.5",
+    "@grapesjs/react": "^2.0.0",
+    "@supabase/supabase-js": "^2.55.0",
+    "@types/jszip": "^3.4.0",
+    "@zxing/browser": "^0.1.5",
+    "grapesjs": "^0.22.12",
+    "grapesjs-blocks-basic": "^1.0.2",
+    "grapesjs-preset-webpage": "^1.0.3",
+    "jsbarcode": "^3.12.1",
+    "jsonwebtoken": "^9.0.2",
+    "jszip": "^3.10.1",
+    "nanoid": "^5.1.5",
+    "next": "^15.4.6",
+    "pdfmake": "^0.2.10",
+    "puppeteer": "^24.16.2",
+    "qrcode": "^1.5.4",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-email-editor": "^1.7.11",
+    "react-qr-code": "^2.0.18",
+    "xlsx": "^0.18.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^22.5.4",
+    "@types/pdfmake": "^0.2.11",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2.5",
+    "supabase": "^2.34.3",
+    "typescript": "^5.6.2"
+  }
+}

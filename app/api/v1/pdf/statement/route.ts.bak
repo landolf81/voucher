@@ -1,0 +1,57 @@
+import { NextRequest } from "next/server";
+import PdfPrinter from "pdfmake";
+import { TDocumentDefinitions } from "pdfmake/interfaces";
+import { supabaseServer } from "@/lib/supabase";
+
+export const runtime = "nodejs";
+
+export async function GET(req: NextRequest){
+  const url = new URL(req.url);
+  const site_id = url.searchParams.get("site_id");
+  const from = url.searchParams.get("from");
+  const to = url.searchParams.get("to");
+
+  if (!site_id || !from || !to) {
+    return new Response(JSON.stringify({ ok:false, error:"site_id, from, to required (YYYY-MM-DD)" }), { status:400 });
+  }
+
+  const supabase = supabaseServer();
+  const { data, error } = await supabase
+    .from("vouchers")
+    .select("serial_no, amount, association, name, used_at")
+    .eq("used_at_site_id", site_id)
+    .gte("used_at", `${from} 00:00`)
+    .lte("used_at", `${to} 23:59`)
+    .order("used_at", { ascending: true });
+
+  if (error) return new Response(JSON.stringify({ ok:false, error: error.message }), { status:500 });
+
+  const total = (data||[]).reduce((s, r:any)=> s + Number(r.amount||0), 0);
+  const body = [
+    [{text:"일련번호", bold:true}, {text:"성명", bold:true}, {text:"영농회", bold:true}, {text:"금액", bold:true}, {text:"사용일시", bold:true}],
+    ... (data||[]).map((r:any)=>[r.serial_no, r.name, r.association, `${r.amount}원`, r.used_at || ""])
+  ] as any;
+
+  const fonts = { Roboto: { normal: Buffer.from([]), bold: Buffer.from([]), italics: Buffer.from([]), bolditalics: Buffer.from([]) } };
+  const printer = new PdfPrinter(fonts);
+  const dd:TDocumentDefinitions = {
+    pageSize: "A4",
+    pageMargins: [24,24,24,24],
+    content: [
+      { text: "사업장 정산서", style: "h1" },
+      { text: `기간: ${from} ~ ${to}` },
+      { text: `총 건수: ${(data||[]).length}   총액: ${total}원`, margin:[0,6,0,12] },
+      { table: { headerRows: 1, widths: ["*", "*", "*", 80, 140], body } }
+    ],
+    styles: { h1: { fontSize: 20, bold: true } }
+  };
+  const pdfDoc = printer.createPdfKitDocument(dd);
+  const chunks:Buffer[] = [];
+  await new Promise<void>((resolve) => {
+    pdfDoc.on("data", (c:Buffer)=>chunks.push(c));
+    pdfDoc.on("end", ()=>resolve());
+    pdfDoc.end();
+  });
+  const buf = Buffer.concat(chunks);
+  return new Response(buf, { headers: { "Content-Type":"application/pdf", "Content-Disposition":`inline; filename="statement-${from}-${to}.pdf"` } });
+}

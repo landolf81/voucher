@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>테스트 사용자 생성</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { margin: 15px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>테스트 사용자 생성</h1>
+    
+    <form id="userForm">
+        <div class="form-group">
+            <label for="email">이메일:</label>
+            <input type="email" id="email" value="admin@test.com" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="name">이름:</label>
+            <input type="text" id="name" value="Admin User" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="phone">전화번호:</label>
+            <input type="tel" id="phone" value="010-1234-5678" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="role">권한:</label>
+            <select id="role" required>
+                <option value="admin">관리자</option>
+                <option value="staff">직원</option>
+                <option value="viewer">조회만</option>
+                <option value="part_time">아르바이트</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="site_id">사업장 ID:</label>
+            <input type="text" id="site_id" value="11111111-1111-1111-1111-111111111111" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="user_id">사번:</label>
+            <input type="text" id="user_id" value="admin123" required>
+        </div>
+        
+        <button type="submit">사용자 생성</button>
+    </form>
+    
+    <div id="result"></div>
+    
+    <script>
+        document.getElementById('userForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                email: document.getElementById('email').value,
+                name: document.getElementById('name').value,
+                phone: document.getElementById('phone').value,
+                role: document.getElementById('role').value,
+                site_id: document.getElementById('site_id').value,
+                user_id: document.getElementById('user_id').value,
+                is_active: true
+            };
+            
+            console.log('전송할 formData:', formData);
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/user-profiles', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                const result = await response.json();
+                console.log('API 응답:', result);
+                
+                let resultHtml = '';
+                if (response.ok && result.success) {
+                    resultHtml = `<div class="result success">
+                        <h3>✅ 성공</h3>
+                        <p>${result.message}</p>
+                        <p>User ID: ${result.data?.user_id || 'N/A'}</p>
+                    </div>`;
+                } else {
+                    resultHtml = `<div class="result error">
+                        <h3>❌ 오류</h3>
+                        <p>상태 코드: ${response.status}</p>
+                        <p>메시지: ${result.message || '알 수 없는 오류'}</p>
+                        ${result.error ? `<p>세부사항: ${result.error}</p>` : ''}
+                    </div>`;
+                }
+                
+                document.getElementById('result').innerHTML = resultHtml;
+                
+            } catch (error) {
+                console.error('요청 오류:', error);
+                document.getElementById('result').innerHTML = `
+                    <div class="result error">
+                        <h3>❌ 네트워크 오류</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

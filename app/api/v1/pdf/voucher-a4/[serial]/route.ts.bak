@@ -1,0 +1,86 @@
+import { NextRequest } from "next/server";
+import PdfPrinter from "pdfmake";
+import { TDocumentDefinitions, Content } from "pdfmake/interfaces";
+import { supabaseServer } from "@/lib/supabase";
+import { makePayload } from "@/lib/hmac";
+import { readFileSync } from "fs";
+import { join } from "path";
+
+export const runtime = "nodejs";
+
+export async function GET(req: NextRequest, { params }: { params: Promise<{ serial: string }> }){
+  const { serial: rawSerial } = await params;
+  const serial = decodeURIComponent(rawSerial);
+  const supabase = supabaseServer();
+  const { data } = await supabase
+    .from("vouchers")
+    .select("serial_no, amount, association, name, dob, status, issued_at")
+    .eq("serial_no", serial).maybeSingle();
+
+  const payload = makePayload(serial, data?.issued_at);
+  
+  // Pretendard 폰트 파일 읽기
+  const fonts = {
+    Pretendard: {
+      normal: readFileSync(join(process.cwd(), "font/public/static/Pretendard-Regular.otf")),
+      bold: readFileSync(join(process.cwd(), "font/public/static/Pretendard-Bold.otf")),
+      italics: readFileSync(join(process.cwd(), "font/public/static/Pretendard-Regular.otf")),
+      bolditalics: readFileSync(join(process.cwd(), "font/public/static/Pretendard-Bold.otf")),
+    },
+  };
+  const printer = new PdfPrinter(fonts);
+
+  const header: Content = { text: "자재 교환권", style: "title", alignment: "center", margin:[0,8,0,16] };
+  const body: Content = {
+    columns: [
+      [
+        { text: `일련번호`, style:"label" },
+        { text: serial, style:"valueLarge", margin:[0,2,0,8] },
+        { text: `금액`, style:"label" },
+        { text: `${Number(data?.amount||0).toLocaleString()} 원`, style:"valueHuge", margin:[0,2,0,12] },
+        { text: `성명`, style:"label" },
+        { text: `${data?.name ?? ""}`, style:"value" },
+        { text: `생년월일`, style:"label", margin:[0,8,0,0] },
+        { text: `${data?.dob ?? ""}`, style:"value" },
+        { text: `영농회`, style:"label", margin:[0,8,0,0] },
+        { text: `${data?.association ?? ""}`, style:"value" },
+        { text: `발행일`, style:"label", margin:[0,8,0,0] },
+        { text: `${data?.issued_at ?? ""}`, style:"value" },
+        { text: `상태`, style:"label", margin:[0,8,0,0] },
+        { text: `${data?.status ?? ""}`, style:"value" },
+      ],
+      [
+        { qr: payload, fit: 180, alignment:"right" },
+        { text: "스마트폰으로 QR을 제시하세요.", style:"hint", alignment:"right", margin:[0,8,0,0] }
+      ]
+    ],
+    columnGap: 24
+  };
+
+  const footer: Content = { text: process.env.PDF_FOOTER_NOTICE || "", alignment:"center", margin:[0,24,0,0], fontSize: 10 };
+
+  const dd:TDocumentDefinitions = {
+    pageSize: "A4",
+    pageMargins: [36,36,36,36],
+    defaultStyle: { font: "Pretendard" },
+    content: [ header, body, footer ],
+    styles: {
+      title: { fontSize: 28, bold: true },
+      label: { fontSize: 10, color: "#666" },
+      value: { fontSize: 14, bold: true },
+      valueLarge: { fontSize: 16, bold: true },
+      valueHuge: { fontSize: 24, bold: true },
+      hint: { fontSize: 10, color: "#555" }
+    }
+  };
+
+  const pdfDoc = printer.createPdfKitDocument(dd);
+  const chunks:Buffer[] = [];
+  await new Promise<void>((resolve) => {
+    pdfDoc.on("data", (c:Buffer)=>chunks.push(c));
+    pdfDoc.on("end", ()=>resolve());
+    pdfDoc.end();
+  });
+  const buf = Buffer.concat(chunks);
+  return new Response(buf, { headers: { "Content-Type":"application/pdf", "Content-Disposition":`inline; filename="voucher-a4-${serial}.pdf"` } });
+}
