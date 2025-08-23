@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { supabaseServer } from '@/lib/supabase';
 import { z } from 'zod';
 
 // 교환권 사용 등록 스키마 (개선된 버전)
@@ -36,10 +36,7 @@ export async function POST(request: NextRequest) {
     const { serial_no, usage_location, site_id, notes, usage_amount, customer_info } = validation.data;
 
     // Supabase 클라이언트 생성
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY! // 서비스 역할 키 사용
-    );
+    const supabase = supabaseServer();
 
     // 현재 사용자 정보 가져오기 (실제 구현에서는 JWT 토큰에서 추출)
     // TODO: 실제 구현에서는 인증된 사용자 ID를 가져와야 함
