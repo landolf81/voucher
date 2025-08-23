@@ -41,29 +41,56 @@ export function MobileScanPage() {
       try {
         setIsScanning(true);
         setCameraError('');
+
+        // HTTPS 확인
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+          setCameraError('카메라 접근은 HTTPS 환경에서만 가능합니다.');
+          return;
+        }
+
+        // 권한 먼저 요청
+        try {
+          await navigator.mediaDevices.getUserMedia({ video: true });
+        } catch (permissionError: any) {
+          console.error('카메라 권한 오류:', permissionError);
+          setCameraError('카메라 접근 권한이 필요합니다. 브라우저 설정에서 카메라 권한을 허용해주세요.');
+          return;
+        }
+        
+        // 잠시 대기 후 장치 목록 조회
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         const devices = await BrowserMultiFormatReader.listVideoInputDevices();
+        console.log('감지된 카메라 장치들:', devices);
+        
         if (!devices || devices.length === 0) {
-          setCameraError('카메라를 찾을 수 없습니다.');
+          setCameraError('카메라 장치를 찾을 수 없습니다. 브라우저 설정을 확인해주세요.');
           return;
         }
 
-        // 후면 카메라 우선 선택
-        const backCamera = devices.find(device => 
-          device.label.toLowerCase().includes('back') || 
-          device.label.toLowerCase().includes('rear')
-        );
-        const deviceId = backCamera?.deviceId || devices[0]?.deviceId;
+        // 후면 카메라 우선 선택 (더 넓은 검색)
+        const backCamera = devices.find(device => {
+          const label = device.label.toLowerCase();
+          return label.includes('back') || 
+                 label.includes('rear') || 
+                 label.includes('환경') ||
+                 label.includes('후면');
+        });
+        
+        const deviceId = backCamera?.deviceId || devices[devices.length - 1]?.deviceId || devices[0]?.deviceId;
 
         if (!deviceId) {
-          setCameraError('카메라 장치 ID를 찾을 수 없습니다.');
+          setCameraError('사용 가능한 카메라 장치가 없습니다.');
           return;
         }
+
+        console.log('사용할 카메라:', deviceId, backCamera?.label || devices[0]?.label);
 
         await codeReader.decodeFromVideoDevice(deviceId, videoRef.current!, (res) => {
           if (!isMounted) return;
           if (res) {
             const scannedSerial = res.getText();
+            console.log('QR 스캔 결과:', scannedSerial);
             // 중복 스캔 방지
             if (!scannedVouchers.find(v => v.serial_no === scannedSerial)) {
               handleVoucherScan(scannedSerial);
@@ -72,7 +99,17 @@ export function MobileScanPage() {
         });
       } catch (e: any) {
         console.error('카메라 오류:', e);
-        setCameraError(`카메라 오류: ${e.message || '알 수 없는 오류'}`);
+        if (e.name === 'NotAllowedError') {
+          setCameraError('카메라 접근이 거부되었습니다. 브라우저 설정에서 카메라 권한을 허용해주세요.');
+        } else if (e.name === 'NotFoundError') {
+          setCameraError('카메라 장치를 찾을 수 없습니다.');
+        } else if (e.name === 'NotSupportedError') {
+          setCameraError('이 브라우저는 카메라를 지원하지 않습니다.');
+        } else if (e.name === 'NotReadableError') {
+          setCameraError('카메라가 다른 앱에서 사용 중입니다.');
+        } else {
+          setCameraError(`카메라 오류: ${e.message || '알 수 없는 오류'}`);
+        }
         setIsScanning(false);
       }
     };
@@ -324,7 +361,58 @@ export function MobileScanPage() {
             textAlign: 'center'
           }}>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>📷</div>
-            <p style={{ marginBottom: '20px' }}>{cameraError}</p>
+            <p style={{ marginBottom: '16px', fontSize: '16px', lineHeight: '1.5' }}>{cameraError}</p>
+            
+            {/* 카메라 권한 가이드 */}
+            {cameraError.includes('권한') && (
+              <div style={{
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                borderRadius: '8px',
+                padding: '16px',
+                marginBottom: '20px',
+                textAlign: 'left',
+                fontSize: '14px'
+              }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>📱 카메라 권한 허용 방법:</div>
+                <div>1. 주소창 옆 🔒 또는 ⓘ 아이콘 클릭</div>
+                <div>2. "카메라" 또는 "Camera" 허용으로 변경</div>
+                <div>3. 페이지 새로고침</div>
+              </div>
+            )}
+
+            {cameraError.includes('HTTPS') && (
+              <div style={{
+                backgroundColor: 'rgba(245, 101, 101, 0.1)',
+                border: '1px solid rgba(245, 101, 101, 0.3)',
+                borderRadius: '8px',
+                padding: '16px',
+                marginBottom: '20px',
+                textAlign: 'left',
+                fontSize: '14px'
+              }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>🔒 보안 연결 필요</div>
+                <div>카메라 접근을 위해 HTTPS 연결이 필요합니다.</div>
+                <div>안전한 연결로 접속해주세요.</div>
+              </div>
+            )}
+            {/* 재시도 버튼 */}
+            <button
+              onClick={() => window.location.reload()}
+              style={{
+                backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '12px 24px',
+                fontSize: '16px',
+                marginBottom: '20px',
+                cursor: 'pointer'
+              }}
+            >
+              🔄 다시 시도
+            </button>
+
             {/* 수동 입력 폴백 */}
             <div style={{
               width: '100%',
