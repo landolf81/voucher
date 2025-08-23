@@ -105,8 +105,8 @@ export function MobileSearchPage() {
           setIsScanning(false);
           codeReader.reset();
           
-          // 검색은 일련번호로 수행
-          performSearch(serial);
+          // 검색은 전체 페이로드로 수행 (검증을 위해)
+          performSearchWithPayload(serial, fullPayload);
         }
       });
     } catch (e: any) {
@@ -172,6 +172,53 @@ export function MobileSearchPage() {
     } catch (error) {
       console.error('검색 오류:', error);
       alert('검색 중 오류가 발생했습니다.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // QR 스캔 전용 검색 (전체 페이로드 사용)
+  const performSearchWithPayload = async (serial: string, fullPayload: string) => {
+    setIsSearching(true);
+    setSearchResults([]);
+    setSelectedVoucher(null);
+
+    try {
+      // QR 스캔에서는 전체 페이로드를 검증 API에 전달
+      const verifyResponse = await fetch('/api/v1/vouchers/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ payload: fullPayload })
+      });
+
+      const verifyData = await verifyResponse.json();
+      
+      if (verifyData.ok && verifyData.voucher) {
+        // 단일 결과 표시
+        const voucher: VoucherData = {
+          id: verifyData.voucher.id || '1',
+          serial_no: serial, // 화면에 표시할 일련번호
+          amount: verifyData.voucher.amount,
+          association: verifyData.voucher.association,
+          name: verifyData.voucher.name,
+          status: verifyData.voucher.status,
+          issued_at: verifyData.voucher.issued_at || new Date().toISOString(),
+          used_at: verifyData.voucher.used_at,
+          usage_location: verifyData.voucher.usage_location,
+          voucher_templates: verifyData.voucher.voucher_templates
+        };
+        
+        setSearchResults([voucher]);
+        setSelectedVoucher(voucher);
+      } else {
+        setSearchResults([]);
+        alert(verifyData.message || verifyData.error || '해당 교환권을 찾을 수 없습니다.');
+      }
+    } catch (error) {
+      console.error('QR 검색 오류:', error);
+      alert('교환권 조회 중 오류가 발생했습니다.');
     } finally {
       setIsSearching(false);
     }
