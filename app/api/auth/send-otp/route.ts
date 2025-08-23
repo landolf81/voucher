@@ -29,9 +29,12 @@ export async function POST(request: NextRequest) {
         }
       });
     } else if (email) {
-      // 이메일로 OTP 전송
+      // 이메일로 Magic Link 전송
       result = await supabase.auth.signInWithOtp({
-        email: email
+        email: email,
+        options: {
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/login`
+        }
       });
     }
 
