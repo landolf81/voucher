@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { useDevice } from '@/lib/hooks/useDevice';
 
 export default function LoginPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const device = useDevice();
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
@@ -15,10 +17,11 @@ export default function LoginPage() {
   // 이미 로그인된 사용자는 대시보드로 리다이렉트
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
-      const redirectUrl = user.role === 'admin' ? '/admin/dashboard' : '/admin/dashboard';
+      // 디바이스에 따른 라우팅
+      const redirectUrl = device.isMobile ? '/mobile' : '/admin/dashboard';
       router.replace(redirectUrl);
     }
-  }, [isAuthenticated, isLoading, user, router]);
+  }, [isAuthenticated, isLoading, user, router, device.isMobile]);
 
   const [authStep, setAuthStep] = useState<'id' | 'verification' | 'code'>('id');
   const [verificationMethod, setVerificationMethod] = useState<'sms' | 'email'>('sms');
