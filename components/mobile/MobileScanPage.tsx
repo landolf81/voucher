@@ -48,13 +48,39 @@ export function MobileScanPage() {
           return;
         }
 
-        // 권한 먼저 요청
+        // 먼저 후면 카메라로 권한 요청 시도
+        let selectedDeviceId = null;
         try {
-          await navigator.mediaDevices.getUserMedia({ video: true });
+          // 후면 카메라 제약조건으로 권한 요청
+          const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+              facingMode: { ideal: 'environment' } // 후면 카메라 우선
+            } 
+          });
+          
+          // 스트림에서 실제 사용된 장치 ID 확인
+          const tracks = stream.getVideoTracks();
+          if (tracks.length > 0) {
+            const settings = tracks[0].getSettings();
+            selectedDeviceId = settings.deviceId;
+            console.log('후면 카메라로 권한 획득:', selectedDeviceId);
+          }
+          
+          // 스트림 정리 (zxing에서 다시 열 것이므로)
+          stream.getTracks().forEach(track => track.stop());
+          
         } catch (permissionError: any) {
-          console.error('카메라 권한 오류:', permissionError);
-          setCameraError('카메라 접근 권한이 필요합니다. 브라우저 설정에서 카메라 권한을 허용해주세요.');
-          return;
+          console.log('후면 카메라 권한 실패, 일반 권한으로 시도:', permissionError);
+          
+          // 후면 카메라 실패 시 일반 권한 요청
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            stream.getTracks().forEach(track => track.stop());
+          } catch (generalError: any) {
+            console.error('카메라 권한 오류:', generalError);
+            setCameraError('카메라 접근 권한이 필요합니다. 브라우저 설정에서 카메라 권한을 허용해주세요.');
+            return;
+          }
         }
         
         // 잠시 대기 후 장치 목록 조회
@@ -68,23 +94,41 @@ export function MobileScanPage() {
           return;
         }
 
-        // 후면 카메라 우선 선택 (더 넓은 검색)
-        const backCamera = devices.find(device => {
-          const label = device.label.toLowerCase();
-          return label.includes('back') || 
-                 label.includes('rear') || 
-                 label.includes('환경') ||
-                 label.includes('후면');
-        });
+        // 장치 ID가 있으면 우선 사용, 없으면 후면 카메라 검색
+        let deviceId = selectedDeviceId;
         
-        const deviceId = backCamera?.deviceId || devices[devices.length - 1]?.deviceId || devices[0]?.deviceId;
+        if (!deviceId) {
+          // 후면 카메라 우선 선택 (더 넓은 검색)
+          const backCamera = devices.find(device => {
+            const label = device.label.toLowerCase();
+            return label.includes('back') || 
+                   label.includes('rear') || 
+                   label.includes('환경') ||
+                   label.includes('후면') ||
+                   label.includes('main') ||
+                   !label.includes('front') && !label.includes('user') && !label.includes('전면');
+          });
+          
+          // 후면 카메라가 없으면 마지막 장치 (보통 후면), 그것도 없으면 첫 번째
+          deviceId = backCamera?.deviceId || devices[devices.length - 1]?.deviceId || devices[0]?.deviceId;
+        }
 
         if (!deviceId) {
           setCameraError('사용 가능한 카메라 장치가 없습니다.');
           return;
         }
 
-        console.log('사용할 카메라:', deviceId, backCamera?.label || devices[0]?.label);
+        console.log('사용할 카메라:', deviceId, devices.find(d => d.deviceId === deviceId)?.label);
+
+        // 후면 카메라 제약조건 설정
+        const constraints = {
+          video: {
+            deviceId: { exact: deviceId },
+            facingMode: 'environment', // 후면 카메라 강제
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          }
+        };
 
         await codeReader.decodeFromVideoDevice(deviceId, videoRef.current!, (res) => {
           if (!isMounted) return;

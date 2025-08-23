@@ -36,6 +36,20 @@ export function MobileSearchPage() {
     try {
       setIsScanning(true);
       setCameraError('');
+
+      // 먼저 후면 카메라로 권한 요청 시도
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            facingMode: { ideal: 'environment' } // 후면 카메라 우선
+          } 
+        });
+        stream.getTracks().forEach(track => track.stop());
+      } catch (permissionError: any) {
+        console.log('후면 카메라 권한 실패, 일반 권한으로 시도');
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        stream.getTracks().forEach(track => track.stop());
+      }
       
       const devices = await BrowserMultiFormatReader.listVideoInputDevices();
       if (!devices || devices.length === 0) {
@@ -43,17 +57,24 @@ export function MobileSearchPage() {
         return;
       }
 
-      // 후면 카메라 우선 선택
-      const backCamera = devices.find(device => 
-        device.label.toLowerCase().includes('back') || 
-        device.label.toLowerCase().includes('rear')
-      );
-      const deviceId = backCamera?.deviceId || devices[0]?.deviceId;
+      // 후면 카메라 우선 선택 (개선된 검색)
+      const backCamera = devices.find(device => {
+        const label = device.label.toLowerCase();
+        return label.includes('back') || 
+               label.includes('rear') || 
+               label.includes('환경') ||
+               label.includes('후면') ||
+               label.includes('main') ||
+               !label.includes('front') && !label.includes('user') && !label.includes('전면');
+      });
+      const deviceId = backCamera?.deviceId || devices[devices.length - 1]?.deviceId || devices[0]?.deviceId;
 
       if (!deviceId) {
         setCameraError('카메라 장치 ID를 찾을 수 없습니다.');
         return;
       }
+
+      console.log('조회용 QR스캔 - 사용할 카메라:', deviceId, devices.find(d => d.deviceId === deviceId)?.label);
 
       await codeReader.decodeFromVideoDevice(deviceId, videoRef.current!, (res) => {
         if (res) {
