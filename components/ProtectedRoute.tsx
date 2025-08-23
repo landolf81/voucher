@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { useAuth, useRequireAuth, useRequireRole, useRequirePageAccess } from '@/lib/contexts/AuthContext';
+import { useAuth } from '@/lib/contexts/AuthContext';
 import { UserRole } from '@/lib/auth/permissions';
 
 interface ProtectedRouteProps {
@@ -26,17 +26,7 @@ export function ProtectedRoute({
   requirePath,
   fallback 
 }: ProtectedRouteProps) {
-  const { isLoading, isAuthenticated } = useAuth();
-
-  // Hook들을 항상 호출 (조건부 로직은 Hook 내부에서 처리)
-  const authStatus = useRequireAuth();
-  const roleStatus = useRequireRole(requireRole || '');
-  const pathStatus = useRequirePageAccess(requirePath || '');
-
-  // 실제 보호 로직 적용
-  if (requireAuth && !authStatus) return null;
-  if (requireRole && !roleStatus) return null;
-  if (requirePath && !pathStatus) return null;
+  const { isLoading, isAuthenticated, user } = useAuth();
 
   // 로딩 중
   if (isLoading) {
@@ -87,6 +77,27 @@ export function ProtectedRoute({
         <p style={{ color: '#666', fontSize: '14px', textAlign: 'center' }}>
           이 페이지에 접근하려면 로그인이 필요합니다.<br />
           잠시 후 로그인 페이지로 이동합니다.
+        </p>
+      </div>
+    );
+  }
+
+  // 역할 검증
+  if (requireRole && user && user.role !== requireRole) {
+    return fallback || (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        flexDirection: 'column',
+        gap: '16px'
+      }}>
+        <h2 style={{ color: '#333', marginBottom: '8px' }}>
+          접근 권한이 없습니다
+        </h2>
+        <p style={{ color: '#666', fontSize: '14px', textAlign: 'center' }}>
+          이 페이지에 접근할 권한이 없습니다.
         </p>
       </div>
     );
