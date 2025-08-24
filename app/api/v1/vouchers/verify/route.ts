@@ -88,15 +88,21 @@ export async function POST(req: NextRequest){
             : `발행일자가 다릅니다. QR코드: ${qrIssuedDateKo}, 데이터베이스: ${dbIssuedDateFormatted}`
         };
         
-        // 발행일자 불일치 시 에러 반환 (기존 로직 유지)
-        if (issuedDate !== dbIssuedDate) {
-          console.log('발행일자 불일치:', { qrIssued: issuedDate, dbIssued: dbIssuedDate });
+        // 발행일자 불일치 시 에러 반환 - 단, 오늘 날짜인 경우는 허용 (발행 당일 동기화 이슈 대응)
+        const todayStr = new Date().toISOString().slice(0,10).replace(/-/g,""); // YYYYMMDD
+        const isToday = issuedDate === todayStr || dbIssuedDate === todayStr;
+        
+        if (issuedDate !== dbIssuedDate && !isToday) {
+          console.log('발행일자 불일치 (과거 날짜):', { qrIssued: issuedDate, dbIssued: dbIssuedDate, today: todayStr });
           return NextResponse.json({ 
             ok: false, 
             error: "ISSUED_DATE_MISMATCH",
             message: "이전에 발행된 교환권입니다. 최신 교환권을 사용해주세요.",
             date_comparison: dateComparison
           }, { status: 400 });
+        } else if (issuedDate !== dbIssuedDate && isToday) {
+          console.log('발행일자 불일치 (오늘 날짜) - 허용:', { qrIssued: issuedDate, dbIssued: dbIssuedDate, today: todayStr });
+          // 오늘 날짜인 경우는 동기화 이슈로 간주하여 허용
         }
       } else {
         // QR코드에 발행일자가 없는 경우 (레거시)

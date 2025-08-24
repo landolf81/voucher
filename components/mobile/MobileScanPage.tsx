@@ -171,6 +171,9 @@ export function MobileScanPage() {
               return;
             }
             
+            // 모든 스캔에 대해 마지막 스캔 시간 업데이트
+            setLastScanTime(currentTime);
+            
             // 중복 스캔 방지 (일련번호 기준) - 개선된 중복 체크
             const existingVoucher = scannedVouchers.find(v => v.serial_no === serial);
             if (existingVoucher) {
@@ -180,7 +183,6 @@ export function MobileScanPage() {
                 navigator.vibrate([100, 50, 100]);
               }
             } else {
-              setLastScanTime(currentTime);
               // 0.5초 지연 후 스캔 처리
               setTimeout(() => {
                 handleVoucherScan(serial, fullPayload);
