@@ -7,7 +7,22 @@ export const getSupabaseClient = () => {
   if (!supabaseInstance) {
     supabaseInstance = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        auth: {
+          persistSession: true,
+          storageKey: 'voucher-auth',
+          storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+          detectSessionInUrl: true,
+          flowType: 'pkce', // Safari를 위한 PKCE flow 사용
+          autoRefreshToken: true,
+        },
+        global: {
+          headers: {
+            'X-Client-Info': 'voucher-app',
+          },
+        },
+      }
     );
   }
   return supabaseInstance;

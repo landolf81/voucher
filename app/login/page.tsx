@@ -13,15 +13,64 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
   const router = useRouter();
+  const [isProcessingMagicLink, setIsProcessingMagicLink] = useState(false);
+
+  // Magic Link 처리
+  useEffect(() => {
+    const handleMagicLink = async () => {
+      // URL에서 Magic Link 파라미터 확인
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const searchParams = new URLSearchParams(window.location.search);
+      
+      // Supabase는 hash fragment에 토큰을 포함시킴
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      const type = searchParams.get('type');
+      
+      if ((accessToken || refreshToken) && type === 'magiclink' && !isProcessingMagicLink) {
+        setIsProcessingMagicLink(true);
+        setMessage({ type: 'success', text: 'Magic Link를 처리 중입니다...' });
+        
+        try {
+          const supabase = getSupabaseClient();
+          
+          // 세션 설정
+          if (accessToken && refreshToken) {
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            
+            if (error) {
+              console.error('세션 설정 오류:', error);
+              setMessage({ type: 'error', text: '로그인 처리 중 오류가 발생했습니다.' });
+            } else {
+              console.log('Magic Link 로그인 성공');
+              // URL 정리
+              window.history.replaceState({}, document.title, '/login');
+              // 인증 상태가 업데이트되면 자동으로 리다이렉트됨
+            }
+          }
+        } catch (error) {
+          console.error('Magic Link 처리 오류:', error);
+          setMessage({ type: 'error', text: 'Magic Link 처리 중 오류가 발생했습니다.' });
+        } finally {
+          setIsProcessingMagicLink(false);
+        }
+      }
+    };
+    
+    handleMagicLink();
+  }, [isProcessingMagicLink]);
 
   // 이미 로그인된 사용자는 대시보드로 리다이렉트
   useEffect(() => {
-    if (!isLoading && isAuthenticated && user) {
+    if (!isLoading && !isProcessingMagicLink && isAuthenticated && user) {
       // 디바이스에 따른 라우팅
       const redirectUrl = device.isMobile ? '/mobile' : '/admin/dashboard';
       router.replace(redirectUrl);
     }
-  }, [isAuthenticated, isLoading, user, router, device.isMobile]);
+  }, [isAuthenticated, isLoading, isProcessingMagicLink, user, router, device.isMobile]);
 
   const [authStep, setAuthStep] = useState<'id' | 'verification' | 'code'>('id');
   const [verificationMethod, setVerificationMethod] = useState<'sms' | 'email'>('sms');

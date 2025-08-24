@@ -54,11 +54,15 @@ export async function POST(request: NextRequest) {
                      process.env.NEXT_PUBLIC_SITE_URL ||
                      'https://voucher-iota.vercel.app';
       
+      // Safari 호환성을 위해 로그인 페이지로 리다이렉트
+      const redirectTo = `${origin}/login?type=magiclink&user=${userProfile.user_id}`;
+      console.log('Magic Link redirect URL:', redirectTo);
+      
       result = await supabase.auth.signInWithOtp({
         email: email,
         options: {
           shouldCreateUser: true,
-          emailRedirectTo: `${origin}/admin/dashboard`,
+          emailRedirectTo: redirectTo,
           data: {
             // 사용자 메타데이터에 user_profiles 정보 저장
             user_id: userProfile.user_id,
