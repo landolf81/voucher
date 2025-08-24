@@ -63,18 +63,89 @@ export default function LoginPage() {
   }, [isProcessingMagicLink]);
 
   // 이미 로그인된 사용자는 대시보드로 리다이렉트
+  // OAuth 연동 필요 확인
   useEffect(() => {
-    if (!isLoading && !isProcessingMagicLink && isAuthenticated && user) {
+    const checkOAuthLinking = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('oauth_linking_required') === 'true') {
+        console.log('OAuth 연동이 필요한 상태입니다.');
+        setMessage({ type: 'info', text: '카카오 계정을 기존 회원과 연동해야 합니다.' });
+        // URL 파라미터 제거
+        window.history.replaceState({}, document.title, '/login');
+      }
+    };
+    
+    checkOAuthLinking();
+  }, []);
+
+  // 카카오 OAuth 리다이렉트 후 연동 상태 확인
+  useEffect(() => {
+    const checkKakaoLinkingAfterAuth = async () => {
+      const supabase = getSupabaseClient();
+      
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (session && session.user && !user && !isLinkingKakao) {
+          console.log('카카오 OAuth 세션 확인:', session.user.id);
+          
+          // OAuth 사용자이고 프로필이 없는 경우 연동 필요
+          const isOAuthUser = session.user.app_metadata?.provider === 'kakao';
+          
+          if (isOAuthUser) {
+            console.log('카카오 사용자 연동 확인 중...');
+            
+            const response = await fetch('/api/auth/check-oauth-linking', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                authUserId: session.user.id
+              }),
+            });
+            
+            const linkingData = await response.json();
+            
+            if (linkingData.success && linkingData.linking_required) {
+              console.log('카카오 계정 연동 필요');
+              setIsLinkingKakao(true);
+              setKakaoAuthUserId(session.user.id);
+              setMessage({ 
+                type: 'info', 
+                text: '카카오 계정을 기존 회원과 연동해야 합니다. 휴대폰 번호를 입력하세요.' 
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error('카카오 연동 상태 확인 오류:', error);
+      }
+    };
+
+    // 페이지 로드 시와 세션 변경 시 확인
+    if (!user && !isLoading) {
+      checkKakaoLinkingAfterAuth();
+    }
+  }, [user, isLoading, isLinkingKakao]);
+
+  useEffect(() => {
+    if (!isLoading && !isProcessingMagicLink && isAuthenticated && user && !isLinkingKakao) {
       // 디바이스에 따른 라우팅
       const redirectUrl = device.isMobile ? '/mobile' : '/admin/dashboard';
       router.replace(redirectUrl);
     }
-  }, [isAuthenticated, isLoading, isProcessingMagicLink, user, router, device.isMobile]);
+  }, [isAuthenticated, isLoading, isProcessingMagicLink, user, router, device.isMobile, isLinkingKakao]);
 
   const [authStep, setAuthStep] = useState<'id' | 'verification' | 'code'>('id');
   const [verificationMethod, setVerificationMethod] = useState<'sms' | 'email'>('sms');
   const [verificationCode, setVerificationCode] = useState('');
   const [verificationId, setVerificationId] = useState('');
+  
+  // OAuth 연동 상태
+  const [isLinkingKakao, setIsLinkingKakao] = useState(false);
+  const [kakaoAuthUserId, setKakaoAuthUserId] = useState<string | null>(null);
+  const [linkingPhone, setLinkingPhone] = useState('');
 
   const [formData, setFormData] = useState({
     employeeId: '',
@@ -210,10 +281,13 @@ export default function LoginPage() {
     try {
       const supabase = getSupabaseClient();
       
+      // OAuth 로그인 시작 - 개인정보 스코프 없이 기본만
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'kakao',
         options: {
-          redirectTo: `${window.location.origin}/login`
+          redirectTo: `${window.location.origin}/login`,
+          // 개인정보 스코프 제외 - 기본 로그인만
+          scopes: undefined
         }
       });
 
@@ -221,10 +295,75 @@ export default function LoginPage() {
         console.error('카카오 로그인 오류:', error);
         setMessage({ type: 'error', text: '카카오 로그인에 실패했습니다.' });
       }
-      // 성공 시 리다이렉트는 자동으로 처리됨
+      // 성공 시 카카오 리다이렉트는 자동으로 처리됨
+      // 실제 연동 확인은 페이지 리로드 후 useEffect에서 처리
     } catch (error: any) {
       console.error('카카오 로그인 처리 오류:', error);
       setMessage({ type: 'error', text: '카카오 로그인 처리 중 오류가 발생했습니다.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 카카오 연동 처리 함수
+  const handleKakaoLinking = async (phone: string, verificationCode: string) => {
+    if (!kakaoAuthUserId) {
+      setMessage({ type: 'error', text: '카카오 인증 정보가 없습니다.' });
+      return;
+    }
+
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch('/api/auth/link-kakao', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone: phone,
+          verificationCode: verificationCode,
+          authUserId: kakaoAuthUserId
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setMessage({ type: 'success', text: data.message });
+        
+        // 연동 성공 후 로그인 완료
+        setTimeout(() => {
+          setIsLinkingKakao(false);
+          setKakaoAuthUserId(null);
+          setLinkingPhone('');
+          
+          // 페이지 새로고침으로 로그인 상태 갱신
+          window.location.reload();
+        }, 1500);
+      } else {
+        if (data.error === 'no_existing_user') {
+          setMessage({ 
+            type: 'error', 
+            text: '등록된 회원이 아닙니다. 관리자에게 문의하세요.' 
+          });
+          
+          // 3초 후 카카오 로그아웃
+          setTimeout(async () => {
+            const supabase = getSupabaseClient();
+            await supabase.auth.signOut();
+            setIsLinkingKakao(false);
+            setKakaoAuthUserId(null);
+            setLinkingPhone('');
+          }, 3000);
+        } else {
+          setMessage({ type: 'error', text: data.message });
+        }
+      }
+    } catch (error) {
+      console.error('카카오 연동 오류:', error);
+      setMessage({ type: 'error', text: '연동 처리 중 오류가 발생했습니다.' });
     } finally {
       setLoading(false);
     }
@@ -608,8 +747,150 @@ export default function LoginPage() {
 
 
 
+        {/* 카카오 기존 회원 연동 */}
+        {isLinkingKakao && (
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{
+              backgroundColor: '#fef3c7',
+              border: '1px solid #f59e0b',
+              borderRadius: '8px',
+              padding: '16px',
+              marginBottom: '20px'
+            }}>
+              <h3 style={{
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#92400e',
+                margin: '0 0 8px 0'
+              }}>
+                🔗 카카오 계정 연동
+              </h3>
+              <p style={{
+                fontSize: '14px',
+                color: '#92400e',
+                margin: 0,
+                lineHeight: '1.4'
+              }}>
+                카카오 로그인은 기존 회원만 사용할 수 있습니다.<br />
+                휴대폰 인증을 통해 기존 계정과 연동하세요.
+              </p>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (linkingPhone && verificationCode) {
+                handleKakaoLinking(linkingPhone, verificationCode);
+              }
+            }}>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '6px'
+                }}>
+                  휴대폰 번호
+                </label>
+                <input
+                  type="tel"
+                  required
+                  value={linkingPhone}
+                  onChange={(e) => setLinkingPhone(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '16px'
+                  }}
+                  placeholder="010-1234-5678"
+                />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '6px'
+                }}>
+                  인증 코드 (테스트용: 1234)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '16px'
+                  }}
+                  placeholder="인증 코드를 입력하세요"
+                />
+                <p style={{
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  margin: '4px 0 0 0'
+                }}>
+                  현재 테스트 환경에서는 '1234'를 입력하세요.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const supabase = getSupabaseClient();
+                    await supabase.auth.signOut();
+                    setIsLinkingKakao(false);
+                    setKakaoAuthUserId(null);
+                    setLinkingPhone('');
+                    setVerificationCode('');
+                    setMessage(null);
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    backgroundColor: 'transparent',
+                    color: '#6b7280',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  취소
+                </button>
+                
+                <button
+                  type="submit"
+                  disabled={loading || !linkingPhone || !verificationCode}
+                  style={{
+                    flex: 2,
+                    padding: '12px',
+                    backgroundColor: loading || !linkingPhone || !verificationCode ? '#9ca3af' : '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    fontWeight: '500',
+                    cursor: loading || !linkingPhone || !verificationCode ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {loading ? '연동 중...' : '계정 연동'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
         {/* 카카오 소셜 로그인 */}
-        {authStep === 'id' && (
+        {authStep === 'id' && !isLinkingKakao && (
           <div style={{ marginBottom: '24px' }}>
             <div style={{ 
               display: 'flex', 

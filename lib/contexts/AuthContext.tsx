@@ -13,13 +13,16 @@ import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export interface User {
   id: string;
-  email: string;
+  email?: string;  // Made optional for OAuth users
   phone?: string;
   name: string;
   role: UserRole;
   site_id: string;
   site_name?: string;
   is_active: boolean;
+  oauth_provider?: string;     // OAuth provider (e.g., 'kakao')
+  oauth_provider_id?: string;  // OAuth provider user ID
+  oauth_linked_at?: string;    // When OAuth was linked
 }
 
 export interface AuthContextType {
@@ -185,6 +188,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error || !profile) {
         console.error('프로필 로드 오류:', error);
         
+        // OAuth 사용자의 경우 linking이 필요한지 확인
+        const isOAuthUser = authUser.app_metadata?.provider !== 'email';
+        console.log('OAuth 사용자 여부:', isOAuthUser, 'provider:', authUser.app_metadata?.provider);
+        
+        if (isOAuthUser) {
+          // OAuth 사용자이지만 프로필이 없음 - 기존 회원 연동 필요
+          console.log('OAuth 사용자 프로필 없음 - 연동 필요');
+          setUser(null);
+          setIsLoading(false);
+          setIsLoadingProfile(false);
+          setLoadingUserId(null);
+          // 연동 페이지로 이동하지 않고 로그아웃 - 로그인 페이지에서 연동 처리
+          await supabase.auth.signOut();
+          router.push('/login?oauth_linking_required=true');
+          return;
+        }
+        
         // Magic Link 로그인의 경우 재시도
         if (authUser.email && retryCount < 3) {
           console.log(`프로필 로드 재시도 (${retryCount + 1}/3)`);
@@ -221,13 +241,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('프로필 발견:', profile.name);
         const userData: User = {
           id: authUser.id,
-          email: authUser.email || '',
-          phone: formatPhoneForDisplay(authUser.phone),
+          email: authUser.email || profile.email || undefined,
+          phone: formatPhoneForDisplay(authUser.phone || profile.phone),
           name: profile.name,
           role: profile.role,
           site_id: profile.site_id,
           site_name: profile.sites?.site_name,
-          is_active: profile.is_active
+          is_active: profile.is_active,
+          oauth_provider: profile.oauth_provider || undefined,
+          oauth_provider_id: profile.oauth_provider_id || undefined,
+          oauth_linked_at: profile.oauth_linked_at || undefined
         };
 
         setUser(userData);
