@@ -54,7 +54,7 @@ export function MobileScanPage() {
   const [results, setResults] = useState<UsageResult[]>([]);
   const [processingMode, setProcessingMode] = useState<'batch'>('batch');
   const [manualInput, setManualInput] = useState('');
-  const [lastScanTime, setLastScanTime] = useState(0);
+  const lastScanTimeRef = useRef(0);
 
   // QR 스캔 초기화
   useEffect(() => {
@@ -164,15 +164,15 @@ export function MobileScanPage() {
             const { serial, fullPayload } = parseQRPayload(scannedPayload);
             console.log('추출된 일련번호:', serial);
             
-            // 스캔 간격 제한 (1초 이내 중복 스캔 방지)
+            // 스캔 간격 제한 (1초 이내 중복 스캔 방지) - useRef로 동기 처리
             const currentTime = Date.now();
-            if (currentTime - lastScanTime < 1000) {
-              console.log('너무 빠른 연속 스캔, 무시');
+            if (currentTime - lastScanTimeRef.current < 1000) {
+              console.log('너무 빠른 연속 스캔, 무시:', currentTime - lastScanTimeRef.current, 'ms');
               return;
             }
             
-            // 모든 스캔에 대해 마지막 스캔 시간 업데이트
-            setLastScanTime(currentTime);
+            // 모든 스캔에 대해 마지막 스캔 시간 업데이트 (동기)
+            lastScanTimeRef.current = currentTime;
             
             // 중복 스캔 방지 (일련번호 기준) - 개선된 중복 체크
             const existingVoucher = scannedVouchers.find(v => v.serial_no === serial);
