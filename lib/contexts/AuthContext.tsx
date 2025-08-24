@@ -61,7 +61,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return;
           }
           
-          // 짧은 debounce로 중복 이벤트 방지
+          // iPhone Safari에서는 더 긴 debounce 적용
+          const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+          const debounceTime = isIOS ? 500 : 100;
+          
+          // debounce로 중복 이벤트 방지
           setTimeout(async () => {
             // 한 번 더 확인
             if (loadingUserId === session.user.id) {
@@ -69,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               return;
             }
             await loadUserProfile(session.user);
-          }, 100);
+          }, debounceTime);
         } else if (event === 'SIGNED_OUT') {
           console.log('SIGNED_OUT 이벤트 처리');
           setUser(null);
@@ -114,8 +118,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   // 사용자 프로필 로드
-  const loadUserProfile = async (authUser: SupabaseUser) => {
-    console.log('loadUserProfile 시작:', authUser.id);
+  const loadUserProfile = async (authUser: SupabaseUser, retryCount = 0) => {
+    console.log('loadUserProfile 시작:', authUser.id, 'retry:', retryCount);
     
     // 이미 프로필 로딩 중이거나 같은 사용자면 중단
     if (isLoadingProfile || loadingUserId === authUser.id) {
@@ -155,8 +159,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // 기존 방식: user_profiles 테이블에서 조회 (타임아웃 추가)
       console.log('user_profiles 테이블 조회 시작');
       
+      // iPhone Safari에서는 타임아웃을 더 길게 설정
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const timeout = isIOS ? 10000 : 5000;
+      
       const timeoutPromise = new Promise((resolve) => 
-        setTimeout(() => resolve({ data: null, error: new Error('profile query timeout') }), 5000)
+        setTimeout(() => resolve({ data: null, error: new Error('profile query timeout') }), timeout)
       );
       
       // 임시로 RLS 문제를 우회하기 위해 직접 조회 시도
@@ -174,18 +182,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       const { data: profile, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
 
-      if (error) {
+      if (error || !profile) {
         console.error('프로필 로드 오류:', error);
         
-        // user_profiles에 데이터가 없으면 로그아웃 처리
-        console.log('프로필 없음, 로그아웃 처리');
-        await supabase.auth.signOut();
-        setUser(null);
-        setIsLoading(false);
-        setIsLoadingProfile(false);
-        setLoadingUserId(null);
-        console.log('프로필 없음으로 인한 로그아웃 완료');
-        router.push('/login');
+        // Magic Link 로그인의 경우 재시도
+        if (authUser.email && retryCount < 3) {
+          console.log(`프로필 로드 재시도 (${retryCount + 1}/3)`);
+          setIsLoadingProfile(false);
+          setLoadingUserId(null);
+          
+          // 재시도 전 대기
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+          
+          // 재시도
+          return loadUserProfile(authUser, retryCount + 1);
+        }
+        
+        // 재시도 횟수 초과 또는 SMS 로그인의 경우에만 로그아웃
+        if (retryCount >= 3 || !authUser.email) {
+          console.log('프로필 없음, 로그아웃 처리');
+          await supabase.auth.signOut();
+          setUser(null);
+          setIsLoading(false);
+          setIsLoadingProfile(false);
+          setLoadingUserId(null);
+          console.log('프로필 없음으로 인한 로그아웃 완료');
+          router.push('/login');
+        } else {
+          // 일시적인 오류로 간주하고 대기
+          setIsLoading(false);
+          setIsLoadingProfile(false);
+          setLoadingUserId(null);
+        }
         return;
       }
 
@@ -203,16 +231,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
 
         setUser(userData);
-      } else {
-        console.log('프로필 없음, 로그아웃 처리');
-        await supabase.auth.signOut();
-        setUser(null);
-        setIsLoading(false);
-        setIsLoadingProfile(false);
-        setLoadingUserId(null);
-        console.log('프로필 없음으로 인한 로그아웃 완료');
-        router.push('/login');
-        return;
       }
       setIsLoading(false);
       setIsLoadingProfile(false);
@@ -221,15 +239,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('프로필 로드 오류:', error);
       
-      // 예외 발생 시도 로그아웃 처리
-      console.log('예외 발생, 로그아웃 처리');
-      await supabase.auth.signOut();
-      setUser(null);
-      setIsLoading(false);
-      setIsLoadingProfile(false);
-      setLoadingUserId(null);
-      console.log('예외 발생으로 인한 로그아웃 완료');
-      router.push('/login');
+      // Magic Link 로그인의 경우 재시도
+      if (authUser.email && retryCount < 3) {
+        console.log(`프로필 로드 재시도 (${retryCount + 1}/3) - 예외 발생`);
+        setIsLoadingProfile(false);
+        setLoadingUserId(null);
+        
+        // 재시도 전 대기
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+        
+        // 재시도
+        return loadUserProfile(authUser, retryCount + 1);
+      }
+      
+      // 재시도 횟수 초과 시에만 로그아웃
+      if (retryCount >= 3) {
+        console.log('예외 발생, 로그아웃 처리');
+        await supabase.auth.signOut();
+        setUser(null);
+        setIsLoading(false);
+        setIsLoadingProfile(false);
+        setLoadingUserId(null);
+        console.log('예외 발생으로 인한 로그아웃 완료');
+        router.push('/login');
+      } else {
+        // 일시적인 오류로 간주
+        setIsLoading(false);
+        setIsLoadingProfile(false);
+        setLoadingUserId(null);
+      }
     }
   };
 

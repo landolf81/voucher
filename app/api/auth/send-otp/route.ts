@@ -30,10 +30,13 @@ export async function POST(request: NextRequest) {
       });
     } else if (email) {
       // 이메일로 Magic Link 전송
+      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
+                      (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+      
       result = await supabase.auth.signInWithOtp({
         email: email,
         options: {
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/login`
+          emailRedirectTo: `${baseUrl}/login`
         }
       });
     }
