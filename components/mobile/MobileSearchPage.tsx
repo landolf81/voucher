@@ -32,6 +32,14 @@ interface VoucherData {
     voucher_name: string;
     voucher_type: string;
   };
+  date_comparison?: {
+    qr_issued_date: string | null;
+    db_issued_date: string;
+    qr_issued_date_formatted: string;
+    db_issued_date_formatted: string;
+    is_match: boolean | null;
+    message: string;
+  };
 }
 
 export function MobileSearchPage() {

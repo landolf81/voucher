@@ -99,7 +99,9 @@ export async function POST(request: NextRequest) {
       dob,
       phone: phone || null,
       status: 'registered', // 새로운 상태 체계: 등록부터 시작
-      notes: notes || null
+      notes: notes || null,
+      issued_at: null, // 등록 시에는 발행일자를 null로 설정
+      template_id: template_id || null
     };
 
     const { data: newVoucher, error } = await supabase

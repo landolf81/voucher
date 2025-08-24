@@ -65,17 +65,49 @@ export async function POST(req: NextRequest){
     const latestVoucher = vouchers[0];
     const voucher = latestVoucher;
 
-    // QR코드에 발행일자가 포함된 경우, 발행일자 검증
-    if (issuedDate) {
-      const voucherIssuedDate = new Date(voucher.issued_at).toISOString().slice(0,10).replace(/-/g,""); // YYYYMMDD
+    // 발행일자 비교 정보 준비
+    let dateComparison = null;
+    if (voucher.issued_at) {
+      const dbIssuedDate = new Date(voucher.issued_at).toISOString().slice(0,10).replace(/-/g,""); // YYYYMMDD
+      const dbIssuedDateFormatted = new Date(voucher.issued_at).toLocaleDateString('ko-KR');
       
-      if (issuedDate !== voucherIssuedDate) {
-        console.log('발행일자 불일치:', { qrIssued: issuedDate, dbIssued: voucherIssuedDate });
-        return NextResponse.json({ 
-          ok: false, 
-          error: "ISSUED_DATE_MISMATCH",
-          message: "이전에 발행된 교환권입니다. 최신 교환권을 사용해주세요." 
-        }, { status: 400 });
+      if (issuedDate) {
+        // QR코드에 발행일자가 포함된 경우
+        const qrIssuedDateFormatted = `${issuedDate.slice(0,4)}-${issuedDate.slice(4,6)}-${issuedDate.slice(6,8)}`;
+        const qrDateObj = new Date(qrIssuedDateFormatted);
+        const qrIssuedDateKo = qrDateObj.toLocaleDateString('ko-KR');
+        
+        dateComparison = {
+          qr_issued_date: issuedDate,
+          db_issued_date: dbIssuedDate,
+          qr_issued_date_formatted: qrIssuedDateKo,
+          db_issued_date_formatted: dbIssuedDateFormatted,
+          is_match: issuedDate === dbIssuedDate,
+          message: issuedDate === dbIssuedDate 
+            ? "발행일자가 일치합니다." 
+            : `발행일자가 다릅니다. QR코드: ${qrIssuedDateKo}, 데이터베이스: ${dbIssuedDateFormatted}`
+        };
+        
+        // 발행일자 불일치 시 에러 반환 (기존 로직 유지)
+        if (issuedDate !== dbIssuedDate) {
+          console.log('발행일자 불일치:', { qrIssued: issuedDate, dbIssued: dbIssuedDate });
+          return NextResponse.json({ 
+            ok: false, 
+            error: "ISSUED_DATE_MISMATCH",
+            message: "이전에 발행된 교환권입니다. 최신 교환권을 사용해주세요.",
+            date_comparison: dateComparison
+          }, { status: 400 });
+        }
+      } else {
+        // QR코드에 발행일자가 없는 경우 (레거시)
+        dateComparison = {
+          qr_issued_date: null,
+          db_issued_date: dbIssuedDate,
+          qr_issued_date_formatted: "QR코드에 발행일자 없음",
+          db_issued_date_formatted: dbIssuedDateFormatted,
+          is_match: null,
+          message: `데이터베이스 발행일자: ${dbIssuedDateFormatted} (QR코드는 구형식)`
+        };
       }
     }
 
@@ -121,7 +153,11 @@ export async function POST(req: NextRequest){
     }
 
     console.log('최종 응답:', voucherWithTemplate);
-    return NextResponse.json({ ok:true, voucher:voucherWithTemplate });
+    return NextResponse.json({ 
+      ok: true, 
+      voucher: voucherWithTemplate,
+      date_comparison: dateComparison 
+    });
   } catch (error) {
     console.error('Verify API 전체 오류:', error);
     return NextResponse.json({ ok:false, error: 'INTERNAL_ERROR' }, { status:500 });

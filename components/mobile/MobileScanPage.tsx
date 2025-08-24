@@ -26,6 +26,14 @@ interface VoucherInfo {
   name: string;
   status: string;
   scanned_at: string;
+  date_comparison?: {
+    qr_issued_date: string | null;
+    db_issued_date: string;
+    qr_issued_date_formatted: string;
+    db_issued_date_formatted: string;
+    is_match: boolean | null;
+    message: string;
+  };
 }
 
 interface UsageResult {
@@ -192,19 +200,25 @@ export function MobileScanPage() {
 
   // 교환권 정보 조회
   const handleVoucherScan = async (serialNo: string, fullPayload?: string) => {
+    console.log('handleVoucherScan 시작:', { serialNo, fullPayload });
     setIsLoadingVoucherInfo(true);
     
     try {
       // API에는 검증을 위해 전체 페이로드 전송, 없으면 일련번호만 전송
+      const payload = fullPayload || serialNo;
+      console.log('API 호출 전송 데이터:', { payload });
+      
       const response = await fetch('/api/v1/vouchers/verify', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ payload: fullPayload || serialNo })
+        body: JSON.stringify({ payload })
       });
 
+      console.log('API 응답 상태:', response.status);
       const data = await response.json();
+      console.log('API 응답 데이터:', data);
       
       if (data.ok && data.voucher) {
         const voucherInfo: VoucherInfo = {
@@ -213,13 +227,26 @@ export function MobileScanPage() {
           association: data.voucher.association,
           name: data.voucher.name,
           status: data.voucher.status,
-          scanned_at: new Date().toISOString()
+          scanned_at: new Date().toISOString(),
+          date_comparison: data.date_comparison
         };
         
-        setScannedVouchers(prev => [...prev, voucherInfo]);
+        console.log('교환권 정보 추가:', voucherInfo);
+        
+        // 발행일자 비교 정보가 있고 일치하지 않는 경우 경고 표시
+        if (data.date_comparison && data.date_comparison.is_match === false) {
+          console.warn('발행일자 불일치 감지:', data.date_comparison.message);
+        }
+        
+        setScannedVouchers(prev => {
+          const newList = [...prev, voucherInfo];
+          console.log('업데이트된 스캔 목록:', newList);
+          return newList;
+        });
 
         // 즉시 처리 모드인 경우 바로 사용 등록
         if (processingMode === 'instant' && data.voucher.status === 'issued') {
+          console.log('즉시 처리 모드: 사용 등록 시작');
           await processVoucherUsage(voucherInfo);
         }
       } else {
@@ -229,6 +256,10 @@ export function MobileScanPage() {
         // 발행일자 불일치 에러인 경우 사용자 친화적 메시지로 변경
         if (data.error === 'ISSUED_DATE_MISMATCH') {
           errorMessage = data.message || '이전에 발행된 교환권입니다. 최신 교환권을 사용해주세요.';
+          // 발행일자 비교 정보가 있으면 더 자세한 메시지 추가
+          if (data.date_comparison) {
+            errorMessage += `\n${data.date_comparison.message}`;
+          }
         } else if (data.error === 'INVALID_SIGNATURE') {
           errorMessage = '유효하지 않은 QR코드입니다.';
         } else if (data.error === 'NOT_FOUND') {
@@ -241,10 +272,16 @@ export function MobileScanPage() {
           association: '조회실패',
           name: errorMessage,
           status: 'error',
-          scanned_at: new Date().toISOString()
+          scanned_at: new Date().toISOString(),
+          date_comparison: data.date_comparison
         };
         
-        setScannedVouchers(prev => [...prev, voucherInfo]);
+        console.log('오류 교환권 정보 추가:', voucherInfo);
+        setScannedVouchers(prev => {
+          const newList = [...prev, voucherInfo];
+          console.log('업데이트된 스캔 목록 (오류):', newList);
+          return newList;
+        });
       }
     } catch (error) {
       console.error('교환권 정보 조회 오류:', error);
@@ -253,13 +290,19 @@ export function MobileScanPage() {
         serial_no: serialNo,
         amount: 0,
         association: '조회실패',
-        name: '서버 오류가 발생했습니다',
+        name: `서버 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`,
         status: 'error',
         scanned_at: new Date().toISOString()
       };
       
-      setScannedVouchers(prev => [...prev, voucherInfo]);
+      console.log('예외 교환권 정보 추가:', voucherInfo);
+      setScannedVouchers(prev => {
+        const newList = [...prev, voucherInfo];
+        console.log('업데이트된 스캔 목록 (예외):', newList);
+        return newList;
+      });
     } finally {
+      console.log('handleVoucherScan 완료, 로딩 상태 해제');
       setIsLoadingVoucherInfo(false);
     }
   };
@@ -667,6 +710,68 @@ export function MobileScanPage() {
           >
             {isProcessing ? '처리 중...' : `${scannedVouchers.filter(v => v.status !== 'error').length}개 교환권 일괄 처리`}
           </button>
+        )}
+
+        {/* 스캔된 교환권 목록 */}
+        {scannedVouchers.length > 0 && (
+          <div style={{
+            backgroundColor: 'rgba(255,255,255,0.1)',
+            borderRadius: '8px',
+            padding: '12px',
+            marginBottom: '16px',
+            maxHeight: '200px',
+            overflowY: 'auto'
+          }}>
+            <h3 style={{
+              fontSize: '14px',
+              fontWeight: '600',
+              margin: '0 0 8px 0'
+            }}>
+              스캔된 교환권 ({scannedVouchers.length}개)
+            </h3>
+            {scannedVouchers.slice(-5).reverse().map((voucher, index) => (
+              <div
+                key={index}
+                style={{
+                  backgroundColor: voucher.status === 'error' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+                  borderRadius: '6px',
+                  padding: '8px',
+                  marginBottom: '8px',
+                  fontSize: '12px'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontFamily: 'monospace', fontWeight: '600' }}>
+                    {voucher.serial_no.length > 15 ? `${voucher.serial_no.substring(0, 15)}...` : voucher.serial_no}
+                  </span>
+                  <span style={{ color: voucher.status === 'error' ? '#f87171' : '#10b981', fontWeight: '600' }}>
+                    {voucher.status === 'error' ? '❌' : '✅'}
+                  </span>
+                </div>
+                <div style={{ marginTop: '4px', color: '#e5e7eb' }}>
+                  {voucher.association} | {voucher.name}
+                </div>
+                {voucher.amount > 0 && (
+                  <div style={{ marginTop: '2px', color: '#fbbf24', fontWeight: '600' }}>
+                    {voucher.amount.toLocaleString()}원
+                  </div>
+                )}
+                {/* 발행일자 비교 정보 표시 */}
+                {voucher.date_comparison && (
+                  <div style={{ 
+                    marginTop: '4px', 
+                    padding: '4px 6px', 
+                    borderRadius: '4px',
+                    backgroundColor: voucher.date_comparison.is_match === false ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)',
+                    fontSize: '11px',
+                    color: voucher.date_comparison.is_match === false ? '#fca5a5' : '#a7f3d0'
+                  }}>
+                    📅 {voucher.date_comparison.message}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         )}
 
         {/* 최근 결과 */}
