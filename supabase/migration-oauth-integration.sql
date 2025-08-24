@@ -26,10 +26,20 @@ CREATE INDEX IF NOT EXISTS idx_user_profiles_oauth_provider ON user_profiles(oau
 CREATE INDEX IF NOT EXISTS idx_user_profiles_oauth_provider_id ON user_profiles(oauth_provider_id);
 CREATE INDEX IF NOT EXISTS idx_user_profiles_oauth_composite ON user_profiles(oauth_provider, oauth_provider_id);
 
--- 4. Add unique constraint for OAuth provider combinations
-ALTER TABLE user_profiles 
-ADD CONSTRAINT IF NOT EXISTS unique_oauth_provider_id 
-UNIQUE (oauth_provider, oauth_provider_id);
+-- 4. Add unique constraint for OAuth provider combinations (PostgreSQL compatible)
+DO $$
+BEGIN
+    -- Check if constraint already exists
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'unique_oauth_provider_id' 
+        AND table_name = 'user_profiles'
+    ) THEN
+        ALTER TABLE user_profiles 
+        ADD CONSTRAINT unique_oauth_provider_id 
+        UNIQUE (oauth_provider, oauth_provider_id);
+    END IF;
+END $$;
 
 -- 5. Create function to link OAuth account to existing user
 CREATE OR REPLACE FUNCTION link_oauth_account(
