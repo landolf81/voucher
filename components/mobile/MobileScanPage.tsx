@@ -54,7 +54,6 @@ export function MobileScanPage() {
   const [results, setResults] = useState<UsageResult[]>([]);
   const [processingMode, setProcessingMode] = useState<'batch'>('batch');
   const [manualInput, setManualInput] = useState('');
-  const lastScanTimeRef = useRef(0);
 
   // QR 스캔 초기화
   useEffect(() => {
@@ -164,30 +163,20 @@ export function MobileScanPage() {
             const { serial, fullPayload } = parseQRPayload(scannedPayload);
             console.log('추출된 일련번호:', serial);
             
-            // 스캔 간격 제한 (1초 이내 중복 스캔 방지) - useRef로 동기 처리
-            const currentTime = Date.now();
-            if (currentTime - lastScanTimeRef.current < 1000) {
-              console.log('너무 빠른 연속 스캔, 무시:', currentTime - lastScanTimeRef.current, 'ms');
-              return;
-            }
-            
-            // 모든 스캔에 대해 마지막 스캔 시간 업데이트 (동기)
-            lastScanTimeRef.current = currentTime;
-            
-            // 중복 스캔 방지 (일련번호 기준) - 개선된 중복 체크
+            // 중복 스캔 완전 무시 (일련번호 기준)
             const existingVoucher = scannedVouchers.find(v => v.serial_no === serial);
             if (existingVoucher) {
-              console.log('중복 스캔 감지:', serial, '기존 상태:', existingVoucher.status);
+              console.log('중복 스캔 감지, 완전 무시:', serial, '기존 상태:', existingVoucher.status);
               // 진동 피드백으로 중복 알림
               if ('vibrate' in navigator) {
                 navigator.vibrate([100, 50, 100]);
               }
-            } else {
-              // 0.5초 지연 후 스캔 처리
-              setTimeout(() => {
-                handleVoucherScan(serial, fullPayload);
-              }, 500);
+              return; // 중복인 경우 완전 무시
             }
+            
+            // 새로운 교환권만 처리
+            console.log('새 교환권 스캔:', serial);
+            handleVoucherScan(serial, fullPayload);
           }
         });
       } catch (e: any) {
