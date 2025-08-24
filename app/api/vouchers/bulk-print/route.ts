@@ -235,7 +235,27 @@ export async function POST(req: NextRequest) {
         }
 
         if (batchVouchers && batchVouchers.length > 0) {
-          allVouchers = allVouchers.concat(batchVouchers);
+          // 발행된 상태의 교환권은 현재 시각을 발행일자로 설정 (DB 업데이트 지연 대응)
+          const currentIssuanceTime = new Date().toISOString();
+          const processedVouchers = batchVouchers.map(voucher => {
+            if (voucher.status === 'issued') {
+              // issued 상태인데 issued_at이 없거나 오래된 날짜면 현재 시각으로 설정
+              const existingIssuedAt = voucher.issued_at ? new Date(voucher.issued_at) : null;
+              const today = new Date();
+              today.setHours(0, 0, 0, 0); // 오늘 00:00:00
+              
+              // 발행일이 없거나 오늘 이전이면 현재 시각으로 설정
+              if (!existingIssuedAt || existingIssuedAt < today) {
+                console.log(`Voucher ${voucher.serial_no}: 발행일자를 현재 시각으로 설정 (기존: ${voucher.issued_at})`);
+                return {
+                  ...voucher,
+                  issued_at: currentIssuanceTime
+                };
+              }
+            }
+            return voucher;
+          });
+          allVouchers = allVouchers.concat(processedVouchers);
           console.log(`Batch ${batchNumber} fetched successfully: ${batchVouchers.length} vouchers`);
         } else {
           console.warn(`Batch ${batchNumber} returned no data`);

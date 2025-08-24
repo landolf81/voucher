@@ -54,6 +54,7 @@ export function MobileScanPage() {
   const [results, setResults] = useState<UsageResult[]>([]);
   const [processingMode, setProcessingMode] = useState<'batch'>('batch');
   const [manualInput, setManualInput] = useState('');
+  const [lastScanTime, setLastScanTime] = useState(0);
 
   // QR 스캔 초기화
   useEffect(() => {
@@ -163,6 +164,13 @@ export function MobileScanPage() {
             const { serial, fullPayload } = parseQRPayload(scannedPayload);
             console.log('추출된 일련번호:', serial);
             
+            // 스캔 간격 제한 (1초 이내 중복 스캔 방지)
+            const currentTime = Date.now();
+            if (currentTime - lastScanTime < 1000) {
+              console.log('너무 빠른 연속 스캔, 무시');
+              return;
+            }
+            
             // 중복 스캔 방지 (일련번호 기준) - 개선된 중복 체크
             const existingVoucher = scannedVouchers.find(v => v.serial_no === serial);
             if (existingVoucher) {
@@ -172,7 +180,11 @@ export function MobileScanPage() {
                 navigator.vibrate([100, 50, 100]);
               }
             } else {
-              handleVoucherScan(serial, fullPayload);
+              setLastScanTime(currentTime);
+              // 0.5초 지연 후 스캔 처리
+              setTimeout(() => {
+                handleVoucherScan(serial, fullPayload);
+              }, 500);
             }
           }
         });
@@ -613,12 +625,12 @@ export function MobileScanPage() {
               }} 
             />
             
-            {/* 스캔 오버레이 */}
+            {/* 스캔 오버레이 - 상단 위치 */}
             <div style={{
               position: 'absolute',
-              top: '50%',
+              top: '20%',
               left: '50%',
-              transform: 'translate(-50%, -50%)',
+              transform: 'translate(-50%, 0)',
               width: '250px',
               height: '250px',
               border: '2px solid #10b981',
