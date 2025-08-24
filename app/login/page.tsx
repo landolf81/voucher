@@ -10,9 +10,12 @@ export default function LoginPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const device = useDevice();
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+  const [message, setMessage] = useState<{type: 'success' | 'error' | 'info', text: string} | null>(null);
   const router = useRouter();
   const [isProcessingMagicLink, setIsProcessingMagicLink] = useState(false);
+  
+  // OAuth 연동 상태 (useEffect에서 사용되므로 최상단에 선언)
+  const [isLinkingKakao, setIsLinkingKakao] = useState(false);
 
   // Magic Link 처리
   useEffect(() => {
@@ -141,9 +144,6 @@ export default function LoginPage() {
   const [verificationMethod, setVerificationMethod] = useState<'sms' | 'email'>('sms');
   const [verificationCode, setVerificationCode] = useState('');
   const [verificationId, setVerificationId] = useState('');
-  
-  // OAuth 연동 상태
-  const [isLinkingKakao, setIsLinkingKakao] = useState(false);
   const [kakaoAuthUserId, setKakaoAuthUserId] = useState<string | null>(null);
   const [linkingPhone, setLinkingPhone] = useState('');
 
@@ -254,9 +254,14 @@ export default function LoginPage() {
       if (result.success) {
         setMessage({ type: 'success', text: result.message || '로그인에 성공했습니다.' });
         
-        // 세션 정보 저장 (필요시)
+        // Supabase 클라이언트에 세션 설정
         if (result.session) {
-          localStorage.setItem('supabase.auth.token', JSON.stringify(result.session));
+          const supabase = getSupabaseClient();
+          await supabase.auth.setSession({
+            access_token: result.session.access_token,
+            refresh_token: result.session.refresh_token
+          });
+          console.log('세션이 설정되었습니다:', result.session.access_token.substring(0, 20) + '...');
         }
         
         setTimeout(() => {
@@ -281,13 +286,14 @@ export default function LoginPage() {
     try {
       const supabase = getSupabaseClient();
       
-      // OAuth 로그인 시작 - 개인정보 스코프 없이 기본만
+      // OAuth 로그인 시작 - Supabase 문서 권장 스코프 사용
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'kakao',
         options: {
           redirectTo: `${window.location.origin}/login`,
-          // 개인정보 스코프 제외 - 기본 로그인만
-          scopes: undefined
+          // Supabase 문서에서 권장하는 기본 스코프들
+          // 카카오 개발자 콘솔에서 이 동의 항목들이 활성화되어야 함
+          scopes: 'openid account_email profile_nickname profile_image'
         }
       });
 
@@ -889,47 +895,6 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* 카카오 소셜 로그인 */}
-        {authStep === 'id' && !isLinkingKakao && (
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              margin: '20px 0',
-              fontSize: '14px',
-              color: '#6b7280'
-            }}>
-              <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #e5e7eb' }} />
-              <span style={{ margin: '0 16px' }}>또는</span>
-              <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #e5e7eb' }} />
-            </div>
-            
-            <button
-              type="button"
-              onClick={handleKakaoLogin}
-              disabled={loading}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                backgroundColor: '#FEE500',
-                color: '#3B1F1C',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                marginBottom: '16px'
-              }}
-            >
-              <span style={{ fontSize: '18px' }}>💬</span>
-              {loading ? '카카오 로그인 중...' : '카카오로 시작하기'}
-            </button>
-          </div>
-        )}
 
       </div>
     </div>

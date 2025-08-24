@@ -21,9 +21,13 @@ export async function POST(request: NextRequest) {
     let result;
 
     if (phone) {
+      // 한국 전화번호를 E.164 형식으로 변환 (예: 01012345678 → +8201012345678)
+      const e164Phone = phone.startsWith('+') ? phone : `+82${phone.substring(1)}`;
+      console.log('OTP 검증 시도:', phone, '→', e164Phone);
+      
       // 전화번호 OTP 검증
       result = await supabase.auth.verifyOtp({
-        phone: phone,
+        phone: e164Phone,
         token: token,
         type: 'sms'
       });

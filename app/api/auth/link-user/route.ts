@@ -74,9 +74,11 @@ export async function POST(request: NextRequest) {
         }
       });
     } else if (phone) {
-      console.log('SMS 전송 시도:', phone);
+      // 한국 전화번호를 E.164 형식으로 변환 (예: 01012345678 → +8201012345678)
+      const e164Phone = phone.startsWith('+') ? phone : `+82${phone.substring(1)}`;
+      console.log('SMS 전송 시도:', phone, '→', e164Phone);
       result = await supabase.auth.signInWithOtp({
-        phone: phone,
+        phone: e164Phone,
         options: {
           channel: 'sms',
           data: {

@@ -67,8 +67,8 @@ export function UserManagement() {
     setLoading(true);
     setMessage(null);
 
-    // 필수 필드 확인
-    if (!formData.email || !formData.name || !formData.phone || !formData.site_id || !formData.user_id) {
+    // 필수 필드 확인 (이메일은 선택 사항)
+    if (!formData.name || !formData.phone || !formData.site_id || !formData.user_id) {
       setMessage({ type: 'error', text: '모든 필수 필드를 입력해주세요.' });
       setLoading(false);
       return;
@@ -266,11 +266,10 @@ export function UserManagement() {
                   color: '#374151',
                   marginBottom: '8px'
                 }}>
-                  이메일 <span style={{color: '#ef4444'}}>*</span>
+                  이메일 <span style={{color: '#9ca3af', fontSize: '12px'}}>(선택)</span>
                 </label>
                 <input
                   type="email"
-                  required
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
                   style={{
