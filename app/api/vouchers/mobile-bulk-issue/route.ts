@@ -244,13 +244,13 @@ export async function POST(request: NextRequest) {
       voucherSerials = createdVouchers.map(v => v.serial_no);
 
     } else if (existing_voucher_ids) {
-      // 기존 교환권 업데이트
+      // 기존 교환권 업데이트 (등록된 교환권과 발행된 교환권 모두 포함 - 재발행 허용)
       const { data: existingVouchers, error: fetchError } = await supabase
         .from('vouchers')
         .select('id, serial_no, status')
         .in('id', existing_voucher_ids)
         .eq('template_id', template_id)
-        .eq('status', 'registered');
+        .in('status', ['registered', 'issued']);
 
       if (fetchError || !existingVouchers) {
         console.error('기존 교환권 조회 오류:', fetchError);
@@ -306,16 +306,25 @@ export async function POST(request: NextRequest) {
           { expiresInHours: expires_in_hours }
         );
 
+        // 기존 교환권의 상태를 확인해서 적절히 업데이트
+        const currentVoucher = existingVouchers.find(v => v.id === voucherId);
+        const updateData: any = {
+          issuance_type: 'mobile',
+          mobile_link_token: voucherLinkData.token, // 고유한 토큰
+          link_expires_at: voucherLinkData.expiresAt.toISOString(),
+          notes: `모바일 일괄 발행 - ${batch_name}`
+        };
+
+        // 아직 등록상태인 교환권만 발행상태로 변경하고 발행일자 설정
+        if (currentVoucher?.status === 'registered') {
+          updateData.status = 'issued';
+          updateData.issued_at = new Date().toISOString();
+        }
+        // 이미 발행된 교환권은 모바일 링크 정보만 갱신 (재발행)
+
         const { data: updatedVoucher, error: updateError } = await supabase
           .from('vouchers')
-          .update({
-            status: 'issued',
-            issuance_type: 'mobile',
-            mobile_link_token: voucherLinkData.token, // 고유한 토큰
-            link_expires_at: voucherLinkData.expiresAt.toISOString(),
-            notes: `모바일 일괄 발행 - ${batch_name}`,
-            issued_at: new Date().toISOString()
-          })
+          .update(updateData)
           .eq('id', voucherId)
           .select('id, serial_no')
           .single();
@@ -402,7 +411,7 @@ export async function POST(request: NextRequest) {
     // 성공 응답
     const successMessage = voucher_data 
       ? `${processedVouchers.length}개의 모바일 교환권이 발행되었습니다.`
-      : `기존 ${processedVouchers.length}개의 교환권이 모바일로 발행되었습니다.`;
+      : `기존 ${processedVouchers.length}개의 교환권이 모바일로 발행/재발행되었습니다.`;
 
     return NextResponse.json({
       success: true,

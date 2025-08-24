@@ -32,6 +32,8 @@ interface Props {
   onSort: (field: 'issued_at' | 'used_at' | 'amount' | 'status') => void;
   onViewDetail: (voucher: VoucherData) => void;
   onPageChange: (page: number) => void;
+  onDelete?: (voucher: VoucherData) => void;
+  onReissue?: (voucher: VoucherData) => void;
 }
 
 export function VoucherInquiryTable({
@@ -44,7 +46,9 @@ export function VoucherInquiryTable({
   sortOrder,
   onSort,
   onViewDetail,
-  onPageChange
+  onPageChange,
+  onDelete,
+  onReissue
 }: Props) {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -346,21 +350,61 @@ export function VoucherInquiryTable({
                         borderBottom: '1px solid #e5e7eb',
                         textAlign: 'center'
                       }}>
-                        <button
-                          onClick={() => onViewDetail(voucher)}
-                          style={{
-                            backgroundColor: '#3b82f6',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            padding: '4px 8px',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: '500'
-                          }}
-                        >
-                          상세
-                        </button>
+                        <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                          <button
+                            onClick={() => onViewDetail(voucher)}
+                            style={{
+                              backgroundColor: '#3b82f6',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              padding: '4px 8px',
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              fontWeight: '500'
+                            }}
+                          >
+                            상세
+                          </button>
+                          {onReissue && (voucher.status === 'registered' || voucher.status === 'issued') && (
+                            <button
+                              onClick={() => onReissue(voucher)}
+                              style={{
+                                backgroundColor: '#10b981',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                padding: '4px 8px',
+                                cursor: 'pointer',
+                                fontSize: '12px',
+                                fontWeight: '500'
+                              }}
+                            >
+                              재발행
+                            </button>
+                          )}
+                          {onDelete && voucher.status !== 'used' && (
+                            <button
+                              onClick={() => {
+                                if (confirm(`교환권 ${voucher.serial_no}를 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.`)) {
+                                  onDelete(voucher);
+                                }
+                              }}
+                              style={{
+                                backgroundColor: '#dc2626',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                padding: '4px 8px',
+                                cursor: 'pointer',
+                                fontSize: '12px',
+                                fontWeight: '500'
+                              }}
+                            >
+                              삭제
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

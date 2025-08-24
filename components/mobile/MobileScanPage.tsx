@@ -54,6 +54,10 @@ export function MobileScanPage() {
   const [results, setResults] = useState<UsageResult[]>([]);
   const [processingMode, setProcessingMode] = useState<'batch'>('batch');
   const [manualInput, setManualInput] = useState('');
+  
+  // 스캔 중복 방지를 위한 ref (동기적 상태 추적)
+  const processingQRRef = useRef<Set<string>>(new Set());
+  const isProcessingAnyRef = useRef(false);
 
   // QR 스캔 초기화
   useEffect(() => {
@@ -163,19 +167,30 @@ export function MobileScanPage() {
             const { serial, fullPayload } = parseQRPayload(scannedPayload);
             console.log('추출된 일련번호:', serial);
             
-            // 중복 스캔 완전 무시 (일련번호 기준)
+            // 강력한 중복 방지 - 현재 처리 중인 QR인지 확인 (동기적)
+            if (processingQRRef.current.has(serial) || isProcessingAnyRef.current) {
+              console.log('QR 처리 중복 감지 (동기):', serial, '현재 처리중:', Array.from(processingQRRef.current));
+              if ('vibrate' in navigator) {
+                navigator.vibrate([100, 50, 100]); // 짧은 진동으로 중복 알림
+              }
+              return;
+            }
+            
+            // State 기반 중복 확인 (백업)
             const existingVoucher = scannedVouchers.find(v => v.serial_no === serial);
             if (existingVoucher) {
-              console.log('중복 스캔 감지, 완전 무시:', serial, '기존 상태:', existingVoucher.status);
-              // 진동 피드백으로 중복 알림
+              console.log('중복 스캔 감지 (state):', serial, '기존 상태:', existingVoucher.status);
               if ('vibrate' in navigator) {
                 navigator.vibrate([100, 50, 100]);
               }
-              return; // 중복인 경우 완전 무시
+              return;
             }
             
-            // 새로운 교환권만 처리
-            console.log('새 교환권 스캔:', serial);
+            // 새로운 교환권 처리 시작
+            console.log('새 교환권 스캔 처리 시작:', serial);
+            processingQRRef.current.add(serial);
+            isProcessingAnyRef.current = true;
+            
             handleVoucherScan(serial, fullPayload);
           }
         });
@@ -205,6 +220,9 @@ export function MobileScanPage() {
       } catch (e) {
         console.log('카메라 정리 중 오류:', e);
       }
+      // 잠금 상태 정리
+      processingQRRef.current.clear();
+      isProcessingAnyRef.current = false;
     };
   }, [scannedVouchers]);
 
@@ -344,6 +362,13 @@ export function MobileScanPage() {
     } finally {
       console.log('handleVoucherScan 완료, 로딩 상태 해제');
       setIsLoadingVoucherInfo(false);
+      
+      // 처리 완료 후 잠금 해제
+      processingQRRef.current.delete(serialNo);
+      if (processingQRRef.current.size === 0) {
+        isProcessingAnyRef.current = false;
+      }
+      console.log('QR 처리 잠금 해제:', serialNo, '남은 처리중:', Array.from(processingQRRef.current));
     }
   };
 
@@ -445,8 +470,24 @@ export function MobileScanPage() {
 
   // 수동 입력 처리
   const handleManualInput = () => {
-    if (manualInput.trim()) {
-      handleVoucherScan(manualInput.trim());
+    const inputSerial = manualInput.trim();
+    if (inputSerial) {
+      // 중복 방지 확인
+      if (processingQRRef.current.has(inputSerial) || isProcessingAnyRef.current) {
+        console.log('수동 입력 중복 감지:', inputSerial);
+        alert('이미 처리 중인 교환권입니다.');
+        return;
+      }
+      
+      const existingVoucher = scannedVouchers.find(v => v.serial_no === inputSerial);
+      if (existingVoucher) {
+        alert('이미 스캔된 교환권입니다.');
+        return;
+      }
+      
+      processingQRRef.current.add(inputSerial);
+      isProcessingAnyRef.current = true;
+      handleVoucherScan(inputSerial);
       setManualInput('');
     }
   };
