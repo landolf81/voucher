@@ -30,13 +30,16 @@ export async function POST(request: NextRequest) {
       });
     } else if (email) {
       // 이메일로 Magic Link 전송
-      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
-                      (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+      // API Route에서는 window 객체가 없으므로 headers에서 URL 추출
+      const origin = request.headers.get('origin') || 
+                     request.headers.get('referer')?.replace(/\/[^\/]*$/, '') ||
+                     process.env.NEXT_PUBLIC_SITE_URL ||
+                     'https://voucher-iota.vercel.app';
       
       result = await supabase.auth.signInWithOtp({
         email: email,
         options: {
-          emailRedirectTo: `${baseUrl}/login`
+          emailRedirectTo: `${origin}/login`
         }
       });
     }

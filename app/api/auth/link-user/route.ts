@@ -48,11 +48,17 @@ export async function POST(request: NextRequest) {
     let result;
     if (email) {
       // 이메일은 Magic Link 방식 사용
+      // API Route에서 origin 추출
+      const origin = request.headers.get('origin') || 
+                     request.headers.get('referer')?.replace(/\/[^\/]*$/, '') ||
+                     process.env.NEXT_PUBLIC_SITE_URL ||
+                     'https://voucher-iota.vercel.app';
+      
       result = await supabase.auth.signInWithOtp({
         email: email,
         options: {
           shouldCreateUser: true,
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/admin/dashboard`,
+          emailRedirectTo: `${origin}/admin/dashboard`,
           data: {
             // 사용자 메타데이터에 user_profiles 정보 저장
             user_id: userProfile.user_id,
