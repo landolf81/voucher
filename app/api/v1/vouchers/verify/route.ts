@@ -31,6 +31,14 @@ export async function POST(req: NextRequest){
       if (issuedDate) {
         // 새 형식: 발행일자 포함된 서명 검증
         console.log('HMAC 검증 (새 형식):', { serial, issuedDate, ts, sig });
+        
+        // 디버깅: 서버에서 같은 값으로 서명 생성해보기
+        const { sign } = await import('@/lib/hmac');
+        const expectedSig = sign(serial, issuedDate, ts);
+        console.log('서버에서 생성된 예상 서명:', expectedSig);
+        console.log('QR 코드의 실제 서명:', sig);
+        console.log('서명 일치 여부:', expectedSig === sig);
+        
         isValidSignature = verifyHmac(serial, issuedDate, ts, sig);
         console.log('HMAC 검증 결과 (새 형식):', isValidSignature);
       } else {
