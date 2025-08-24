@@ -9,7 +9,6 @@ import { useDevice } from '@/lib/hooks/useDevice';
 export default function LoginPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const device = useDevice();
-  const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
   const router = useRouter();
@@ -203,102 +202,34 @@ export default function LoginPage() {
     }
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // 카카오 소셜 로그인 처리
+  const handleKakaoLogin = async () => {
     setLoading(true);
     setMessage(null);
 
-    console.log('회원가입 시도 - formData:', formData);
-
-    // 비밀번호 확인
-    if (formData.password !== formData.confirmPassword) {
-      setMessage({ type: 'error', text: '비밀번호가 일치하지 않습니다.' });
-      setLoading(false);
-      return;
-    }
-
-    // 필수 필드 확인
-    const missingFields = [];
-    if (!formData.email) missingFields.push('이메일');
-    if (!formData.password) missingFields.push('비밀번호');
-    if (!formData.confirmPassword) missingFields.push('비밀번호 확인');
-    if (!formData.name) missingFields.push('이름');
-    if (!formData.site_id) missingFields.push('소속 사업장');
-    if (!formData.phone) missingFields.push('휴대폰 번호');
-    
-    if (missingFields.length > 0) {
-      console.log('누락된 필드:', missingFields);
-      setMessage({ type: 'error', text: `다음 필드를 입력해주세요: ${missingFields.join(', ')}` });
-      setLoading(false);
-      return;
-    }
-
     try {
       const supabase = getSupabaseClient();
-
-      // 1. Auth 사용자 생성
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        phone: formData.phone.startsWith('+82') ? formData.phone : `+82${formData.phone.replace(/^0/, '')}`,
-        password: formData.password,
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'kakao',
         options: {
-          emailRedirectTo: `${window.location.origin}/login`
+          redirectTo: `${window.location.origin}/login`
         }
       });
 
-      if (authError) {
-        throw authError;
+      if (error) {
+        console.error('카카오 로그인 오류:', error);
+        setMessage({ type: 'error', text: '카카오 로그인에 실패했습니다.' });
       }
-
-      if (authData.user) {
-        // 2. 프로필 생성
-        const { error: profileError } = await supabase
-          .from('user_profiles')
-          .insert([{
-            id: authData.user.id,
-            name: formData.name,
-            role: formData.role,
-            site_id: formData.site_id,
-            is_active: true
-          }]);
-
-        if (profileError) {
-          throw profileError;
-        }
-
-        setMessage({ 
-          type: 'success', 
-          text: '회원가입이 완료되었습니다. 이메일 인증 후 로그인해주세요.' 
-        });
-        
-        // 로그인 폼으로 전환
-        setTimeout(() => {
-          setIsSignUp(false);
-          setFormData({
-            employeeId: '',
-            email: formData.email,
-            phone: '',
-            password: '',
-            confirmPassword: '',
-            name: '',
-            role: 'staff',
-            site_id: ''
-          });
-        }, 2000);
-      }
-
+      // 성공 시 리다이렉트는 자동으로 처리됨
     } catch (error: any) {
-      console.error('회원가입 오류:', error);
-      setMessage({ 
-        type: 'error', 
-        text: error.message.includes('already registered') 
-          ? '이미 등록된 이메일입니다.'
-          : '회원가입에 실패했습니다.'
-      });
+      console.error('카카오 로그인 처리 오류:', error);
+      setMessage({ type: 'error', text: '카카오 로그인 처리 중 오류가 발생했습니다.' });
     } finally {
       setLoading(false);
     }
   };
+
 
   // 인증 상태 로딩 중이면 로딩 화면 표시
   if (isLoading) {
@@ -360,7 +291,7 @@ export default function LoginPage() {
             교환권 관리 시스템
           </h1>
           <p style={{ color: '#6b7280' }}>
-            {isSignUp ? '회원가입' : '로그인'}
+            로그인
           </p>
         </div>
 
@@ -377,7 +308,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        {!isSignUp && authStep === 'id' && (
+        {authStep === 'id' && (
           <form onSubmit={handleEmployeeIdSubmit}>
             <div style={{ marginBottom: '20px' }}>
               <label style={{
@@ -426,7 +357,7 @@ export default function LoginPage() {
           </form>
         )}
 
-        {!isSignUp && authStep === 'verification' && (
+        {authStep === 'verification' && (
           <form onSubmit={handleVerificationMethodSubmit}>
             <div style={{ marginBottom: '20px' }}>
               <label style={{
@@ -578,7 +509,7 @@ export default function LoginPage() {
           </form>
         )}
 
-        {!isSignUp && authStep === 'code' && (
+        {authStep === 'code' && (
           <form onSubmit={handleVerificationCodeSubmit}>
             <div style={{ marginBottom: '20px' }}>
               <label style={{
@@ -675,252 +606,50 @@ export default function LoginPage() {
           </form>
         )}
 
-        {isSignUp && (
-          <form onSubmit={handleSignUp}>
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '6px'
-              }}>
-                이메일
-              </label>
-              <input
-                type="email"
-                required
-                value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '16px'
-                }}
-                placeholder="example@email.com"
-              />
-            </div>
 
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '6px'
-              }}>
-                비밀번호
-              </label>
-              <input
-                type="password"
-                required
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '16px'
-                }}
-                placeholder="비밀번호를 입력하세요"
-              />
-            </div>
 
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '6px'
-              }}>
-                비밀번호 확인
-              </label>
-              <input
-                type="password"
-                required
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '16px'
-                }}
-                placeholder="비밀번호를 다시 입력하세요"
-              />
+        {/* 카카오 소셜 로그인 */}
+        {authStep === 'id' && (
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              margin: '20px 0',
+              fontSize: '14px',
+              color: '#6b7280'
+            }}>
+              <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #e5e7eb' }} />
+              <span style={{ margin: '0 16px' }}>또는</span>
+              <hr style={{ flex: 1, border: 'none', borderTop: '1px solid #e5e7eb' }} />
             </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '6px'
-              }}>
-                이름
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '16px'
-                }}
-                placeholder="이름을 입력하세요"
-              />
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '6px'
-              }}>
-                휴대폰 번호
-              </label>
-              <input
-                type="tel"
-                required
-                value={formData.phone}
-                onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '16px'
-                }}
-                placeholder="01012345678"
-              />
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '6px'
-              }}>
-                권한
-              </label>
-              <select
-                value={formData.role}
-                onChange={(e) => setFormData({...formData, role: e.target.value as any})}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  color: '#374151'
-                }}
-              >
-                <option value="staff">직원</option>
-                <option value="viewer">조회만</option>
-                <option value="part_time">아르바이트</option>
-                <option value="admin">관리자</option>
-              </select>
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '6px'
-              }}>
-                소속 사업장
-              </label>
-              <select
-                required
-                value={formData.site_id}
-                onChange={(e) => setFormData({...formData, site_id: e.target.value})}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  color: '#374151'
-                }}
-              >
-                <option value="">사업장을 선택하세요</option>
-                {sites.map((site) => (
-                  <option key={site.id} value={site.id}>
-                    {site.site_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
+            
             <button
-              type="submit"
+              type="button"
+              onClick={handleKakaoLogin}
               disabled={loading}
               style={{
                 width: '100%',
-                padding: '12px',
-                backgroundColor: loading ? '#9ca3af' : '#3b82f6',
-                color: 'white',
+                padding: '12px 16px',
+                backgroundColor: '#FEE500',
+                color: '#3B1F1C',
                 border: 'none',
                 borderRadius: '8px',
                 fontSize: '16px',
-                fontWeight: '500',
+                fontWeight: '600',
                 cursor: loading ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
                 marginBottom: '16px'
               }}
             >
-              {loading ? '처리 중...' : '회원가입'}
+              <span style={{ fontSize: '18px' }}>💬</span>
+              {loading ? '카카오 로그인 중...' : '카카오로 시작하기'}
             </button>
-          </form>
+          </div>
         )}
 
-        <div style={{ textAlign: 'center' }}>
-          <button
-            type="button"
-            onClick={() => {
-              setIsSignUp(!isSignUp);
-              setMessage(null);
-              setAuthStep('id');
-              setVerificationCode('');
-              setVerificationId('');
-              setFormData({
-                employeeId: '',
-                email: '',
-                phone: '',
-                password: '',
-                confirmPassword: '',
-                name: '',
-                role: 'staff',
-                site_id: ''
-              });
-            }}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#3b82f6',
-              textDecoration: 'underline',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            {isSignUp ? '이미 계정이 있으신가요? 로그인' : '계정이 없으신가요? 회원가입'}
-          </button>
-        </div>
       </div>
     </div>
   );
