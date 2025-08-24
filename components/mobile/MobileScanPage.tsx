@@ -52,7 +52,7 @@ export function MobileScanPage() {
   const [isLoadingVoucherInfo, setIsLoadingVoucherInfo] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [results, setResults] = useState<UsageResult[]>([]);
-  const [processingMode, setProcessingMode] = useState<'instant' | 'batch'>('instant');
+  const [processingMode, setProcessingMode] = useState<'batch'>('batch');
   const [manualInput, setManualInput] = useState('');
 
   // QR 스캔 초기화
@@ -163,8 +163,15 @@ export function MobileScanPage() {
             const { serial, fullPayload } = parseQRPayload(scannedPayload);
             console.log('추출된 일련번호:', serial);
             
-            // 중복 스캔 방지 (일련번호 기준)
-            if (!scannedVouchers.find(v => v.serial_no === serial)) {
+            // 중복 스캔 방지 (일련번호 기준) - 개선된 중복 체크
+            const existingVoucher = scannedVouchers.find(v => v.serial_no === serial);
+            if (existingVoucher) {
+              console.log('중복 스캔 감지:', serial, '기존 상태:', existingVoucher.status);
+              // 진동 피드백으로 중복 알림
+              if ('vibrate' in navigator) {
+                navigator.vibrate([100, 50, 100]);
+              }
+            } else {
               handleVoucherScan(serial, fullPayload);
             }
           }
@@ -221,12 +228,41 @@ export function MobileScanPage() {
       console.log('API 응답 데이터:', data);
       
       if (data.ok && data.voucher) {
+        // 교환권 상태에 따른 메시지 및 처리 가능 여부 결정
+        let statusMessage = data.voucher.name;
+        let isProcessable = false;
+        
+        switch (data.voucher.status) {
+          case 'issued':
+            statusMessage = `${data.voucher.name} (발행됨 - 사용 가능)`;
+            isProcessable = true;
+            break;
+          case 'used':
+            statusMessage = `${data.voucher.name} (이미 사용됨)`;
+            if (data.voucher.usage_location) {
+              statusMessage += ` - ${data.voucher.usage_location}`;
+            }
+            if (data.voucher.used_at) {
+              const usedDate = new Date(data.voucher.used_at).toLocaleDateString('ko-KR');
+              statusMessage += ` (${usedDate})`;
+            }
+            break;
+          case 'recalled':
+            statusMessage = `${data.voucher.name} (회수됨)`;
+            break;
+          case 'registered':
+            statusMessage = `${data.voucher.name} (미발행 - 발행 필요)`;
+            break;
+          default:
+            statusMessage = `${data.voucher.name} (${data.voucher.status})`;
+        }
+
         const voucherInfo: VoucherInfo = {
           serial_no: serialNo,
           amount: data.voucher.amount,
           association: data.voucher.association,
-          name: data.voucher.name,
-          status: data.voucher.status,
+          name: statusMessage,
+          status: isProcessable ? data.voucher.status : 'error', // 처리 불가능한 경우 error로 표시
           scanned_at: new Date().toISOString(),
           date_comparison: data.date_comparison
         };
@@ -238,17 +274,18 @@ export function MobileScanPage() {
           console.warn('발행일자 불일치 감지:', data.date_comparison.message);
         }
         
+        // 사용된 교환권 또는 처리 불가능한 상태의 경우 경고음
+        if (!isProcessable && 'vibrate' in navigator) {
+          navigator.vibrate([200, 100, 200, 100, 200]);
+        }
+        
         setScannedVouchers(prev => {
           const newList = [...prev, voucherInfo];
           console.log('업데이트된 스캔 목록:', newList);
           return newList;
         });
 
-        // 즉시 처리 모드인 경우 바로 사용 등록
-        if (processingMode === 'instant' && data.voucher.status === 'issued') {
-          console.log('즉시 처리 모드: 사용 등록 시작');
-          await processVoucherUsage(voucherInfo);
-        }
+        console.log(`교환권 스캔 완료 - 상태: ${data.voucher.status}, 처리가능: ${isProcessable}`);
       } else {
         // 조회 실패한 경우에도 목록에 추가 (오류 표시용)
         let errorMessage = data.error || '교환권 정보를 가져올 수 없습니다';
@@ -447,7 +484,7 @@ export function MobileScanPage() {
             padding: '6px 12px',
             fontSize: '14px'
           }}>
-            {processingMode === 'instant' ? '즉시 처리' : '일괄 처리'}
+            일괄 처리
           </div>
         </div>
       </div>
@@ -651,48 +688,8 @@ export function MobileScanPage() {
         padding: '40px 20px 100px', // 네비게이션 공간 확보
         paddingBottom: 'max(100px, calc(100px + env(safe-area-inset-bottom)))'
       }}>
-        {/* 처리 모드 전환 */}
-        <div style={{
-          display: 'flex',
-          backgroundColor: 'rgba(255,255,255,0.1)',
-          borderRadius: '8px',
-          padding: '4px',
-          marginBottom: '16px'
-        }}>
-          <button
-            onClick={() => setProcessingMode('instant')}
-            style={{
-              flex: 1,
-              padding: '8px',
-              backgroundColor: processingMode === 'instant' ? '#10b981' : 'transparent',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              fontSize: '14px',
-              fontWeight: '500'
-            }}
-          >
-            즉시 처리
-          </button>
-          <button
-            onClick={() => setProcessingMode('batch')}
-            style={{
-              flex: 1,
-              padding: '8px',
-              backgroundColor: processingMode === 'batch' ? '#10b981' : 'transparent',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              fontSize: '14px',
-              fontWeight: '500'
-            }}
-          >
-            일괄 처리 ({scannedVouchers.filter(v => v.status !== 'error').length})
-          </button>
-        </div>
-
         {/* 일괄 처리 버튼 */}
-        {processingMode === 'batch' && scannedVouchers.filter(v => v.status !== 'error').length > 0 && (
+        {scannedVouchers.filter(v => v.status !== 'error').length > 0 && (
           <button
             onClick={handleBatchProcess}
             disabled={isProcessing}

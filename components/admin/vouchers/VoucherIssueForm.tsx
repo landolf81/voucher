@@ -54,7 +54,7 @@ export function VoucherIssueForm() {
   const [format, setFormat] = useState<'a4' | 'mobile'>('a4');
   const [loading, setLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+  const [message, setMessage] = useState<{type: 'success' | 'error' | 'info', text: string} | null>(null);
   
   // 페이징 상태
   const [pagination, setPagination] = useState<Pagination>({
@@ -198,7 +198,7 @@ export function VoucherIssueForm() {
   };
 
   // 교환권 상태 업데이트 함수
-  const updateVoucherStatus = async (voucherIds: string[], status: string) => {
+  const updateVoucherStatus = async (voucherIds: string[], status: string): Promise<boolean> => {
     try {
       const response = await fetch('/api/vouchers/bulk-update-status', {
         method: 'POST',
@@ -212,13 +212,22 @@ export function VoucherIssueForm() {
       });
 
       if (response.ok) {
-        // 리스트 갱신
-        await fetchVouchers(currentPage);
+        const result = await response.json();
+        if (result.success) {
+          // 리스트 갱신
+          await fetchVouchers(pagination.page);
+          return true;
+        } else {
+          console.error('상태 업데이트 실패:', result.message);
+          return false;
+        }
       } else {
-        console.error('상태 업데이트 실패');
+        console.error('상태 업데이트 HTTP 실패:', response.status);
+        return false;
       }
     } catch (error) {
       console.error('상태 업데이트 오류:', error);
+      return false;
     }
   };
 
@@ -247,7 +256,22 @@ export function VoucherIssueForm() {
         
         setMessage({ 
           type: 'info', 
-          text: `처리 중... (${batchIndex + 1}/${totalBatches} 배치, ${start + 1}-${end}/${selectedVouchers.length}개)` 
+          text: `DB 발행일자 업데이트 중... (${batchIndex + 1}/${totalBatches} 배치, ${start + 1}-${end}/${selectedVouchers.length}개)` 
+        });
+
+        // 먼저 DB에서 발행 상태 및 발행일자 업데이트
+        const updateResult = await updateVoucherStatus(batchVouchers, 'issued');
+        if (!updateResult) {
+          setMessage({ 
+            type: 'error', 
+            text: `배치 ${batchIndex + 1} DB 업데이트 실패` 
+          });
+          continue; // 다음 배치로 계속 진행
+        }
+
+        setMessage({ 
+          type: 'info', 
+          text: `PDF 생성 중... (${batchIndex + 1}/${totalBatches} 배치, ${start + 1}-${end}/${selectedVouchers.length}개)` 
         });
 
         const response = await fetch('/api/vouchers/bulk-print', {
@@ -279,9 +303,6 @@ export function VoucherIssueForm() {
               printWindow.document.write(html);
               printWindow.document.close();
               
-              // 발행 처리된 교환권들의 상태를 'issued'로 업데이트
-              await updateVoucherStatus(batchVouchers, 'issued');
-              
               // 다음 배치 처리 전 잠시 대기 (브라우저 부하 방지)
               if (batchIndex < totalBatches - 1) {
                 await new Promise(resolve => setTimeout(resolve, 1000));
@@ -299,20 +320,17 @@ export function VoucherIssueForm() {
             a.click();
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
-            
-            // 발행 처리된 교환권들의 상태를 'issued'로 업데이트
-            await updateVoucherStatus(batchVouchers, 'issued');
           }
         } else {
           const result = await response.json();
           setMessage({ 
             type: 'error', 
-            text: `배치 ${batchIndex + 1} 처리 실패: ${result.message || 'PDF 생성에 실패했습니다.'}` 
+            text: `배치 ${batchIndex + 1} PDF 생성 실패: ${result.message || 'PDF 생성에 실패했습니다. (DB는 업데이트됨)'}` 
           });
           // 오류 발생 시 중단할지 계속할지 사용자에게 확인
           if (batchIndex < totalBatches - 1) {
             const continueProcess = window.confirm(
-              `배치 ${batchIndex + 1}/${totalBatches} 처리 중 오류가 발생했습니다.\n계속 진행하시겠습니까?`
+              `배치 ${batchIndex + 1}/${totalBatches} PDF 생성 중 오류가 발생했습니다.\nDB는 이미 업데이트되었습니다. 계속 진행하시겠습니까?`
             );
             if (!continueProcess) {
               break;
@@ -418,9 +436,16 @@ export function VoucherIssueForm() {
           padding: '12px 16px',
           borderRadius: '6px',
           marginBottom: '16px',
-          backgroundColor: message.type === 'success' ? '#dcfce7' : '#fee2e2',
-          color: message.type === 'success' ? '#16a34a' : '#dc2626',
-          border: `1px solid ${message.type === 'success' ? '#bbf7d0' : '#fecaca'}`
+          backgroundColor: 
+            message.type === 'success' ? '#dcfce7' : 
+            message.type === 'info' ? '#dbeafe' : '#fee2e2',
+          color: 
+            message.type === 'success' ? '#16a34a' : 
+            message.type === 'info' ? '#2563eb' : '#dc2626',
+          border: `1px solid ${
+            message.type === 'success' ? '#bbf7d0' : 
+            message.type === 'info' ? '#bfdbfe' : '#fecaca'
+          }`
         }}>
           {message.text}
         </div>
