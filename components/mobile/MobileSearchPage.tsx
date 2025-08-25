@@ -613,7 +613,7 @@ export function MobileSearchPage() {
                         color: '#1f2937',
                         margin: '0 0 4px 0'
                       }}>
-                        {voucher.name}
+                        {voucher.name}{voucher.dob ? ` (${voucher.dob})` : ''}
                       </p>
                       <p style={{
                         fontSize: '14px',
@@ -622,15 +622,6 @@ export function MobileSearchPage() {
                       }}>
                         {voucher.association}
                       </p>
-                      {voucher.dob && (
-                        <p style={{
-                          fontSize: '12px',
-                          color: '#6b7280',
-                          margin: '0 0 4px 0'
-                        }}>
-                          생년월일: {voucher.dob}
-                        </p>
-                      )}
                       {voucher.voucher_templates && (
                         <p style={{
                           fontSize: '12px',
@@ -811,29 +802,10 @@ export function MobileSearchPage() {
                     margin: '4px 0 0 0',
                     fontWeight: '600'
                   }}>
-                    {selectedVoucher.name}
+                    {selectedVoucher.name}{selectedVoucher.dob ? ` (${selectedVoucher.dob})` : ''}
                   </p>
                 </div>
 
-                {selectedVoucher.dob && (
-                  <div>
-                    <label style={{
-                      fontSize: '14px',
-                      color: '#6b7280',
-                      fontWeight: '500'
-                    }}>
-                      생년월일
-                    </label>
-                    <p style={{
-                      fontSize: '16px',
-                      color: '#1f2937',
-                      margin: '4px 0 0 0',
-                      fontWeight: '600'
-                    }}>
-                      {selectedVoucher.dob}
-                    </p>
-                  </div>
-                )}
 
                 <div>
                   <label style={{
