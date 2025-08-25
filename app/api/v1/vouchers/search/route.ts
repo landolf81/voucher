@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
         template_id
       `)
       .order('issued_at', { ascending: false })
-      .limit(20); // 최대 20개 결과 제한
+      .limit(1000); // 최대 1000개 결과 (대용량 영농회 검색 지원)
 
     // 검색 타입별 쿼리 조건 설정
     switch (searchType) {
@@ -121,16 +121,32 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // 템플릿 정보 조회 (별도 쿼리)
+        // 템플릿 정보 조회 (RLS 우회를 위해 서비스 롤 사용)
         if (voucher.template_id) {
-          const { data: template } = await supabase
-            .from("voucher_templates")
-            .select("voucher_name, voucher_type")
-            .eq("id", voucher.template_id)
-            .maybeSingle();
-          
-          if (template) {
-            voucher_templates = template;
+          try {
+            const { createClient } = await import('@supabase/supabase-js');
+            const supabaseAdmin = createClient(
+              process.env.NEXT_PUBLIC_SUPABASE_URL!,
+              process.env.SUPABASE_SERVICE_ROLE_KEY!
+            );
+
+            const { data: template, error: templateError } = await supabaseAdmin
+              .from("voucher_templates")
+              .select("voucher_name, voucher_type")
+              .eq("id", voucher.template_id)
+              .single();
+            
+            if (template && !templateError) {
+              voucher_templates = template;
+            } else {
+              console.log('템플릿 조회 실패:', { 
+                template_id: voucher.template_id, 
+                error: templateError,
+                serial_no: voucher.serial_no 
+              });
+            }
+          } catch (error) {
+            console.log('템플릿 조회 중 오류:', { template_id: voucher.template_id, error });
           }
         }
 
