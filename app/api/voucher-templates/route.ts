@@ -76,7 +76,8 @@ export async function POST(request: NextRequest) {
       expires_at: body.expires_at,
       selected_sites: body.selected_sites || [],
       notes: body.notes || '',
-      status: body.status || 'active'
+      status: body.status || 'active',
+      design_template_id: body.design_template_id || null
     };
 
     // voucher_templates 테이블에 데이터 삽입

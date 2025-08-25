@@ -199,16 +199,20 @@ export function VoucherIssueForm() {
 
   // 교환권 상태 업데이트 함수
   const updateVoucherStatus = async (voucherIds: string[], status: string): Promise<boolean> => {
+    console.log('상태 업데이트 요청:', { count: voucherIds.length, status });
+    
     try {
+      const requestBody = {
+        voucher_ids: voucherIds,
+        status: status
+      };
+      
       const response = await fetch('/api/vouchers/bulk-update-status', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          voucher_ids: voucherIds,
-          status: status
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (response.ok) {
@@ -222,11 +226,24 @@ export function VoucherIssueForm() {
           return false;
         }
       } else {
-        console.error('상태 업데이트 HTTP 실패:', response.status);
+        const errorText = await response.text();
+        console.error('상태 업데이트 HTTP 실패:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
+        setMessage({ 
+          type: 'error', 
+          text: `상태 업데이트 실패: ${response.status} ${response.statusText}` 
+        });
         return false;
       }
     } catch (error) {
       console.error('상태 업데이트 오류:', error);
+      setMessage({ 
+        type: 'error', 
+        text: `상태 업데이트 오류: ${error instanceof Error ? error.message : '알 수 없는 오류'}` 
+      });
       return false;
     }
   };
@@ -245,7 +262,7 @@ export function VoucherIssueForm() {
 
     setIsGenerating(true);
     
-    const BATCH_SIZE = 1000; // 한 번에 처리할 최대 개수
+    const BATCH_SIZE = 100; // 한 번에 처리할 최대 개수 (414 에러 방지)
     const totalBatches = Math.ceil(selectedVouchers.length / BATCH_SIZE);
     
     try {

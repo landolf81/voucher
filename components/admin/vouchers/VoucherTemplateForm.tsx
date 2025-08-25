@@ -97,8 +97,10 @@ export function VoucherTemplateForm() {
         status: 'active'
       };
 
-      const url = '/api/voucher-templates';
-      const method = 'POST';
+      const url = editingTemplate 
+        ? `/api/voucher-templates/${editingTemplate.id}`
+        : '/api/voucher-templates';
+      const method = editingTemplate ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
         method,
@@ -149,6 +151,41 @@ export function VoucherTemplateForm() {
     });
     setEditingTemplate(template);
     setShowForm(true);
+  };
+
+  const deleteTemplate = async (templateId: string, templateName: string) => {
+    if (!confirm(`정말로 "${templateName}" 템플릿을 삭제하시겠습니까?`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/voucher-templates/${templateId}`, {
+        method: 'DELETE'
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setMessage({
+          type: 'success',
+          text: '교환권 템플릿이 삭제되었습니다.'
+        });
+        fetchTemplates();
+      } else {
+        setMessage({
+          type: 'error',
+          text: result.message || '삭제 중 오류가 발생했습니다.'
+        });
+      }
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: '서버 연결 오류가 발생했습니다.'
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -507,20 +544,36 @@ export function VoucherTemplateForm() {
                         )}
                       </p>
                     </div>
-                    <button
-                      onClick={() => editTemplate(template)}
-                      style={{
-                        padding: '8px 16px',
-                        backgroundColor: '#3b82f6',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontSize: '14px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      수정
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={() => editTemplate(template)}
+                        style={{
+                          padding: '8px 16px',
+                          backgroundColor: '#3b82f6',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '14px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        수정
+                      </button>
+                      <button
+                        onClick={() => deleteTemplate(template.id, template.voucher_name)}
+                        style={{
+                          padding: '8px 16px',
+                          backgroundColor: '#ef4444',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '14px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        삭제
+                      </button>
+                    </div>
                   </div>
                   
                   {template.notes && (

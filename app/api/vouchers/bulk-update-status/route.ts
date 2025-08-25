@@ -44,8 +44,8 @@ export async function POST(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // 배치로 업데이트 처리 (1000개씩)
-    const BATCH_SIZE = 1000;
+    // 배치로 업데이트 처리 (100개씩, 414 에러 방지)
+    const BATCH_SIZE = 100;
     const totalBatches = Math.ceil(voucher_ids.length / BATCH_SIZE);
     let totalUpdated = 0;
     const errors = [];

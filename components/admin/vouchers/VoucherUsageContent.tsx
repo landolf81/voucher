@@ -561,6 +561,13 @@ export function VoucherUsageContent() {
       });
 
       const data = await response.json();
+      
+      // 디버깅을 위한 상세 로그
+      console.log('CSV 업로드 응답:', {
+        status: response.status,
+        statusText: response.statusText,
+        data: data
+      });
 
       if (data.success) {
         setResults(data.results || []);
@@ -573,6 +580,17 @@ export function VoucherUsageContent() {
           fileInput.value = '';
         }
       } else {
+        // 에러 정보를 더 자세히 표시
+        console.error('CSV 업로드 실패 상세:', {
+          message: data.message,
+          errors: data.errors,
+          totalErrors: data.totalErrors,
+          availableSiteCodes: data.availableSiteCodes,
+          expectedFormat: data.expectedFormat,
+          failedSamples: data.failedSamples,
+          summary: data.summary
+        });
+        
         setResults([{
           serial_no: 'csv_upload',
           success: false,

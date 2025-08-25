@@ -6,6 +6,7 @@ import { formatPhoneForDisplay, formatPhoneInput, cleanPhoneInput, getPhoneValid
 interface Site {
   id: string;
   site_name: string;
+  short_code?: string;
   address?: string;
   phone?: string;
   fax?: string;
@@ -24,6 +25,7 @@ export function SiteManagement() {
   
   const [formData, setFormData] = useState({
     site_name: '',
+    short_code: '',
     address: '',
     phone: '',
     fax: '',
@@ -103,6 +105,7 @@ export function SiteManagement() {
         setEditingSite(null);
         setFormData({
           site_name: '',
+          short_code: '',
           address: '',
           phone: '',
           fax: '',
@@ -126,6 +129,7 @@ export function SiteManagement() {
     setEditingSite(site);
     setFormData({
       site_name: site.site_name,
+      short_code: site.short_code || '',
       address: site.address || '',
       phone: site.phone ? formatPhoneForDisplay(site.phone) : '',
       fax: site.fax ? formatPhoneForDisplay(site.fax) : '',
@@ -141,6 +145,7 @@ export function SiteManagement() {
     setEditingSite(null);
     setFormData({
       site_name: '',
+      short_code: '',
       address: '',
       phone: '',
       fax: '',
@@ -298,6 +303,33 @@ export function SiteManagement() {
                 />
               </div>
 
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+                  사업장 코드 *
+                </label>
+                <input
+                  type="text"
+                  value={formData.short_code}
+                  onChange={(e) => setFormData(prev => ({ ...prev, short_code: e.target.value.toUpperCase() }))}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                  placeholder="예: SITE01, HQ, BR01"
+                  maxLength={10}
+                />
+                <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px', margin: '4px 0 0 0' }}>
+                  CSV 일괄 등록 시 사용할 고유 코드 (영문/숫자)
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginBottom: '16px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
                   상태
@@ -478,6 +510,9 @@ export function SiteManagement() {
                     사업장명
                   </th>
                   <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb' }}>
+                    코드
+                  </th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb' }}>
                     주소
                   </th>
                   <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb' }}>
@@ -502,6 +537,19 @@ export function SiteManagement() {
                   <tr key={site.id}>
                     <td style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb' }}>
                       <div style={{ fontWeight: '500', color: '#1a202c' }}>{site.site_name}</div>
+                    </td>
+                    <td style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb' }}>
+                      <span style={{ 
+                        backgroundColor: '#f3f4f6', 
+                        padding: '2px 8px', 
+                        borderRadius: '4px', 
+                        fontSize: '13px',
+                        fontFamily: 'monospace',
+                        color: '#1f2937',
+                        fontWeight: '600'
+                      }}>
+                        {site.short_code || '미설정'}
+                      </span>
                     </td>
                     <td style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', color: '#6b7280' }}>
                       {site.address || '-'}

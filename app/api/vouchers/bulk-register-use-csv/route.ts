@@ -266,6 +266,7 @@ export async function POST(request: NextRequest) {
     
     console.log('CSV 헤더:', headers);
     console.log('데이터 행 수:', dataRows.length);
+    console.log('첫 5개 데이터 행:', dataRows.slice(0, 5));
 
     if (dataRows.length === 0) {
       return NextResponse.json(
@@ -313,11 +314,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 코드 → 사이트 매핑 생성
+    // 코드 → 사이트 매핑 생성 (short_code와 site_name 둘 다 매핑)
     const siteCodeMap = new Map<string, { id: string; name: string }>();
     sites?.forEach(site => {
+      // short_code가 있으면 사용
       if (site.short_code) {
         siteCodeMap.set(site.short_code.toUpperCase(), {
+          id: site.id,
+          name: site.site_name
+        });
+      }
+      
+      // site_name의 첫 단어도 코드로 사용 (예: "클린마트" → "클린")
+      const firstWord = site.site_name.split(/[\s-]/)[0];
+      if (firstWord && !siteCodeMap.has(firstWord.toUpperCase())) {
+        siteCodeMap.set(firstWord.toUpperCase(), {
+          id: site.id,
+          name: site.site_name
+        });
+      }
+      
+      // site_name 전체도 코드로 사용
+      if (!siteCodeMap.has(site.site_name.toUpperCase())) {
+        siteCodeMap.set(site.site_name.toUpperCase(), {
           id: site.id,
           name: site.site_name
         });
@@ -325,6 +344,23 @@ export async function POST(request: NextRequest) {
     });
 
     console.log('사이트 코드 매핑:', Array.from(siteCodeMap.entries()));
+    
+    // 사이트 코드가 없는 경우 경고
+    if (siteCodeMap.size === 0) {
+      console.warn('경고: 사이트 코드 매핑이 비어있습니다. sites 테이블의 short_code 필드를 확인하세요.');
+      return NextResponse.json(
+        {
+          success: false,
+          message: '사이트 코드가 설정되지 않았습니다. 관리자에게 문의하세요.',
+          availableSites: sites?.map(s => ({
+            id: s.id,
+            name: s.site_name,
+            code: s.short_code || '미설정'
+          }))
+        },
+        { status: 500 }
+      );
+    }
 
     // 데이터 검증 및 처리
     const processedVouchers: ProcessedVoucher[] = [];
@@ -359,10 +395,16 @@ export async function POST(request: NextRequest) {
 
         const validatedData = validation.data;
 
-        // 사용처 코드 매핑 확인
+        // 사용처 코드 매핑 확인 (대소문자 구분 없이)
+        console.log(`${rowNumber}행 사용처 코드 확인:`, {
+          originalCode: siteCode?.trim(),
+          upperCode: validatedData.site_code,
+          availableCodes: Array.from(siteCodeMap.keys())
+        });
+        
         const siteInfo = siteCodeMap.get(validatedData.site_code);
         if (!siteInfo) {
-          errors.push(`${rowNumber}행: 유효하지 않은 사용처 코드 '${validatedData.site_code}'`);
+          errors.push(`${rowNumber}행: 유효하지 않은 사용처 코드 '${validatedData.site_code}' (사용 가능한 코드: ${Array.from(siteCodeMap.keys()).join(', ')})`);
           continue;
         }
 
@@ -381,16 +423,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 검증 오류가 있으면 중단
+    // 검증 오류가 있으면 상세 정보와 함께 반환
     if (errors.length > 0) {
       console.error('데이터 검증 오류들:', errors);
+      
+      // 사용 가능한 사이트 코드 목록 제공
+      const availableSiteCodes = Array.from(siteCodeMap.entries()).map(([code, site]) => ({
+        code: code,
+        name: site.name
+      }));
+      
       return NextResponse.json(
         {
           success: false,
           message: '일부 데이터에 오류가 있습니다.',
-          errors: errors.slice(0, 10), // 최대 10개 오류만 표시
+          errors: errors.slice(0, 20), // 최대 20개 오류 표시
           totalErrors: errors.length,
-          processedRows: dataRows.length
+          processedRows: dataRows.length,
+          availableSiteCodes: availableSiteCodes,
+          expectedFormat: {
+            columns: ['일련번호', '사용일자(YYYY-MM-DD)', '사용처코드', '비고(선택)'],
+            example: ['VCH-2024-001', '2024-12-25', 'SITE01', '테스트 사용']
+          }
         },
         { status: 400 }
       );
@@ -434,6 +488,10 @@ export async function POST(request: NextRequest) {
     const overallSuccess = successCount > 0;
     const statusCode = errorCount === 0 ? 200 : (successCount === 0 ? 400 : 207); // 207: Multi-Status
 
+    // 디버깅: 실패한 결과들의 처음 10개 로그
+    const failedResults = allResults.filter(r => !r.success);
+    console.log('실패한 처리 결과 (처음 10개):', failedResults.slice(0, 10));
+
     return NextResponse.json({
       success: overallSuccess,
       message: `총 ${processedVouchers.length}개 중 ${successCount}개 사용 등록 성공, ${errorCount}개 실패`,
@@ -444,6 +502,8 @@ export async function POST(request: NextRequest) {
         available_site_codes: Array.from(siteCodeMap.entries()).map(([code, site]) => `${code}: ${site.name}`)
       },
       results: allResults,
+      // 디버깅을 위해 실패한 첫 20개 결과 포함
+      failedSamples: failedResults.slice(0, 20),
       csv_upload: {
         file_name: file.name,
         bulk_notes: bulkNotes,

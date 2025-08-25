@@ -99,9 +99,8 @@ export async function POST(request: NextRequest) {
     const { email, name, phone, role, site_id, user_id, is_active = true } = body;
     console.log('파싱된 필드들:', { email, name, phone, role, site_id, user_id, is_active });
 
-    // 필수 필드 확인 (비밀번호 제외)
+    // 필수 필드 확인 (이메일과 비밀번호 제외)
     const missingFields = [];
-    if (!email) missingFields.push('email');
     if (!name) missingFields.push('name');
     if (!phone) missingFields.push('phone');
     if (!role) missingFields.push('role');
@@ -146,23 +145,39 @@ export async function POST(request: NextRequest) {
     const tempPassword = Math.random().toString(36).slice(-12) + 'A1!'; // 임시 복잡한 비밀번호
     console.log('Auth 사용자 생성 시도:', { email, phone: formattedPhone });
     
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
+    // 이메일이 있으면 이메일과 전화번호 모두로, 없으면 전화번호만으로 생성
+    const createUserData: any = {
       phone: formattedPhone,
       password: tempPassword,
-      email_confirm: true, // 이메일 확인 자동 처리
       phone_confirm: true  // 전화번호 확인 자동 처리
-    });
+    };
+    
+    if (email) {
+      createUserData.email = email;
+      createUserData.email_confirm = true; // 이메일 확인 자동 처리
+    }
+    
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser(createUserData);
     
     console.log('Auth 사용자 생성 결과:', { authData: !!authData, error: authError });
 
     if (authError) {
       console.error('Auth 사용자 생성 오류:', authError);
+      let errorMessage = 'Auth 사용자 생성에 실패했습니다.';
+      
+      if (authError.message.includes('already registered')) {
+        if (authError.message.includes('email')) {
+          errorMessage = '이미 등록된 이메일입니다.';
+        } else if (authError.message.includes('phone')) {
+          errorMessage = '이미 등록된 전화번호입니다.';
+        } else {
+          errorMessage = '이미 등록된 사용자입니다.';
+        }
+      }
+      
       return NextResponse.json({
         success: false,
-        message: authError.message.includes('already registered') 
-          ? '이미 등록된 이메일입니다.'
-          : 'Auth 사용자 생성에 실패했습니다.'
+        message: errorMessage
       }, { status: 400 });
     }
 
