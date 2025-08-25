@@ -24,6 +24,7 @@ interface VoucherData {
   amount: number;
   association: string;
   name: string;
+  dob?: string;
   status: string;
   issued_at: string;
   used_at?: string;
@@ -257,6 +258,7 @@ export function MobileSearchPage() {
           amount: verifyData.voucher.amount,
           association: verifyData.voucher.association,
           name: verifyData.voucher.name,
+          dob: verifyData.voucher.dob,
           status: verifyData.voucher.status,
           issued_at: verifyData.voucher.issued_at || new Date().toISOString(),
           used_at: verifyData.voucher.used_at,
@@ -604,7 +606,7 @@ export function MobileSearchPage() {
                     alignItems: 'flex-start',
                     marginBottom: '8px'
                   }}>
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <p style={{
                         fontSize: '16px',
                         fontWeight: '600',
@@ -616,10 +618,32 @@ export function MobileSearchPage() {
                       <p style={{
                         fontSize: '14px',
                         color: '#6b7280',
-                        margin: 0
+                        margin: '0 0 4px 0'
                       }}>
                         {voucher.association}
                       </p>
+                      {voucher.dob && (
+                        <p style={{
+                          fontSize: '12px',
+                          color: '#6b7280',
+                          margin: '0 0 4px 0'
+                        }}>
+                          생년월일: {voucher.dob}
+                        </p>
+                      )}
+                      {voucher.voucher_templates && (
+                        <p style={{
+                          fontSize: '12px',
+                          color: '#3b82f6',
+                          margin: '0 0 4px 0',
+                          backgroundColor: '#eff6ff',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          display: 'inline-block'
+                        }}>
+                          {voucher.voucher_templates.voucher_name}
+                        </p>
+                      )}
                     </div>
                     <div style={{
                       backgroundColor: getStatusColor(voucher.status),
@@ -636,16 +660,28 @@ export function MobileSearchPage() {
                   <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'center'
+                    alignItems: 'flex-end',
+                    marginTop: '8px'
                   }}>
-                    <p style={{
-                      fontSize: '18px',
-                      fontWeight: '700',
-                      color: '#059669',
-                      margin: 0
-                    }}>
-                      {voucher.amount.toLocaleString()}원
-                    </p>
+                    <div>
+                      <p style={{
+                        fontSize: '18px',
+                        fontWeight: '700',
+                        color: '#059669',
+                        margin: '0 0 4px 0'
+                      }}>
+                        {voucher.amount.toLocaleString()}원
+                      </p>
+                      {voucher.used_at && voucher.usage_location && (
+                        <p style={{
+                          fontSize: '11px',
+                          color: '#ef4444',
+                          margin: 0
+                        }}>
+                          {voucher.usage_location} • {new Date(voucher.used_at).toLocaleDateString('ko-KR')}
+                        </p>
+                      )}
+                    </div>
                     <p style={{
                       fontSize: '12px',
                       color: '#9ca3af',
@@ -778,6 +814,26 @@ export function MobileSearchPage() {
                     {selectedVoucher.name}
                   </p>
                 </div>
+
+                {selectedVoucher.dob && (
+                  <div>
+                    <label style={{
+                      fontSize: '14px',
+                      color: '#6b7280',
+                      fontWeight: '500'
+                    }}>
+                      생년월일
+                    </label>
+                    <p style={{
+                      fontSize: '16px',
+                      color: '#1f2937',
+                      margin: '4px 0 0 0',
+                      fontWeight: '600'
+                    }}>
+                      {selectedVoucher.dob}
+                    </p>
+                  </div>
+                )}
 
                 <div>
                   <label style={{
