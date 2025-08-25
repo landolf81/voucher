@@ -214,8 +214,8 @@ export function MobileSearchPage() {
   const getSearchPlaceholder = () => {
     switch (searchType) {
       case 'serial': return '교환권 일련번호를 입력하세요';
-      case 'name': return '수혜자 이름을 입력하세요';
-      case 'association': return '협회/단체명을 입력하세요';
+      case 'name': return '조합원명을 입력하세요';
+      case 'association': return '영농회를 입력하세요';
       case 'user_id': return '사용자 ID를 입력하세요';
       default: return '검색어를 입력하세요';
     }
@@ -385,7 +385,7 @@ export function MobileSearchPage() {
             }}>
               {[
                 { value: 'serial', label: '일련번호' },
-                { value: 'name', label: '이름' },
+                { value: 'name', label: '조합원명' },
                 { value: 'association', label: '영농회' },
                 { value: 'user_id', label: 'ID' }
               ].map((option) => (
@@ -776,7 +776,7 @@ export function MobileSearchPage() {
                     color: '#6b7280',
                     fontWeight: '500'
                   }}>
-                    협회/단체명
+                    영농회
                   </label>
                   <p style={{
                     fontSize: '16px',
@@ -794,7 +794,7 @@ export function MobileSearchPage() {
                     color: '#6b7280',
                     fontWeight: '500'
                   }}>
-                    수혜자명
+                    조합원명
                   </label>
                   <p style={{
                     fontSize: '16px',
@@ -970,7 +970,7 @@ export function MobileSearchPage() {
               fontSize: '16px',
               lineHeight: '1.5'
             }}>
-              일련번호, 이름, 영농회, ID로 검색하거나<br/>
+              일련번호, 조합원명, 영농회, ID로 검색하거나<br/>
               QR 코드를 스캔하여 교환권 정보를 확인할 수 있습니다
             </p>
           </div>
