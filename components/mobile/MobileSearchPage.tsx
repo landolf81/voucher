@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
+import { useAuth } from '@/lib/contexts/AuthContext';
 
 // QR 코드 페이로드 파싱 함수
 function parseQRPayload(payload: string) {
@@ -44,6 +45,7 @@ interface VoucherData {
 }
 
 export function MobileSearchPage() {
+  const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [searchMethod, setSearchMethod] = useState<'manual' | 'scan'>('manual');
   const [searchInput, setSearchInput] = useState('');
@@ -396,22 +398,30 @@ export function MobileSearchPage() {
           </button>
           <button
             onClick={() => {
+              if (user?.role === 'inquiry') return; // 조회 권한은 스캔 불가
               setSearchMethod('scan');
               startQRScan();
             }}
+            disabled={user?.role === 'inquiry'}
             style={{
               flex: 1,
               padding: '8px 16px',
-              backgroundColor: searchMethod === 'scan' ? 'white' : 'transparent',
-              color: searchMethod === 'scan' ? '#1f2937' : '#6b7280',
+              backgroundColor: user?.role === 'inquiry' 
+                ? '#f3f4f6' 
+                : searchMethod === 'scan' ? 'white' : 'transparent',
+              color: user?.role === 'inquiry'
+                ? '#9ca3af'
+                : searchMethod === 'scan' ? '#1f2937' : '#6b7280',
               border: 'none',
               borderRadius: '4px',
               fontSize: '14px',
               fontWeight: '500',
-              boxShadow: searchMethod === 'scan' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'
+              boxShadow: searchMethod === 'scan' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+              cursor: user?.role === 'inquiry' ? 'not-allowed' : 'pointer'
             }}
+            title={user?.role === 'inquiry' ? '조회 권한으로는 QR 스캔을 사용할 수 없습니다' : ''}
           >
-            QR 스캔
+            QR 스캔 {user?.role === 'inquiry' && '(비활성)'}
           </button>
         </div>
 
