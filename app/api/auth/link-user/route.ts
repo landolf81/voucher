@@ -135,8 +135,15 @@ export async function POST(request: NextRequest) {
       });
       authMethod = 'email';
     } else if (finalPhone) {
-      // 한국 전화번호를 E.164 형식으로 변환 (예: 01012345678 → +8201012345678)
-      const e164Phone = finalPhone.startsWith('+') ? finalPhone : `+82${finalPhone.substring(1)}`;
+      // 한국 전화번호를 E.164 형식으로 변환 (예: 01012345678 → +821012345678)
+      let e164Phone;
+      if (finalPhone.startsWith('+')) {
+        e164Phone = finalPhone;
+      } else if (finalPhone.startsWith('010')) {
+        e164Phone = `+82${finalPhone.substring(1)}`;
+      } else {
+        e164Phone = `+82${finalPhone}`;
+      }
       result = await supabase.auth.signInWithOtp({
         phone: e164Phone,
         options: {
