@@ -202,6 +202,8 @@ export default function LoginPage() {
   const [actualEmail, setActualEmail] = useState(''); // 실제 DB에서 조회된 이메일
   const [kakaoAuthUserId, setKakaoAuthUserId] = useState<string | null>(null);
   const [linkingPhone, setLinkingPhone] = useState('');
+  const [userHasEmail, setUserHasEmail] = useState<boolean | null>(null); // 사용자 이메일 보유 상태
+  const [needsEmailSetup, setNeedsEmailSetup] = useState(false); // 이메일 설정 필요 여부
 
   const [formData, setFormData] = useState({
     employeeId: '',
@@ -259,6 +261,10 @@ export default function LoginPage() {
       const result = await response.json();
       
       if (result.success) {
+        // 사용자 이메일 상태 저장
+        setUserHasEmail(result.has_email);
+        setNeedsEmailSetup(result.needs_email_setup);
+        
         // 인증 방법에 따라 다음 단계 결정
         if (result.auth_method === 'email') {
           // 이메일은 Magic Link 방식이므로 코드 입력 단계 없이 완료
@@ -290,7 +296,17 @@ export default function LoginPage() {
           }));
         }
       } else {
-        setMessage({ type: 'error', text: result.message });
+        // 이메일이 있는 사용자가 SMS를 시도한 경우
+        if (result.has_email && result.redirect_to_email) {
+          setMessage({ 
+            type: 'info', 
+            text: result.message + ' 이메일 인증을 선택해주세요.' 
+          });
+          setAuthMethod('email'); // 자동으로 이메일 방식으로 변경
+          setUserHasEmail(true);
+        } else {
+          setMessage({ type: 'error', text: result.message });
+        }
       }
     } catch (error: any) {
       console.error('사용자 조회 오류:', error);
@@ -334,9 +350,15 @@ export default function LoginPage() {
         }
         
         setTimeout(() => {
-          const redirectUrl = device.isMobile ? '/mobile' : '/admin/dashboard';
-          console.log('SMS 인증 후 리다이렉션:', redirectUrl);
-          router.push(redirectUrl);
+          // 이메일 설정이 필요한 경우 이메일 등록 페이지로 리다이렉트
+          if (needsEmailSetup) {
+            console.log('이메일 설정 페이지로 리다이렉션');
+            router.push('/profile/email-setup');
+          } else {
+            const redirectUrl = device.isMobile ? '/mobile' : '/admin/dashboard';
+            console.log('SMS 인증 후 리다이렉션:', redirectUrl);
+            router.push(redirectUrl);
+          }
         }, 1000);
       } else {
         setMessage({ type: 'error', text: result.message || '인증 코드가 올바르지 않습니다.' });
@@ -552,7 +574,7 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* 인증 방법 선택 */}
+            {/* 인증 방법 선택 - 사용자 이메일 상태에 따라 조건부 렌더링 */}
             <div style={{ marginBottom: '20px' }}>
               <label style={{
                 display: 'block',
@@ -563,61 +585,135 @@ export default function LoginPage() {
               }}>
                 인증 방법 선택
               </label>
-              <div style={{ 
-                display: 'flex', 
-                gap: '8px',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                padding: '4px',
-                backgroundColor: '#f9fafb'
-              }}>
-                <button
-                  type="button"
-                  onClick={() => setAuthMethod('sms')}
-                  style={{
-                    flex: 1,
-                    padding: '8px 16px',
-                    backgroundColor: authMethod === 'sms' ? '#3b82f6' : 'transparent',
-                    color: authMethod === 'sms' ? 'white' : '#6b7280',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  📱 SMS
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAuthMethod('email')}
-                  style={{
-                    flex: 1,
-                    padding: '8px 16px',
-                    backgroundColor: authMethod === 'email' ? '#3b82f6' : 'transparent',
-                    color: authMethod === 'email' ? 'white' : '#6b7280',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  📧 이메일
-                </button>
-              </div>
-              <p style={{ 
-                fontSize: '12px', 
-                color: '#6b7280', 
-                marginTop: '4px' 
-              }}>
-                {authMethod === 'sms' 
-                  ? '등록된 휴대폰으로 인증 코드를 받습니다' 
-                  : '등록된 이메일로 로그인 링크를 받습니다'
-                }
-              </p>
+              
+              {userHasEmail === true ? (
+                // 이메일이 있는 사용자는 이메일만 사용 가능
+                <div style={{
+                  backgroundColor: '#f0f9ff',
+                  border: '1px solid #0ea5e9',
+                  borderRadius: '8px',
+                  padding: '12px'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '4px'
+                  }}>
+                    <span style={{ fontSize: '18px' }}>📧</span>
+                    <span style={{ 
+                      fontSize: '14px', 
+                      fontWeight: '500',
+                      color: '#0c4a6e'
+                    }}>
+                      이메일 인증
+                    </span>
+                  </div>
+                  <p style={{
+                    fontSize: '12px',
+                    color: '#075985',
+                    margin: 0,
+                    lineHeight: '1.4'
+                  }}>
+                    SMS 비용 절약을 위해 이메일 인증만 사용됩니다.
+                  </p>
+                </div>
+              ) : userHasEmail === false ? (
+                // 이메일이 없는 사용자는 SMS만 사용 가능 + 이메일 등록 권장
+                <div>
+                  <div style={{
+                    backgroundColor: '#fef3c7',
+                    border: '1px solid #f59e0b',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    marginBottom: '12px'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      marginBottom: '4px'
+                    }}>
+                      <span style={{ fontSize: '18px' }}>📱</span>
+                      <span style={{ 
+                        fontSize: '14px', 
+                        fontWeight: '500',
+                        color: '#92400e'
+                      }}>
+                        SMS 인증 (일시적)
+                      </span>
+                    </div>
+                    <p style={{
+                      fontSize: '12px',
+                      color: '#92400e',
+                      margin: 0,
+                      lineHeight: '1.4'
+                    }}>
+                      SMS 비용 절약을 위해 이메일 등록을 권장합니다.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                // 초기 상태 - 일반 선택 UI
+                <div style={{ 
+                  display: 'flex', 
+                  gap: '8px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '4px',
+                  backgroundColor: '#f9fafb'
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setAuthMethod('sms')}
+                    style={{
+                      flex: 1,
+                      padding: '8px 16px',
+                      backgroundColor: authMethod === 'sms' ? '#3b82f6' : 'transparent',
+                      color: authMethod === 'sms' ? 'white' : '#6b7280',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    📱 SMS
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAuthMethod('email')}
+                    style={{
+                      flex: 1,
+                      padding: '8px 16px',
+                      backgroundColor: authMethod === 'email' ? '#3b82f6' : 'transparent',
+                      color: authMethod === 'email' ? 'white' : '#6b7280',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    📧 이메일
+                  </button>
+                </div>
+              )}
+              
+              {userHasEmail === null && (
+                <p style={{ 
+                  fontSize: '12px', 
+                  color: '#6b7280', 
+                  marginTop: '4px' 
+                }}>
+                  {authMethod === 'sms' 
+                    ? '등록된 휴대폰으로 인증 코드를 받습니다' 
+                    : '등록된 이메일로 로그인 링크를 받습니다'
+                  }
+                </p>
+              )}
             </div>
 
             <button

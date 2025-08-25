@@ -10,7 +10,8 @@
       "mcp__microsoft-playwright-mcp__browser_navigate",
       "Bash(psql:*)",
       "Bash(npm run typecheck:*)",
-      "mcp__wonderwhy-er-desktop-commander__list_processes"
+      "mcp__wonderwhy-er-desktop-commander__list_processes",
+      "Bash(git add:*)"
     ],
     "defaultMode": "acceptEdits"
   }

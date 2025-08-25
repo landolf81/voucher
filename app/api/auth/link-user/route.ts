@@ -69,8 +69,11 @@ export async function POST(request: NextRequest) {
       finalEmail = targetAuthUser.email;
       finalPhone = targetAuthUser.phone;
       
-      // preferred_method가 지정된 경우 해당 방법만 사용
-      if (preferred_method === 'email') {
+      // 이메일 우선 정책: 이메일이 있으면 무조건 이메일만 사용
+      if (finalEmail && preferred_method !== 'sms') {
+        finalPhone = null; // SMS 비활성화
+        authMethod = 'email';
+      } else if (preferred_method === 'email') {
         finalPhone = null; // SMS 비활성화
         if (!finalEmail) {
           return NextResponse.json({
@@ -78,17 +81,27 @@ export async function POST(request: NextRequest) {
             message: '해당 사용자의 이메일 정보가 등록되어 있지 않습니다. SMS 방식을 선택하거나 관리자에게 문의하세요.'
           }, { status: 400 });
         }
+      } else if (preferred_method === 'sms' && finalEmail) {
+        // 이메일이 있는 사용자가 SMS를 시도하는 경우
+        return NextResponse.json({
+          success: false,
+          message: '이메일이 등록된 사용자는 이메일 인증만 사용할 수 있습니다.',
+          redirect_to_email: true,
+          has_email: true
+        }, { status: 400 });
       } else if (preferred_method === 'sms') {
         finalEmail = null; // 이메일 비활성화
         if (!finalPhone) {
           return NextResponse.json({
             success: false,
-            message: '해당 사용자의 전화번호 정보가 등록되어 있지 않습니다. 이메일 방식을 선택하거나 관리자에게 문의하세요.'
+            message: '해당 사용자의 전화번호 정보가 등록되어 있지 않습니다. 관리자에게 문의하세요.'
           }, { status: 400 });
         }
       } else {
-        // preferred_method가 없는 경우 기존 로직 (둘 다 있으면 이메일 우선)
-        if (!finalEmail && !finalPhone) {
+        // preferred_method가 없는 경우: 이메일이 있으면 이메일 우선, 없으면 SMS
+        if (finalEmail) {
+          finalPhone = null; // 이메일이 있으면 SMS 비활성화
+        } else if (!finalEmail && !finalPhone) {
           return NextResponse.json({
             success: false,
             message: '해당 사용자의 이메일 또는 전화번호 정보가 등록되어 있지 않습니다. 관리자에게 문의하세요.'
@@ -190,7 +203,10 @@ export async function POST(request: NextRequest) {
       auto_lookup: !!auto_lookup,
       // 실제 사용된 연락처 정보 반환
       actual_phone: authMethod === 'sms' ? finalPhone : null,
-      actual_email: authMethod === 'email' ? finalEmail : null
+      actual_email: authMethod === 'email' ? finalEmail : null,
+      // 이메일 등록 유도를 위한 플래그
+      needs_email_setup: authMethod === 'sms' && !targetAuthUser.email,
+      has_email: !!targetAuthUser.email
     });
 
   } catch (error) {
