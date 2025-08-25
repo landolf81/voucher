@@ -135,11 +135,15 @@ export async function POST(request: NextRequest) {
       });
       authMethod = 'email';
     } else if (finalPhone) {
-      // 한국 전화번호를 E.164 형식으로 변환 (예: 01012345678 → +821012345678)
+      // 한국 전화번호를 E.164 형식으로 변환
       let e164Phone;
       if (finalPhone.startsWith('+')) {
         e164Phone = finalPhone;
+      } else if (finalPhone.startsWith('82')) {
+        // DB에 821044231653 형태로 저장된 경우
+        e164Phone = `+${finalPhone}`;
       } else if (finalPhone.startsWith('010')) {
+        // 01012345678 → +821012345678
         e164Phone = `+82${finalPhone.substring(1)}`;
       } else {
         e164Phone = `+82${finalPhone}`;
