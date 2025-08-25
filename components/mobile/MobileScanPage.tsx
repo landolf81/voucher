@@ -45,6 +45,60 @@ interface UsageResult {
 
 export function MobileScanPage() {
   const { user } = useAuth();
+  
+  // 조회 권한 사용자는 사용 등록 스캔 불가
+  if (user?.role === 'inquiry') {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: '#f9fafb',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px'
+      }}>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '40px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+          textAlign: 'center',
+          maxWidth: '400px'
+        }}>
+          <div style={{
+            fontSize: '48px',
+            marginBottom: '20px'
+          }}>
+            🚫
+          </div>
+          <h2 style={{
+            fontSize: '20px',
+            fontWeight: '600',
+            color: '#1f2937',
+            marginBottom: '12px'
+          }}>
+            접근 권한 없음
+          </h2>
+          <p style={{
+            fontSize: '16px',
+            color: '#6b7280',
+            lineHeight: '1.5',
+            marginBottom: '0'
+          }}>
+            조회 권한으로는 교환권 사용 등록을<br/>
+            할 수 없습니다.
+          </p>
+          <p style={{
+            fontSize: '14px',
+            color: '#9ca3af',
+            marginTop: '16px'
+          }}>
+            교환권 조회는 '조회' 메뉴를 이용해주세요.
+          </p>
+        </div>
+      </div>
+    );
+  }
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [cameraError, setCameraError] = useState('');

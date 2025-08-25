@@ -398,30 +398,22 @@ export function MobileSearchPage() {
           </button>
           <button
             onClick={() => {
-              if (user?.role === 'inquiry') return; // 조회 권한은 스캔 불가
               setSearchMethod('scan');
               startQRScan();
             }}
-            disabled={user?.role === 'inquiry'}
             style={{
               flex: 1,
               padding: '8px 16px',
-              backgroundColor: user?.role === 'inquiry' 
-                ? '#f3f4f6' 
-                : searchMethod === 'scan' ? 'white' : 'transparent',
-              color: user?.role === 'inquiry'
-                ? '#9ca3af'
-                : searchMethod === 'scan' ? '#1f2937' : '#6b7280',
+              backgroundColor: searchMethod === 'scan' ? 'white' : 'transparent',
+              color: searchMethod === 'scan' ? '#1f2937' : '#6b7280',
               border: 'none',
               borderRadius: '4px',
               fontSize: '14px',
               fontWeight: '500',
-              boxShadow: searchMethod === 'scan' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
-              cursor: user?.role === 'inquiry' ? 'not-allowed' : 'pointer'
+              boxShadow: searchMethod === 'scan' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'
             }}
-            title={user?.role === 'inquiry' ? '조회 권한으로는 QR 스캔을 사용할 수 없습니다' : ''}
           >
-            QR 스캔 {user?.role === 'inquiry' && '(비활성)'}
+            QR 스캔
           </button>
         </div>
 

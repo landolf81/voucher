@@ -10,6 +10,7 @@ interface NavItem {
   icon: string;
   path: string;
   roles?: string[];
+  excludeRoles?: string[];
 }
 
 export function MobileNavigation() {
@@ -28,7 +29,8 @@ export function MobileNavigation() {
       id: 'scan',
       label: '스캔',
       icon: '📱',
-      path: '/mobile/scan'
+      path: '/mobile/scan',
+      excludeRoles: ['inquiry']
     },
     {
       id: 'search',
@@ -46,9 +48,13 @@ export function MobileNavigation() {
   ];
 
   // 권한에 따른 네비게이션 아이템 필터링
-  const filteredNavItems = navItems.filter(item => 
-    !item.roles || item.roles.includes(user?.role || 'viewer')
-  );
+  const filteredNavItems = navItems.filter(item => {
+    // 필수 역할 확인
+    if (item.roles && !item.roles.includes(user?.role || 'viewer')) return false;
+    // 제외 역할 확인
+    if (item.excludeRoles && item.excludeRoles.includes(user?.role || 'viewer')) return false;
+    return true;
+  });
 
   const handleNavigation = (path: string) => {
     router.push(path);
