@@ -26,7 +26,7 @@ export function parseUserAgent(userAgent: string): Partial<DeviceInfo> {
     userAgent,
     isIOS: /iphone|ipad|ipod/.test(ua),
     isAndroid: /android/.test(ua),
-    isSafari: /safari/.test(ua) && !/chrome/.test(ua),
+    isSafari: /safari/.test(ua) && !/chrome/.test(ua) && !/crios/.test(ua) && !/fxios/.test(ua),
     isChrome: /chrome/.test(ua) && !/edg/.test(ua),
   };
 }

@@ -46,6 +46,7 @@ export function MobileSearchPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [searchMethod, setSearchMethod] = useState<'manual' | 'scan'>('manual');
   const [searchInput, setSearchInput] = useState('');
+  const [searchType, setSearchType] = useState<'serial' | 'name' | 'association' | 'user_id'>('serial');
   const [isScanning, setIsScanning] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<VoucherData[]>([]);
@@ -134,7 +135,7 @@ export function MobileSearchPage() {
   const performSearch = async (searchTerm?: string) => {
     const term = searchTerm || searchInput;
     if (!term.trim()) {
-      alert('검색할 일련번호를 입력해주세요.');
+      alert(getSearchPlaceholder());
       return;
     }
 
@@ -143,45 +144,90 @@ export function MobileSearchPage() {
     setSelectedVoucher(null);
 
     try {
-      // 먼저 단일 교환권 검증 API 시도
-      const verifyResponse = await fetch('/api/v1/vouchers/verify', {
+      // 일련번호 검색인 경우 먼저 verify API 시도 (정확한 일련번호 매칭)
+      if (searchType === 'serial' && term.trim().length > 10) {
+        const verifyResponse = await fetch('/api/v1/vouchers/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ payload: term.trim() })
+        });
+
+        const verifyData = await verifyResponse.json();
+        
+        if (verifyData.ok && verifyData.voucher) {
+          // 단일 결과 표시
+          const voucher: VoucherData = {
+            id: verifyData.voucher.id || '1',
+            serial_no: term.trim(),
+            amount: verifyData.voucher.amount,
+            association: verifyData.voucher.association,
+            name: verifyData.voucher.name,
+            status: verifyData.voucher.status,
+            issued_at: verifyData.voucher.issued_at || new Date().toISOString(),
+            used_at: verifyData.voucher.used_at,
+            usage_location: verifyData.voucher.usage_location,
+            voucher_templates: verifyData.voucher.voucher_templates
+          };
+          
+          setSearchResults([voucher]);
+          setSelectedVoucher(voucher);
+          return;
+        }
+      }
+
+      // 새로운 검색 API 사용
+      const searchResponse = await fetch('/api/v1/vouchers/search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ payload: term.trim() })
+        body: JSON.stringify({ 
+          searchTerm: term.trim(),
+          searchType: searchType
+        })
       });
 
-      const verifyData = await verifyResponse.json();
+      const searchData = await searchResponse.json();
       
-      if (verifyData.ok && verifyData.voucher) {
-        // 단일 결과 표시
-        const voucher: VoucherData = {
-          id: verifyData.voucher.id || '1',
-          serial_no: term.trim(),
-          amount: verifyData.voucher.amount,
-          association: verifyData.voucher.association,
-          name: verifyData.voucher.name,
-          status: verifyData.voucher.status,
-          issued_at: verifyData.voucher.issued_at || new Date().toISOString(),
-          used_at: verifyData.voucher.used_at,
-          usage_location: verifyData.voucher.usage_location,
-          voucher_templates: verifyData.voucher.voucher_templates
-        };
-        
-        setSearchResults([voucher]);
-        setSelectedVoucher(voucher);
+      if (searchData.ok && searchData.vouchers) {
+        setSearchResults(searchData.vouchers);
+        // 결과가 1개인 경우 자동 선택
+        if (searchData.vouchers.length === 1) {
+          setSelectedVoucher(searchData.vouchers[0]);
+        }
       } else {
-        // 검색 API로 폴백 (부분 일치 등)
-        // TODO: 실제 검색 API 구현 시 사용
         setSearchResults([]);
-        alert(verifyData.error || '해당 일련번호의 교환권을 찾을 수 없습니다.');
+        alert(searchData.message || `해당 ${getSearchTypeName()}의 교환권을 찾을 수 없습니다.`);
       }
     } catch (error) {
       console.error('검색 오류:', error);
       alert('검색 중 오류가 발생했습니다.');
     } finally {
       setIsSearching(false);
+    }
+  };
+
+  // 검색 타입에 따른 플레이스홀더 텍스트
+  const getSearchPlaceholder = () => {
+    switch (searchType) {
+      case 'serial': return '교환권 일련번호를 입력하세요';
+      case 'name': return '수혜자 이름을 입력하세요';
+      case 'association': return '협회/단체명을 입력하세요';
+      case 'user_id': return '사용자 ID를 입력하세요';
+      default: return '검색어를 입력하세요';
+    }
+  };
+
+  // 검색 타입 한글명
+  const getSearchTypeName = () => {
+    switch (searchType) {
+      case 'serial': return '일련번호';
+      case 'name': return '이름';
+      case 'association': return '협회/단체';
+      case 'user_id': return 'ID';
+      default: return '검색어';
     }
   };
 
@@ -327,6 +373,40 @@ export function MobileSearchPage() {
           </button>
         </div>
 
+        {/* 검색 타입 선택 */}
+        {searchMethod === 'manual' && (
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: '8px'
+            }}>
+              {[
+                { value: 'serial', label: '일련번호' },
+                { value: 'name', label: '이름' },
+                { value: 'association', label: '영농회' },
+                { value: 'user_id', label: 'ID' }
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => setSearchType(option.value as any)}
+                  style={{
+                    padding: '8px 12px',
+                    backgroundColor: searchType === option.value ? '#3b82f6' : 'white',
+                    color: searchType === option.value ? 'white' : '#6b7280',
+                    border: `1px solid ${searchType === option.value ? '#3b82f6' : '#d1d5db'}`,
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                  }}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* 검색 입력 */}
         {searchMethod === 'manual' && (
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -339,14 +419,14 @@ export function MobileSearchPage() {
                   performSearch();
                 }
               }}
-              placeholder="교환권 일련번호를 입력하세요"
+              placeholder={getSearchPlaceholder()}
               style={{
                 flex: 1,
                 padding: '12px',
                 borderRadius: '8px',
                 border: '1px solid #d1d5db',
                 fontSize: '16px',
-                fontFamily: 'monospace'
+                fontFamily: searchType === 'serial' ? 'monospace' : 'inherit'
               }}
             />
             <button
@@ -486,6 +566,123 @@ export function MobileSearchPage() {
 
       {/* 검색 결과 */}
       <div style={{ padding: '20px' }}>
+        {/* 검색 결과 목록 (다중 결과인 경우) */}
+        {searchResults.length > 1 && !selectedVoucher && (
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '20px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            marginBottom: '20px'
+          }}>
+            <h2 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#1f2937',
+              marginBottom: '16px'
+            }}>
+              검색 결과 ({searchResults.length}개)
+            </h2>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {searchResults.map((voucher, index) => (
+                <div
+                  key={voucher.id || index}
+                  onClick={() => setSelectedVoucher(voucher)}
+                  style={{
+                    padding: '16px',
+                    backgroundColor: '#f9fafb',
+                    borderRadius: '12px',
+                    border: '1px solid #e5e7eb',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    marginBottom: '8px'
+                  }}>
+                    <div>
+                      <p style={{
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        color: '#1f2937',
+                        margin: '0 0 4px 0'
+                      }}>
+                        {voucher.name}
+                      </p>
+                      <p style={{
+                        fontSize: '14px',
+                        color: '#6b7280',
+                        margin: 0
+                      }}>
+                        {voucher.association}
+                      </p>
+                    </div>
+                    <div style={{
+                      backgroundColor: getStatusColor(voucher.status),
+                      color: 'white',
+                      padding: '4px 8px',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      fontWeight: '500'
+                    }}>
+                      {getStatusText(voucher.status)}
+                    </div>
+                  </div>
+                  
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <p style={{
+                      fontSize: '18px',
+                      fontWeight: '700',
+                      color: '#059669',
+                      margin: 0
+                    }}>
+                      {voucher.amount.toLocaleString()}원
+                    </p>
+                    <p style={{
+                      fontSize: '12px',
+                      color: '#9ca3af',
+                      margin: 0,
+                      fontFamily: 'monospace'
+                    }}>
+                      {voucher.serial_no.substring(0, 8)}...
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={() => {
+                setSearchInput('');
+                setSearchResults([]);
+                setSelectedVoucher(null);
+              }}
+              style={{
+                width: '100%',
+                padding: '12px',
+                backgroundColor: '#f3f4f6',
+                color: '#374151',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: '500',
+                marginTop: '16px'
+              }}
+            >
+              새로 검색하기
+            </button>
+          </div>
+        )}
+
+        {/* 선택된 교환권 상세 정보 */}
         {searchResults.length > 0 && selectedVoucher && (
           <div style={{
             backgroundColor: 'white',
@@ -679,26 +876,46 @@ export function MobileSearchPage() {
               </div>
             </div>
 
-            {/* 새 검색 버튼 */}
-            <button
-              onClick={() => {
-                setSearchInput('');
-                setSearchResults([]);
-                setSelectedVoucher(null);
-              }}
-              style={{
-                width: '100%',
-                padding: '12px',
-                backgroundColor: '#f3f4f6',
-                color: '#374151',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '16px',
-                fontWeight: '500'
-              }}
-            >
-              새로 검색하기
-            </button>
+            {/* 버튼 그룹 */}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {searchResults.length > 1 && (
+                <button
+                  onClick={() => setSelectedVoucher(null)}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    backgroundColor: 'transparent',
+                    color: '#6b7280',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    fontWeight: '500'
+                  }}
+                >
+                  목록으로
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setSearchInput('');
+                  setSearchResults([]);
+                  setSelectedVoucher(null);
+                }}
+                style={{
+                  flex: searchResults.length > 1 ? 1 : 'none',
+                  width: searchResults.length > 1 ? 'auto' : '100%',
+                  padding: '12px',
+                  backgroundColor: '#f3f4f6',
+                  color: '#374151',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: '500'
+                }}
+              >
+                새로 검색하기
+              </button>
+            </div>
           </div>
         )}
 
@@ -725,8 +942,8 @@ export function MobileSearchPage() {
               fontSize: '16px',
               lineHeight: '1.5'
             }}>
-              교환권 일련번호를 입력하거나<br/>
-              QR 코드를 스캔하여 정보를 확인할 수 있습니다
+              일련번호, 이름, 영농회, ID로 검색하거나<br/>
+              QR 코드를 스캔하여 교환권 정보를 확인할 수 있습니다
             </p>
           </div>
         )}

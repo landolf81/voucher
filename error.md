@@ -1,117 +1,51 @@
-2108-d7f9b8b297a2ed5a.js:1 checkAuthStatus 시작
-2108-d7f9b8b297a2ed5a.js:1 getUser 결과: undefined
-2108-d7f9b8b297a2ed5a.js:1 authUser 없음
-2108-d7f9b8b297a2ed5a.js:1 checkAuthStatus 완료
-2108-d7f9b8b297a2ed5a.js:1 Auth state changed: INITIAL_SESSION undefined
-page-aa5231478bff8f7b.js:1   GET https://voucher-iota.vercel.app/api/sites 500 (Internal Server Error)
-B @ page-aa5231478bff8f7b.js:1
-(anonymous) @ page-aa5231478bff8f7b.js:1
-o0 @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-uS @ 4bd1b696-602635ee57868870.js:1
-ux @ 4bd1b696-602635ee57868870.js:1
-iT @ 4bd1b696-602635ee57868870.js:1
-(anonymous) @ 4bd1b696-602635ee57868870.js:1
-w @ 5964-2a1ddd40921d073b.js:1
+Error: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+    at createConsoleError (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/shared/console-error.js:23:71)
+    at handleConsoleError (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/userspace/app/errors/use-error-handler.js:45:54)
+    at console.error (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/userspace/app/errors/intercept-console-error.js:50:57)
+    at getRootForUpdatedFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:3900:17)
+    at enqueueConcurrentHookUpdate (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:3853:14)
+    at dispatchSetStateInternal (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:8220:18)
+    at dispatchSetState (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:8180:7)
+    at LoginPage.useEffect.handleMagicLink (webpack-internal:///(app-pages-browser)/./app/login/page.tsx:102:25)
+    at LoginPage.useEffect (webpack-internal:///(app-pages-browser)/./app/login/page.tsx:110:17)
+    at Object.react_stack_bottom_frame (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:23638:20)
+    at runWithFiberInDEV (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:873:30)
+    at commitHookEffectListMount (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:12296:29)
+    at commitHookPassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:12417:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14338:13)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14311:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14331:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14311:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14465:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14311:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14465:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14311:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14331:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14311:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14341:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14311:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14331:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14311:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14331:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14311:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14331:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14311:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14331:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14311:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14341:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14311:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14331:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14311:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14331:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14311:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14465:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14311:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14465:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14311:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14331:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14311:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14331:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14311:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14465:11)
+    at recursivelyTraversePassiveMountEffects (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14311:11)
+    at commitPassiveMountOnFiber (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/compiled/react-dom/cjs/react-dom-client.development.js:14465:11)

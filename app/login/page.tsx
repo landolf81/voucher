@@ -17,24 +17,37 @@ export default function LoginPage() {
   // OAuth 연동 상태 (useEffect에서 사용되므로 최상단에 선언)
   const [isLinkingKakao, setIsLinkingKakao] = useState(false);
 
-  // Magic Link 처리
+  // Magic Link 처리 - Safari 호환성 개선
   useEffect(() => {
     const handleMagicLink = async () => {
-      // URL에서 Magic Link 파라미터 확인
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const searchParams = new URLSearchParams(window.location.search);
-      
-      // Supabase는 hash fragment에 토큰을 포함시킴
-      const accessToken = hashParams.get('access_token');
-      const refreshToken = hashParams.get('refresh_token');
-      const type = searchParams.get('type');
-      
-      if ((accessToken || refreshToken) && type === 'magiclink' && !isProcessingMagicLink) {
-        setIsProcessingMagicLink(true);
-        setMessage({ type: 'success', text: 'Magic Link를 처리 중입니다...' });
+      try {
+        // URL에서 Magic Link 파라미터 확인
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const searchParams = new URLSearchParams(window.location.search);
         
-        try {
+        // Supabase는 hash fragment에 토큰을 포함시킴
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        const type = searchParams.get('type');
+        
+        console.log('Magic Link 파라미터 확인:', { 
+          hasAccessToken: !!accessToken, 
+          hasRefreshToken: !!refreshToken, 
+          type,
+          isSafari: device.isSafari,
+          isIOS: device.isIOS
+        });
+        
+        if ((accessToken || refreshToken) && type === 'magiclink' && !isProcessingMagicLink) {
+          setIsProcessingMagicLink(true);
+          setMessage({ type: 'success', text: 'Magic Link를 처리 중입니다...' });
+          
           const supabase = getSupabaseClient();
+          
+          // Safari/iOS에서 약간의 지연 추가
+          if (device.isSafari || device.isIOS) {
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
           
           // 세션 설정
           if (accessToken && refreshToken) {
@@ -48,22 +61,37 @@ export default function LoginPage() {
               setMessage({ type: 'error', text: '로그인 처리 중 오류가 발생했습니다.' });
             } else {
               console.log('Magic Link 로그인 성공');
-              // URL 정리
-              window.history.replaceState({}, document.title, '/login');
-              // 인증 상태가 업데이트되면 자동으로 리다이렉트됨
+              setMessage({ type: 'success', text: '로그인이 완료되었습니다.' });
+              
+              // URL 정리 - Safari에서는 pushState 사용
+              if (device.isSafari || device.isIOS) {
+                window.history.pushState({}, document.title, '/login');
+              } else {
+                window.history.replaceState({}, document.title, '/login');
+              }
+              
+              // Safari/iOS에서는 추가 지연 후 리다이렉션 대기
+              if (device.isSafari || device.isIOS) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
             }
           }
-        } catch (error) {
-          console.error('Magic Link 처리 오류:', error);
-          setMessage({ type: 'error', text: 'Magic Link 처리 중 오류가 발생했습니다.' });
-        } finally {
-          setIsProcessingMagicLink(false);
         }
+      } catch (error) {
+        console.error('Magic Link 처리 오류:', error);
+        setMessage({ type: 'error', text: 'Magic Link 처리 중 오류가 발생했습니다.' });
+      } finally {
+        setIsProcessingMagicLink(false);
       }
     };
     
-    handleMagicLink();
-  }, [isProcessingMagicLink]);
+    // Safari/iOS에서는 페이지 로드 후 약간의 지연
+    if (device.isSafari || device.isIOS) {
+      setTimeout(handleMagicLink, 500);
+    } else {
+      handleMagicLink();
+    }
+  }, [device.isSafari, device.isIOS]);
 
   // 이미 로그인된 사용자는 대시보드로 리다이렉트
   // OAuth 연동 필요 확인
@@ -133,15 +161,41 @@ export default function LoginPage() {
   }, [user, isLoading, isLinkingKakao]);
 
   useEffect(() => {
+    // 디버깅용 로그 추가
+    console.log('리다이렉션 useEffect 실행:', {
+      isLoading,
+      isProcessingMagicLink,
+      isAuthenticated,
+      hasUser: !!user,
+      isLinkingKakao,
+      userName: user?.name
+    });
+    
     if (!isLoading && !isProcessingMagicLink && isAuthenticated && user && !isLinkingKakao) {
-      // 디바이스에 따른 라우팅
+      // 디바이스에 따른 라우팅 - Safari 특별 처리
+      console.log('리다이렉션 확인:', { 
+        isMobile: device.isMobile, 
+        isSafari: device.isSafari, 
+        isIOS: device.isIOS,
+        userAgent: device.userAgent 
+      });
+      
       const redirectUrl = device.isMobile ? '/mobile' : '/admin/dashboard';
-      router.replace(redirectUrl);
+      console.log('리다이렉션 URL:', redirectUrl);
+      
+      // Safari에서는 짧은 지연 후 리다이렉션
+      if (device.isSafari || device.isIOS) {
+        setTimeout(() => {
+          router.replace(redirectUrl);
+        }, 500);
+      } else {
+        router.replace(redirectUrl);
+      }
     }
-  }, [isAuthenticated, isLoading, isProcessingMagicLink, user, router, device.isMobile, isLinkingKakao]);
+  }, [isAuthenticated, isLoading, isProcessingMagicLink, user, router, device.isMobile, device.isSafari, device.isIOS, isLinkingKakao]);
 
-  const [authStep, setAuthStep] = useState<'id' | 'verification' | 'code'>('id');
-  const [verificationMethod, setVerificationMethod] = useState<'sms' | 'email'>('sms');
+  const [authStep, setAuthStep] = useState<'id' | 'code'>('id');
+  const [authMethod, setAuthMethod] = useState<'sms' | 'email'>('sms');
   const [verificationCode, setVerificationCode] = useState('');
   const [verificationId, setVerificationId] = useState('');
   const [kakaoAuthUserId, setKakaoAuthUserId] = useState<string | null>(null);
@@ -184,53 +238,64 @@ export default function LoginPage() {
       setMessage({ type: 'error', text: '사번을 입력해주세요.' });
       return;
     }
-    setAuthStep('verification');
-  };
 
-  const handleVerificationMethodSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
     setLoading(true);
     setMessage(null);
 
     try {
-      // 새로운 link-user API 사용
+      // ID로 사용자 정보 자동 조회 및 인증 진행
       const response = await fetch('/api/auth/link-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: formData.employeeId,
-          email: verificationMethod === 'email' ? formData.email : undefined,
-          phone: verificationMethod === 'sms' ? formData.phone : undefined
+          auto_lookup: true,
+          preferred_method: authMethod
         })
       });
 
       const result = await response.json();
       
       if (result.success) {
-        if (verificationMethod === 'email') {
+        // 인증 방법에 따라 다음 단계 결정
+        if (result.auth_method === 'email') {
           // 이메일은 Magic Link 방식이므로 코드 입력 단계 없이 완료
           setMessage({ 
             type: 'success', 
             text: result.message + ' 이메일의 링크를 클릭하여 로그인을 완료하세요.' 
           });
-        } else {
-          // SMS는 기존대로 코드 입력 단계로
+          // 폼 데이터에 사용자 정보 저장
+          setFormData(prev => ({
+            ...prev,
+            name: result.user.name,
+            role: result.user.role
+          }));
+        } else if (result.auth_method === 'sms') {
+          // SMS는 코드 입력 단계로
           setAuthStep('code');
+          setAuthMethod('sms');
           setMessage({ 
             type: 'success', 
             text: result.message 
           });
+          // 폼 데이터에 사용자 정보 저장
+          setFormData(prev => ({
+            ...prev,
+            name: result.user.name,
+            role: result.user.role
+          }));
         }
       } else {
-        setMessage({ type: 'error', text: result.message || '인증 코드 전송에 실패했습니다.' });
+        setMessage({ type: 'error', text: result.message });
       }
     } catch (error: any) {
-      console.error('인증 코드 전송 오류:', error);
-      setMessage({ type: 'error', text: '인증 코드 전송 중 오류가 발생했습니다.' });
+      console.error('사용자 조회 오류:', error);
+      setMessage({ type: 'error', text: '사용자 조회 중 오류가 발생했습니다.' });
     } finally {
       setLoading(false);
     }
   };
+
 
   const handleVerificationCodeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -243,8 +308,8 @@ export default function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: verificationMethod === 'email' ? formData.email : undefined,
-          phone: verificationMethod === 'sms' ? formData.phone : undefined,
+          email: authMethod === 'email' ? formData.email : undefined,
+          phone: authMethod === 'sms' ? formData.phone : undefined,
           token: verificationCode
         })
       });
@@ -265,7 +330,9 @@ export default function LoginPage() {
         }
         
         setTimeout(() => {
-          router.push('/admin/dashboard');
+          const redirectUrl = device.isMobile ? '/mobile' : '/admin/dashboard';
+          console.log('SMS 인증 후 리다이렉션:', redirectUrl);
+          router.push(redirectUrl);
         }, 1000);
       } else {
         setMessage({ type: 'error', text: result.message || '인증 코드가 올바르지 않습니다.' });
@@ -481,6 +548,74 @@ export default function LoginPage() {
               />
             </div>
 
+            {/* 인증 방법 선택 */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
+                인증 방법 선택
+              </label>
+              <div style={{ 
+                display: 'flex', 
+                gap: '8px',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                padding: '4px',
+                backgroundColor: '#f9fafb'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setAuthMethod('sms')}
+                  style={{
+                    flex: 1,
+                    padding: '8px 16px',
+                    backgroundColor: authMethod === 'sms' ? '#3b82f6' : 'transparent',
+                    color: authMethod === 'sms' ? 'white' : '#6b7280',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  📱 SMS
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAuthMethod('email')}
+                  style={{
+                    flex: 1,
+                    padding: '8px 16px',
+                    backgroundColor: authMethod === 'email' ? '#3b82f6' : 'transparent',
+                    color: authMethod === 'email' ? 'white' : '#6b7280',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  📧 이메일
+                </button>
+              </div>
+              <p style={{ 
+                fontSize: '12px', 
+                color: '#6b7280', 
+                marginTop: '4px' 
+              }}>
+                {authMethod === 'sms' 
+                  ? '등록된 휴대폰으로 인증 코드를 받습니다' 
+                  : '등록된 이메일로 로그인 링크를 받습니다'
+                }
+              </p>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
@@ -502,157 +637,6 @@ export default function LoginPage() {
           </form>
         )}
 
-        {authStep === 'verification' && (
-          <form onSubmit={handleVerificationMethodSubmit}>
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '12px'
-              }}>
-                인증 방법을 선택하세요
-              </label>
-              
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <label style={{
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '12px',
-                  border: `2px solid ${verificationMethod === 'sms' ? '#3b82f6' : '#d1d5db'}`,
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  backgroundColor: verificationMethod === 'sms' ? '#eff6ff' : 'white'
-                }}>
-                  <input
-                    type="radio"
-                    name="verificationMethod"
-                    value="sms"
-                    checked={verificationMethod === 'sms'}
-                    onChange={(e) => setVerificationMethod(e.target.value as 'sms' | 'email')}
-                    style={{ marginRight: '8px' }}
-                  />
-                  SMS 인증
-                </label>
-
-                <label style={{
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '12px',
-                  border: `2px solid ${verificationMethod === 'email' ? '#3b82f6' : '#d1d5db'}`,
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  backgroundColor: verificationMethod === 'email' ? '#eff6ff' : 'white'
-                }}>
-                  <input
-                    type="radio"
-                    name="verificationMethod"
-                    value="email"
-                    checked={verificationMethod === 'email'}
-                    onChange={(e) => setVerificationMethod(e.target.value as 'sms' | 'email')}
-                    style={{ marginRight: '8px' }}
-                  />
-                  이메일 인증
-                </label>
-              </div>
-            </div>
-
-            {verificationMethod === 'sms' && (
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginBottom: '6px'
-                }}>
-                  휴대폰 번호
-                </label>
-                <input
-                  type="tel"
-                  required
-                  value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '16px'
-                  }}
-                  placeholder="01012345678"
-                />
-              </div>
-            )}
-
-            {verificationMethod === 'email' && (
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginBottom: '6px'
-                }}>
-                  이메일 주소
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '16px'
-                  }}
-                  placeholder="example@email.com"
-                />
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                width: '100%',
-                padding: '12px',
-                backgroundColor: loading ? '#9ca3af' : '#3b82f6',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '16px',
-                fontWeight: '500',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                marginBottom: '16px'
-              }}
-            >
-              {loading ? '전송 중...' : '인증 코드 전송'}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setAuthStep('id')}
-              style={{
-                width: '100%',
-                padding: '12px',
-                backgroundColor: 'transparent',
-                color: '#6b7280',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                fontSize: '14px',
-                cursor: 'pointer'
-              }}
-            >
-              이전으로
-            </button>
-          </form>
-        )}
 
         {authStep === 'code' && (
           <form onSubmit={handleVerificationCodeSubmit}>
@@ -689,7 +673,7 @@ export default function LoginPage() {
                 marginTop: '4px',
                 textAlign: 'center'
               }}>
-                {verificationMethod === 'sms' ? 'SMS' : '이메일'}로 전송된 6자리 코드를 입력하세요
+                {authMethod === 'sms' ? 'SMS' : '이메일'}로 전송된 6자리 코드를 입력하세요
               </p>
             </div>
 
@@ -715,7 +699,11 @@ export default function LoginPage() {
             <div style={{ display: 'flex', gap: '12px' }}>
               <button
                 type="button"
-                onClick={() => setAuthStep('verification')}
+                onClick={() => {
+                  setAuthStep('id');
+                  setVerificationCode('');
+                  setMessage(null);
+                }}
                 style={{
                   flex: 1,
                   padding: '12px',
@@ -732,7 +720,10 @@ export default function LoginPage() {
               
               <button
                 type="button"
-                onClick={handleVerificationMethodSubmit}
+                onClick={() => {
+                  // 다시 인증 코드 전송
+                  handleEmployeeIdSubmit(new Event('submit') as any);
+                }}
                 disabled={loading}
                 style={{
                   flex: 1,

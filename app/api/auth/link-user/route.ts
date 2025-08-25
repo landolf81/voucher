@@ -3,40 +3,98 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: NextRequest) {
   try {
-    const { user_id, email, phone } = await request.json();
+    const { user_id, email, phone, auto_lookup, preferred_method } = await request.json();
 
-    if (!user_id || (!email && !phone)) {
+    // auto_lookup이 true인 경우 user_id만으로 자동 조회
+    if (auto_lookup && user_id) {
+      // 자동 조회 모드에서는 user_id만 필요
+    } else if (!user_id || (!email && !phone)) {
       return NextResponse.json({
         success: false,
         message: 'user_id와 email 또는 phone이 필요합니다.'
       }, { status: 400 });
     }
 
-    // 서비스 롤 키로 user_profiles 확인
+    // 서비스 롤 키로 Supabase Admin 클라이언트 생성
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // user_profiles에서 사용자 확인
-    const { data: userProfile, error: profileError } = await supabaseAdmin
-      .from('user_profiles')
-      .select('id, name, user_id, role, site_id, is_active')
-      .eq('user_id', user_id)
-      .single();
+    // auth.users에서 display_name으로 사용자 검색
+    const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+    
+    if (authError) {
+      console.error('Auth users 조회 오류:', authError);
+      return NextResponse.json({
+        success: false,
+        message: '사용자 인증 정보 조회 중 오류가 발생했습니다.'
+      }, { status: 500 });
+    }
 
-    if (profileError || !userProfile) {
+    // display_name이나 user_metadata에서 user_id와 일치하는 사용자 찾기
+    const targetAuthUser = authUsers.users.find(user => {
+      const displayName = user.user_metadata?.display_name || user.user_metadata?.user_id;
+      return displayName === user_id || user.id === user_id;
+    });
+
+    if (!targetAuthUser) {
       return NextResponse.json({
         success: false,
         message: '등록되지 않은 사용자 ID입니다.'
       }, { status: 404 });
     }
 
-    if (!userProfile.is_active) {
+    // user_profiles에서 추가 정보 조회 (이름, 역할 등)
+    const { data: userProfile, error: profileError } = await supabaseAdmin
+      .from('user_profiles')
+      .select('id, name, user_id, role, site_id, is_active')
+      .eq('user_id', user_id)
+      .maybeSingle(); // single 대신 maybeSingle 사용
+
+    // user_profiles가 없어도 auth.users 정보로 진행 가능하지만, 
+    // 있다면 활성화 상태 확인
+    if (userProfile && !userProfile.is_active) {
       return NextResponse.json({
         success: false,
         message: '비활성화된 사용자입니다.'
       }, { status: 403 });
+    }
+
+    // auto_lookup 모드인 경우 auth.users에서 이메일/전화번호 정보 조회
+    let finalEmail = email;
+    let finalPhone = phone;
+    
+    if (auto_lookup) {
+      finalEmail = targetAuthUser.email;
+      finalPhone = targetAuthUser.phone;
+      
+      // preferred_method가 지정된 경우 해당 방법만 사용
+      if (preferred_method === 'email') {
+        finalPhone = null; // SMS 비활성화
+        if (!finalEmail) {
+          return NextResponse.json({
+            success: false,
+            message: '해당 사용자의 이메일 정보가 등록되어 있지 않습니다. SMS 방식을 선택하거나 관리자에게 문의하세요.'
+          }, { status: 400 });
+        }
+      } else if (preferred_method === 'sms') {
+        finalEmail = null; // 이메일 비활성화
+        if (!finalPhone) {
+          return NextResponse.json({
+            success: false,
+            message: '해당 사용자의 전화번호 정보가 등록되어 있지 않습니다. 이메일 방식을 선택하거나 관리자에게 문의하세요.'
+          }, { status: 400 });
+        }
+      } else {
+        // preferred_method가 없는 경우 기존 로직 (둘 다 있으면 이메일 우선)
+        if (!finalEmail && !finalPhone) {
+          return NextResponse.json({
+            success: false,
+            message: '해당 사용자의 이메일 또는 전화번호 정보가 등록되어 있지 않습니다. 관리자에게 문의하세요.'
+          }, { status: 400 });
+        }
+      }
     }
 
     // 일반 클라이언트로 OTP 전송
@@ -46,7 +104,9 @@ export async function POST(request: NextRequest) {
     );
 
     let result;
-    if (email) {
+    let authMethod = null;
+    
+    if (finalEmail) {
       // 이메일은 Magic Link 방식 사용
       // API Route에서 origin 추출
       const origin = request.headers.get('origin') || 
@@ -55,42 +115,43 @@ export async function POST(request: NextRequest) {
                      'https://voucher-iota.vercel.app';
       
       // Safari 호환성을 위해 로그인 페이지로 리다이렉트
-      const redirectTo = `${origin}/login?type=magiclink&user=${userProfile.user_id}`;
-      console.log('Magic Link redirect URL:', redirectTo);
+      const redirectTo = `${origin}/login?type=magiclink&user=${user_id}`;
       
       result = await supabase.auth.signInWithOtp({
-        email: email,
+        email: finalEmail,
         options: {
           shouldCreateUser: true,
           emailRedirectTo: redirectTo,
           data: {
-            // 사용자 메타데이터에 user_profiles 정보 저장
-            user_id: userProfile.user_id,
-            name: userProfile.name,
-            role: userProfile.role,
-            site_id: userProfile.site_id,
-            profile_id: userProfile.id
+            // 사용자 메타데이터에 정보 저장
+            user_id: user_id,
+            name: userProfile?.name || targetAuthUser.user_metadata?.display_name || user_id,
+            role: userProfile?.role || 'user',
+            site_id: userProfile?.site_id || null,
+            profile_id: userProfile?.id || null,
+            auth_user_id: targetAuthUser.id
           }
         }
       });
-    } else if (phone) {
+      authMethod = 'email';
+    } else if (finalPhone) {
       // 한국 전화번호를 E.164 형식으로 변환 (예: 01012345678 → +8201012345678)
-      const e164Phone = phone.startsWith('+') ? phone : `+82${phone.substring(1)}`;
-      console.log('SMS 전송 시도:', phone, '→', e164Phone);
+      const e164Phone = finalPhone.startsWith('+') ? finalPhone : `+82${finalPhone.substring(1)}`;
       result = await supabase.auth.signInWithOtp({
         phone: e164Phone,
         options: {
           channel: 'sms',
           data: {
-            user_id: userProfile.user_id,
-            name: userProfile.name,
-            role: userProfile.role,
-            site_id: userProfile.site_id,
-            profile_id: userProfile.id
+            user_id: user_id,
+            name: userProfile?.name || targetAuthUser.user_metadata?.display_name || user_id,
+            role: userProfile?.role || 'user',
+            site_id: userProfile?.site_id || null,
+            profile_id: userProfile?.id || null,
+            auth_user_id: targetAuthUser.id
           }
         }
       });
-      console.log('SMS 전송 결과:', result);
+      authMethod = 'sms';
     }
 
     if (result?.error) {
@@ -102,14 +163,20 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
+    const authMethodText = authMethod === 'email' ? '로그인 링크가 이메일로' : '인증 코드가 SMS로';
+    
+    const displayName = userProfile?.name || targetAuthUser.user_metadata?.display_name || user_id;
+    
     return NextResponse.json({
       success: true,
-      message: `${userProfile.name}님, ${email ? '로그인 링크가 이메일로' : '인증 코드가 SMS로'} 전송되었습니다.`,
+      message: `${displayName}님, ${authMethodText} 전송되었습니다.`,
       user: {
-        user_id: userProfile.user_id,
-        name: userProfile.name,
-        role: userProfile.role
-      }
+        user_id: user_id,
+        name: displayName,
+        role: userProfile?.role || 'user'
+      },
+      auth_method: authMethod,
+      auto_lookup: !!auto_lookup
     });
 
   } catch (error) {
