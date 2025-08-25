@@ -140,6 +140,7 @@ export async function POST(req: NextRequest) {
           amount: voucher.amount,
           association: voucher.association,
           name: voucher.name,
+          dob: voucher.dob,
           status: voucher.status,
           issued_at: voucher.issued_at,
           used_at: voucher.used_at,
