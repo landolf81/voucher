@@ -187,7 +187,10 @@ export async function POST(request: NextRequest) {
         role: userProfile?.role || 'user'
       },
       auth_method: authMethod,
-      auto_lookup: !!auto_lookup
+      auto_lookup: !!auto_lookup,
+      // 실제 사용된 연락처 정보 반환
+      actual_phone: authMethod === 'sms' ? finalPhone : null,
+      actual_email: authMethod === 'email' ? finalEmail : null
     });
 
   } catch (error) {

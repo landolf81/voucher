@@ -21,8 +21,19 @@ export async function POST(request: NextRequest) {
     let result;
 
     if (phone) {
-      // 한국 전화번호를 E.164 형식으로 변환 (예: 01012345678 → +8201012345678)
-      const e164Phone = phone.startsWith('+') ? phone : `+82${phone.substring(1)}`;
+      // 한국 전화번호를 E.164 형식으로 변환
+      let e164Phone;
+      if (phone.startsWith('+')) {
+        e164Phone = phone;
+      } else if (phone.startsWith('82')) {
+        // DB에 821044231653 형태로 저장된 경우
+        e164Phone = `+${phone}`;
+      } else if (phone.startsWith('010')) {
+        // 01012345678 → +821012345678
+        e164Phone = `+82${phone.substring(1)}`;
+      } else {
+        e164Phone = `+82${phone}`;
+      }
       console.log('OTP 검증 시도:', phone, '→', e164Phone);
       
       // 전화번호 OTP 검증

@@ -198,6 +198,8 @@ export default function LoginPage() {
   const [authMethod, setAuthMethod] = useState<'sms' | 'email'>('sms');
   const [verificationCode, setVerificationCode] = useState('');
   const [verificationId, setVerificationId] = useState('');
+  const [actualPhone, setActualPhone] = useState(''); // 실제 DB에서 조회된 전화번호
+  const [actualEmail, setActualEmail] = useState(''); // 실제 DB에서 조회된 이메일
   const [kakaoAuthUserId, setKakaoAuthUserId] = useState<string | null>(null);
   const [linkingPhone, setLinkingPhone] = useState('');
 
@@ -260,6 +262,7 @@ export default function LoginPage() {
         // 인증 방법에 따라 다음 단계 결정
         if (result.auth_method === 'email') {
           // 이메일은 Magic Link 방식이므로 코드 입력 단계 없이 완료
+          setActualEmail(result.actual_email); // 실제 이메일 저장
           setMessage({ 
             type: 'success', 
             text: result.message + ' 이메일의 링크를 클릭하여 로그인을 완료하세요.' 
@@ -274,6 +277,7 @@ export default function LoginPage() {
           // SMS는 코드 입력 단계로
           setAuthStep('code');
           setAuthMethod('sms');
+          setActualPhone(result.actual_phone); // 실제 전화번호 저장
           setMessage({ 
             type: 'success', 
             text: result.message 
@@ -308,8 +312,8 @@ export default function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: authMethod === 'email' ? formData.email : undefined,
-          phone: authMethod === 'sms' ? formData.phone : undefined,
+          email: authMethod === 'email' ? actualEmail : undefined,
+          phone: authMethod === 'sms' ? actualPhone : undefined,
           token: verificationCode
         })
       });
