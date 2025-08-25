@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 
 // QR 코드 페이로드 파싱 함수
@@ -51,8 +51,38 @@ export function MobileSearchPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<VoucherData[]>([]);
+  const [filteredResults, setFilteredResults] = useState<VoucherData[]>([]);
   const [selectedVoucher, setSelectedVoucher] = useState<VoucherData | null>(null);
+  
+  // 필터 상태
+  const [showFilters, setShowFilters] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [nameFilter, setNameFilter] = useState('');
   const [cameraError, setCameraError] = useState('');
+
+  // 필터 적용 함수
+  const applyFilters = (results: VoucherData[]) => {
+    let filtered = [...results];
+
+    // 상태 필터 적용
+    if (statusFilter.length > 0) {
+      filtered = filtered.filter(voucher => statusFilter.includes(voucher.status));
+    }
+
+    // 조합원명 필터 적용
+    if (nameFilter.trim()) {
+      filtered = filtered.filter(voucher => 
+        voucher.name.toLowerCase().includes(nameFilter.toLowerCase())
+      );
+    }
+
+    setFilteredResults(filtered);
+  };
+
+  // 필터나 검색 결과가 변경될 때 자동으로 필터 적용
+  useEffect(() => {
+    applyFilters(searchResults);
+  }, [searchResults, statusFilter, nameFilter]);
 
   // QR 스캔 시작
   const startQRScan = async () => {
@@ -177,6 +207,11 @@ export function MobileSearchPage() {
           return;
         }
       }
+
+      // 필터 상태 초기화
+      setStatusFilter([]);
+      setNameFilter('');
+      setShowFilters(false);
 
       // 새로운 검색 API 사용
       const searchResponse = await fetch('/api/v1/vouchers/search', {
@@ -569,6 +604,134 @@ export function MobileSearchPage() {
       {/* 검색 결과 */}
       <div style={{ padding: '20px' }}>
         {/* 검색 결과 목록 (다중 결과인 경우) */}
+        {/* 필터 버튼 - 결과가 5개 이상일 때만 표시 */}
+        {searchResults.length >= 5 && !selectedVoucher && (
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: '16px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            marginBottom: '16px'
+          }}>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              style={{
+                width: '100%',
+                padding: '12px',
+                backgroundColor: showFilters ? '#3b82f6' : '#f3f4f6',
+                color: showFilters ? 'white' : '#374151',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              🔍 필터 ({filteredResults.length}/{searchResults.length})
+            </button>
+
+            {/* 필터 옵션 */}
+            {showFilters && (
+              <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* 상태 필터 */}
+                <div>
+                  <label style={{
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '8px',
+                    display: 'block'
+                  }}>
+                    상태
+                  </label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {[
+                      { value: 'issued', label: '발행됨', color: '#10b981' },
+                      { value: 'used', label: '사용됨', color: '#6b7280' },
+                      { value: 'recalled', label: '회수됨', color: '#f59e0b' },
+                      { value: 'disposed', label: '폐기됨', color: '#ef4444' }
+                    ].map((status) => (
+                      <button
+                        key={status.value}
+                        onClick={() => {
+                          if (statusFilter.includes(status.value)) {
+                            setStatusFilter(statusFilter.filter(s => s !== status.value));
+                          } else {
+                            setStatusFilter([...statusFilter, status.value]);
+                          }
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: statusFilter.includes(status.value) ? status.color : '#f3f4f6',
+                          color: statusFilter.includes(status.value) ? 'white' : '#6b7280',
+                          border: 'none',
+                          borderRadius: '16px',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {status.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 조합원명 필터 */}
+                <div>
+                  <label style={{
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '8px',
+                    display: 'block'
+                  }}>
+                    조합원명
+                  </label>
+                  <input
+                    type="text"
+                    value={nameFilter}
+                    onChange={(e) => setNameFilter(e.target.value)}
+                    placeholder="조합원명으로 추가 필터링"
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                {/* 필터 초기화 버튼 */}
+                <button
+                  onClick={() => {
+                    setStatusFilter([]);
+                    setNameFilter('');
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#f3f4f6',
+                    color: '#6b7280',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    alignSelf: 'flex-start'
+                  }}
+                >
+                  필터 초기화
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {searchResults.length > 1 && !selectedVoucher && (
           <div style={{
             backgroundColor: 'white',
@@ -583,11 +746,11 @@ export function MobileSearchPage() {
               color: '#1f2937',
               marginBottom: '16px'
             }}>
-              검색 결과 ({searchResults.length}개)
+              검색 결과 ({filteredResults.length}개)
             </h2>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {searchResults.map((voucher, index) => (
+              {filteredResults.map((voucher, index) => (
                 <div
                   key={voucher.id || index}
                   onClick={() => setSelectedVoucher(voucher)}
