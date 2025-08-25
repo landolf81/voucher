@@ -42,8 +42,7 @@ export async function POST(req: NextRequest) {
         used_at, 
         used_at_site_id, 
         issued_at, 
-        template_id,
-        voucher_templates!inner(voucher_name, voucher_type)
+        template_id
       `)
       .order('issued_at', { ascending: false })
       .limit(20); // 최대 20개 결과 제한
@@ -103,11 +102,13 @@ export async function POST(req: NextRequest) {
 
     console.log(`검색 결과 ${vouchers.length}개 찾음`);
 
-    // 사용처 정보 조회 및 변환
-    const vouchersWithLocation = await Promise.all(
+    // 사용처 정보 및 템플릿 정보 조회 및 변환
+    const vouchersWithDetails = await Promise.all(
       vouchers.map(async (voucher) => {
         let usage_location = null;
+        let voucher_templates = null;
         
+        // 사용처 정보 조회
         if (voucher.used_at_site_id) {
           const { data: site } = await supabase
             .from("sites")
@@ -120,7 +121,19 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // voucher_templates 정보 포함하여 반환
+        // 템플릿 정보 조회 (별도 쿼리)
+        if (voucher.template_id) {
+          const { data: template } = await supabase
+            .from("voucher_templates")
+            .select("voucher_name, voucher_type")
+            .eq("id", voucher.template_id)
+            .maybeSingle();
+          
+          if (template) {
+            voucher_templates = template;
+          }
+        }
+
         return {
           id: voucher.id,
           serial_no: voucher.serial_no,
@@ -131,17 +144,17 @@ export async function POST(req: NextRequest) {
           issued_at: voucher.issued_at,
           used_at: voucher.used_at,
           usage_location,
-          voucher_templates: voucher.voucher_templates
+          voucher_templates
         };
       })
     );
 
-    console.log('최종 검색 결과:', vouchersWithLocation.length);
+    console.log('최종 검색 결과:', vouchersWithDetails.length);
     
     return NextResponse.json({ 
       ok: true, 
-      vouchers: vouchersWithLocation,
-      total: vouchersWithLocation.length,
+      vouchers: vouchersWithDetails,
+      total: vouchersWithDetails.length,
       searchType,
       searchTerm: trimmedTerm
     });
