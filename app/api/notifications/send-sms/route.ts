@@ -104,11 +104,11 @@ export async function POST(req: NextRequest) {
       const client = getTwilioClient();
       
       if (client) {
-        // Twilio를 통한 실제 SMS 발송
+        // Twilio를 통한 실제 SMS 발송 (Alphanumeric Sender ID 사용)
         const twilioMessage = await client.messages.create({
           body: message,
           to: formatPhoneForTwilio(normalizedPhone),
-          from: process.env.TWILIO_PHONE_NUMBER || '+1234567890'
+          from: process.env.TWILIO_SENDER_ID || '선남농협'
         });
 
         status = 'sent';

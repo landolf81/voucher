@@ -4,11 +4,11 @@ import { createClient } from '@supabase/supabase-js';
 // PUT: 교환권 템플릿 수정
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await request.json();
-    const templateId = params.id;
+    const { id: templateId } = await params;
     
     console.log('교환권 템플릿 수정 API 호출:', templateId, body);
     
@@ -35,7 +35,9 @@ export async function PUT(
       expires_at: body.expires_at,
       selected_sites: body.selected_sites || [],
       notes: body.notes || '',
-      updated_at: new Date().toISOString()
+      status: body.status || 'active',
+      updated_by: null // updated_by 컬럼이 추가되면 실제 user ID 설정 예정
+      // updated_at은 데이터베이스 트리거에서 자동 설정
     };
 
     // voucher_templates 테이블 업데이트
@@ -90,10 +92,10 @@ export async function PUT(
 // DELETE: 교환권 템플릿 삭제
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const templateId = params.id;
+    const { id: templateId } = await params;
     
     console.log('교환권 템플릿 삭제 API 호출:', templateId);
     

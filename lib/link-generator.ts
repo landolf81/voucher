@@ -4,6 +4,7 @@
  */
 
 import crypto from 'crypto';
+import { getBaseUrl } from './url-utils';
 
 export interface LinkOptions {
   expiresInHours?: number;
@@ -23,7 +24,7 @@ export class LinkGenerator {
   private readonly defaultTokenLength: number;
 
   constructor(baseUrl?: string) {
-    this.baseUrl = baseUrl || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    this.baseUrl = baseUrl || getBaseUrl();
     this.defaultExpiryHours = 24; // 24 hours default
     this.defaultTokenLength = 32;
   }

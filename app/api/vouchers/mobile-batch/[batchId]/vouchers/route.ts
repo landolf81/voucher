@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
+import { getBaseUrl } from '@/lib/url-utils';
 
 interface PageProps {
   params: { batchId: string }
@@ -117,7 +118,7 @@ export async function GET(
     const vouchersWithLinks = vouchers.map(voucher => ({
       ...voucher,
       mobile_access_url: voucher.mobile_link_token 
-        ? `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/mobile/vouchers/${voucher.mobile_link_token}`
+        ? `${getBaseUrl()}/mobile/vouchers/${voucher.mobile_link_token}`
         : null
     }));
 
