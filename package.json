@@ -15,6 +15,7 @@
     "@supabase/supabase-js": "^2.55.0",
     "@types/jszip": "^3.4.0",
     "@zxing/browser": "^0.1.5",
+    "date-fns": "^4.1.0",
     "grapesjs": "^0.22.12",
     "grapesjs-blocks-basic": "^1.0.2",
     "grapesjs-preset-webpage": "^1.0.3",
@@ -30,6 +31,7 @@
     "react-dom": "^19.1.1",
     "react-email-editor": "^1.7.11",
     "react-qr-code": "^2.0.18",
+    "twilio": "^5.8.0",
     "xlsx": "^0.18.5",
     "zod": "^3.23.8"
   },

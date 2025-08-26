@@ -170,13 +170,84 @@ export async function POST(request: NextRequest) {
       // 감사 로그 실패는 전체 작업을 중단시키지 않음
     }
 
+    // SMS 알림 발송 (전화번호가 있는 경우)
+    let smsResult = null;
+    if (voucher.phone) {
+      try {
+        // 사용처 이름 조회 (만약 site_id가 있다면)
+        let siteName = usage_location;
+        if (currentSiteId && currentSiteId !== 'temp_site_id') {
+          try {
+            const { data: siteData } = await supabase
+              .from('sites')
+              .select('site_name')
+              .eq('id', currentSiteId)
+              .single();
+            if (siteData) {
+              siteName = siteData.site_name;
+            }
+          } catch (siteError) {
+            console.warn('사업장 이름 조회 실패, 기본값 사용:', siteError);
+          }
+        }
+
+        // 템플릿 정보 조회
+        let templateName = '교환권';
+        if (voucher.template_id) {
+          try {
+            const { data: templateData } = await supabase
+              .from('voucher_templates')
+              .select('voucher_name')
+              .eq('id', voucher.template_id)
+              .single();
+            if (templateData) {
+              templateName = templateData.voucher_name;
+            }
+          } catch (templateError) {
+            console.warn('템플릿 정보 조회 실패, 기본값 사용:', templateError);
+          }
+        }
+
+        const smsResponse = await fetch(new URL('/api/notifications/send-sms', request.url).toString(), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            phone: voucher.phone,
+            message: `[교환권 사용] ${voucher.name || '회원'}님의 "${templateName}" ${new Date().toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })} ${siteName}에서 사용되었습니다. 금액: ${actualUsageAmount.toLocaleString()}원`,
+            messageType: 'voucher_used',
+            voucherId: voucher.id,
+            recipientName: voucher.name
+          })
+        });
+
+        if (smsResponse.ok) {
+          const responseText = await smsResponse.text();
+          try {
+            smsResult = JSON.parse(responseText);
+            console.log('SMS 발송 성공:', smsResult);
+          } catch (parseError) {
+            console.error('SMS 응답 파싱 오류:', responseText.substring(0, 200) + '...');
+            smsResult = { ok: false, error: 'Invalid JSON response' };
+          }
+        } else {
+          const errorText = await smsResponse.text();
+          console.warn(`SMS 발송 실패 (${serial_no}): ${smsResponse.status} - ${errorText.substring(0, 200) + '...'}`);
+        }
+      } catch (smsError) {
+        console.error(`SMS 발송 오류 (${serial_no}):`, smsError.message || smsError);
+      }
+    }
+
     console.log('교환권 사용 등록 완료:', {
       serial_no,
       usage_location,
       usage_amount: actualUsageAmount,
       notes,
       site_id: currentSiteId,
-      user_id: currentUserId
+      user_id: currentUserId,
+      sms_sent: !!smsResult?.ok
     });
 
     return NextResponse.json({
@@ -194,7 +265,9 @@ export async function POST(request: NextRequest) {
         user_id: currentUserId,
         site_id: currentSiteId,
         previous_status: voucher.status,
-        current_status: 'used'
+        current_status: 'used',
+        sms_sent: !!smsResult?.ok,
+        phone: voucher.phone
       }
     });
 

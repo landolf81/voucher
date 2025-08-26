@@ -10,7 +10,6 @@ interface VoucherTemplate {
   selected_sites: string[];
   notes: string;
   status: string;
-  design_template_id?: string;
 }
 
 interface Site {
@@ -18,17 +17,9 @@ interface Site {
   site_name: string;
 }
 
-interface DesignTemplate {
-  id: string;
-  name: string;
-  description?: string;
-  is_active: boolean;
-}
-
 export function VoucherTemplateForm() {
   const [templates, setTemplates] = useState<VoucherTemplate[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
-  const [designTemplates, setDesignTemplates] = useState<DesignTemplate[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<VoucherTemplate | null>(null);
   const [loading, setLoading] = useState(false);
@@ -39,8 +30,7 @@ export function VoucherTemplateForm() {
     voucher_type: 'fixed',
     expires_at: '',
     selected_sites: [] as string[],
-    notes: '',
-    design_template_id: ''
+    notes: ''
   });
 
   // 템플릿 목록 조회
@@ -72,18 +62,6 @@ export function VoucherTemplateForm() {
     }
   };
 
-  // 디자인 템플릿 목록 조회
-  const fetchDesignTemplates = async () => {
-    try {
-      const response = await fetch('/api/voucher-design-templates?is_active=true');
-      const result = await response.json();
-      if (result.success) {
-        setDesignTemplates(result.data || []);
-      }
-    } catch (error) {
-      console.error('디자인 템플릿 조회 오류:', error);
-    }
-  };
 
   // 템플릿 저장
   const handleSubmit = async (e: React.FormEvent) => {
@@ -133,8 +111,7 @@ export function VoucherTemplateForm() {
       voucher_type: 'fixed',
       expires_at: '',
       selected_sites: [],
-      notes: '',
-      design_template_id: ''
+      notes: ''
     });
     setShowForm(false);
     setEditingTemplate(null);
@@ -146,8 +123,7 @@ export function VoucherTemplateForm() {
       voucher_type: template.voucher_type,
       expires_at: template.expires_at?.split('T')[0] || '',
       selected_sites: template.selected_sites || [],
-      notes: template.notes || '',
-      design_template_id: template.design_template_id || ''
+      notes: template.notes || ''
     });
     setEditingTemplate(template);
     setShowForm(true);
@@ -191,7 +167,6 @@ export function VoucherTemplateForm() {
   useEffect(() => {
     fetchTemplates();
     fetchSites();
-    fetchDesignTemplates();
   }, []);
 
   return (
@@ -333,46 +308,6 @@ export function VoucherTemplateForm() {
               />
             </div>
 
-            {/* 디자인 템플릿 */}
-            <div>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '8px'
-              }}>
-                디자인 템플릿
-              </label>
-              <select
-                value={formData.design_template_id}
-                onChange={(e) => setFormData({...formData, design_template_id: e.target.value})}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  color: '#374151'
-                }}
-              >
-                <option value="">디자인 템플릿 선택 (선택사항)</option>
-                {designTemplates.map((template) => (
-                  <option key={template.id} value={template.id}>
-                    {template.name}
-                    {template.description && ` - ${template.description}`}
-                  </option>
-                ))}
-              </select>
-              <p style={{
-                fontSize: '12px',
-                color: '#6b7280',
-                marginTop: '4px',
-                margin: '4px 0 0 0'
-              }}>
-                교환권 발행 시 사용할 디자인을 선택하세요. 선택하지 않으면 기본 디자인이 적용됩니다.
-              </p>
-            </div>
           </div>
 
           {/* 적용 사업장 */}
@@ -534,14 +469,6 @@ export function VoucherTemplateForm() {
                       }}>
                         {template.voucher_type === 'fixed' ? '고정형' : '금액형'} | 
                         유효기간: {template.expires_at?.split('T')[0]}
-                        {template.design_template_id && (
-                          <>
-                            {' | '}
-                            <span style={{ color: '#059669', fontWeight: '500' }}>
-                              디자인: {designTemplates.find(dt => dt.id === template.design_template_id)?.name || '설정됨'}
-                            </span>
-                          </>
-                        )}
                       </p>
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>

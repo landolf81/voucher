@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
     // auto_lookup 모드인 경우 auth.users에서 이메일/전화번호 정보 조회
     let finalEmail = email;
     let finalPhone = phone;
+    let authMethod = null; // 변수 선언을 상단으로 이동
     
     if (auto_lookup) {
       finalEmail = targetAuthUser.email;
@@ -117,7 +118,6 @@ export async function POST(request: NextRequest) {
     );
 
     let result;
-    let authMethod = null;
     
     if (finalEmail) {
       // 이메일은 Magic Link 방식 사용

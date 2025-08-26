@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { ActivityFeed } from './ActivityFeed';
 
 // Shared UI Components
 export function StatCard({ title, value, icon, color }: {
@@ -209,6 +210,19 @@ export function OverviewContent() {
             color="linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)"
           />
         </div>
+      </div>
+
+      {/* 실시간 활동 피드 */}
+      <div style={{ marginTop: '40px' }}>
+        <h3 style={{
+          fontSize: '20px',
+          fontWeight: '600',
+          color: '#1a202c',
+          marginBottom: '24px'
+        }}>
+          최근 활동
+        </h3>
+        <ActivityFeed />
       </div>
     </div>
   );

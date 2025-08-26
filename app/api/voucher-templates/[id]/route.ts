@@ -35,7 +35,6 @@ export async function PUT(
       expires_at: body.expires_at,
       selected_sites: body.selected_sites || [],
       notes: body.notes || '',
-      design_template_id: body.design_template_id || null,
       updated_at: new Date().toISOString()
     };
 

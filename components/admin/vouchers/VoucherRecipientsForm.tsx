@@ -515,6 +515,50 @@ export function VoucherRecipientsForm() {
     }
   };
 
+  // 템플릿별 전체 삭제
+  const handleDeleteAllByTemplate = async () => {
+    if (!selectedTemplate) {
+      setMessage({ type: 'error', text: '템플릿을 먼저 선택해주세요.' });
+      return;
+    }
+
+    const templateName = templates.find(t => t.id === selectedTemplate)?.voucher_name || '선택된 템플릿';
+    
+    if (!confirm(`"${templateName}"에 등록된 모든 교환권을 정말 삭제하시겠습니까?\n\n⚠️ 이 작업은 되돌릴 수 없으며, 사용되지 않은 모든 교환권이 삭제됩니다.`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch('/api/vouchers/bulk-delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          template_id: selectedTemplate
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setMessage({ type: 'success', text: result.message });
+        setSelectedRecipients([]);
+        setSelectAll(false);
+        fetchRecipients();
+        fetchTotalSummary();
+      } else {
+        setMessage({ type: 'error', text: result.message || '전체 삭제에 실패했습니다.' });
+      }
+    } catch (error) {
+      console.error('템플릿별 전체 삭제 오류:', error);
+      setMessage({ type: 'error', text: '서버 오류가 발생했습니다.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 전체 선택/해제
   const handleSelectAll = () => {
     if (selectAll) {
@@ -1267,25 +1311,47 @@ export function VoucherRecipientsForm() {
                 발행 대상자 목록
               </h4>
               
-              {selectedRecipients.length > 0 && (
-                <button
-                  onClick={handleBulkDelete}
-                  disabled={loading}
-                  style={{
-                    backgroundColor: '#dc2626',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    padding: '6px 12px',
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    opacity: loading ? 0.6 : 1
-                  }}
-                >
-                  🗑️ 선택삭제 ({selectedRecipients.length})
-                </button>
-              )}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {selectedRecipients.length > 0 && (
+                  <button
+                    onClick={handleBulkDelete}
+                    disabled={loading}
+                    style={{
+                      backgroundColor: '#dc2626',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      padding: '6px 12px',
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      opacity: loading ? 0.6 : 1
+                    }}
+                  >
+                    🗑️ 선택삭제 ({selectedRecipients.length})
+                  </button>
+                )}
+                
+                {summary.totalCount > 0 && (
+                  <button
+                    onClick={handleDeleteAllByTemplate}
+                    disabled={loading}
+                    style={{
+                      backgroundColor: '#ef4444',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      padding: '6px 12px',
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      opacity: loading ? 0.6 : 1
+                    }}
+                  >
+                    💀 템플릿 전체삭제 ({summary.totalCount})
+                  </button>
+                )}
+              </div>
             </div>
             
             {/* 집계 정보 */}
