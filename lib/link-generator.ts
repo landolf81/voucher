@@ -68,8 +68,18 @@ export class LinkGenerator {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + expiresInHours);
 
-    // Generate full URL
-    const url = `${this.baseUrl}/mobile/vouchers/${token}`;
+    // Generate base URL
+    let url = `${this.baseUrl}/mobile/vouchers/${token}`;
+
+    // Add Vercel deployment protection bypass parameters if available
+    const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+    if (bypassSecret) {
+      const params = new URLSearchParams({
+        'x-vercel-protection-bypass': bypassSecret,
+        'x-vercel-set-bypass-cookie': 'true'
+      });
+      url += `?${params.toString()}`;
+    }
 
     return {
       token,

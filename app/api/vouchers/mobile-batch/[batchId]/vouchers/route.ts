@@ -115,12 +115,29 @@ export async function GET(
     }
 
     // 개별 교환권 링크 생성
-    const vouchersWithLinks = vouchers.map(voucher => ({
-      ...voucher,
-      mobile_access_url: voucher.mobile_link_token 
-        ? `${getBaseUrl()}/mobile/vouchers/${voucher.mobile_link_token}`
-        : null
-    }));
+    const vouchersWithLinks = vouchers.map(voucher => {
+      if (!voucher.mobile_link_token) {
+        return { ...voucher, mobile_access_url: null };
+      }
+
+      // 기본 URL 생성
+      let url = `${getBaseUrl()}/mobile/vouchers/${voucher.mobile_link_token}`;
+
+      // Vercel 배포 보호 우회 파라미터 추가
+      const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+      if (bypassSecret) {
+        const params = new URLSearchParams({
+          'x-vercel-protection-bypass': bypassSecret,
+          'x-vercel-set-bypass-cookie': 'true'
+        });
+        url += `?${params.toString()}`;
+      }
+
+      return {
+        ...voucher,
+        mobile_access_url: url
+      };
+    });
 
     return NextResponse.json({
       success: true,
