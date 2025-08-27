@@ -5,7 +5,7 @@
  * Handles interactive features for mobile voucher batch display and downloads
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 
 interface BatchData {
@@ -53,6 +53,13 @@ export default function MobileVoucherBatchClient({ batch, vouchers, token }: Pro
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [showUsedModal, setShowUsedModal] = useState(false);
+  const [usedVoucherInfo, setUsedVoucherInfo] = useState<{serial_no: string; used_at: string; location: string} | null>(null);
+  
+  const pollingInterval = useRef<NodeJS.Timeout | null>(null);
+  const sessionId = useRef<string | null>(null);
+  const lastETag = useRef<string | null>(null);
+  const isPageVisible = useRef(true);
   
   const expiresAt = new Date(batch.expires_at);
   const timeRemaining = Math.max(0, expiresAt.getTime() - Date.now());
@@ -78,6 +85,112 @@ export default function MobileVoucherBatchClient({ batch, vouchers, token }: Pro
     }
     setSelectedVouchers(newSelected);
   };
+
+  // Check voucher status with polling
+  const checkVoucherStatus = useCallback(async () => {
+    if (!isPageVisible.current) return;
+    
+    try {
+      const headers: HeadersInit = {
+        'Accept': 'application/json',
+      };
+      
+      if (sessionId.current) {
+        headers['X-Session-ID'] = sessionId.current;
+      }
+      
+      if (lastETag.current) {
+        headers['If-None-Match'] = lastETag.current;
+      }
+      
+      const response = await fetch(`/api/vouchers/mobile-status/${token}`, {
+        method: 'GET',
+        headers,
+        credentials: 'same-origin',
+      });
+      
+      // Handle rate limiting
+      if (response.status === 429) {
+        console.warn('Rate limit exceeded, slowing down polling');
+        if (pollingInterval.current) {
+          clearInterval(pollingInterval.current);
+          pollingInterval.current = setInterval(checkVoucherStatus, 10000); // Slow down to 10 seconds
+        }
+        return;
+      }
+      
+      // Handle not modified (304)
+      if (response.status === 304) {
+        return; // No change
+      }
+      
+      // Get session ID from response
+      const newSessionId = response.headers.get('X-Session-ID');
+      if (newSessionId) {
+        sessionId.current = newSessionId;
+      }
+      
+      // Get ETag for next request
+      const etag = response.headers.get('ETag');
+      if (etag) {
+        lastETag.current = etag;
+      }
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Check if status changed to 'used'
+        if (data.status === 'used' && data.status_changed) {
+          setUsedVoucherInfo({
+            serial_no: vouchers[0]?.serial_no || '',
+            used_at: data.used_at || new Date().toISOString(),
+            location: data.usage_location || '사용처 미상'
+          });
+          setShowUsedModal(true);
+          
+          // Stop polling after voucher is used
+          if (pollingInterval.current) {
+            clearInterval(pollingInterval.current);
+            pollingInterval.current = null;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Status check failed:', error);
+    }
+  }, [token, vouchers]);
+
+  // Setup polling and visibility change listener
+  useEffect(() => {
+    // Handle page visibility change
+    const handleVisibilityChange = () => {
+      isPageVisible.current = !document.hidden;
+      
+      if (isPageVisible.current && !pollingInterval.current) {
+        // Resume polling when page becomes visible
+        pollingInterval.current = setInterval(checkVoucherStatus, 5000);
+      } else if (!isPageVisible.current && pollingInterval.current) {
+        // Stop polling when page becomes hidden
+        clearInterval(pollingInterval.current);
+        pollingInterval.current = null;
+      }
+    };
+    
+    // Start initial polling
+    pollingInterval.current = setInterval(checkVoucherStatus, 5000);
+    checkVoucherStatus(); // Initial check
+    
+    // Add event listener
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Cleanup
+    return () => {
+      if (pollingInterval.current) {
+        clearInterval(pollingInterval.current);
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [checkVoucherStatus]);
 
   // Download individual voucher image
   const handleDownloadSingle = async (voucher: VoucherData) => {
@@ -398,6 +511,59 @@ export default function MobileVoucherBatchClient({ batch, vouchers, token }: Pro
         </div>
       )}
 
+      {/* Used Modal */}
+      {showUsedModal && usedVoucherInfo && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4"
+          onClick={() => setShowUsedModal(false)}
+        >
+          <div 
+            className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full animate-bounce-in"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              animation: 'bounceIn 0.3s ease-out'
+            }}
+          >
+            <div className="text-center">
+              <div className="text-6xl mb-4">✅</div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                교환권이 사용되었습니다
+              </h2>
+              
+              <div className="bg-gray-50 rounded-lg p-4 mb-4 text-left">
+                <div className="mb-2">
+                  <span className="text-sm text-gray-600">일련번호:</span>
+                  <p className="font-semibold text-gray-900">{usedVoucherInfo.serial_no}</p>
+                </div>
+                <div className="mb-2">
+                  <span className="text-sm text-gray-600">사용 시간:</span>
+                  <p className="font-semibold text-gray-900">
+                    {new Date(usedVoucherInfo.used_at).toLocaleString('ko-KR', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600">사용처:</span>
+                  <p className="font-semibold text-gray-900">{usedVoucherInfo.location}</p>
+                </div>
+              </div>
+              
+              <button
+                onClick={() => setShowUsedModal(false)}
+                className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <div className="max-w-md mx-auto px-4 py-6 text-center text-sm text-gray-500">
         <p>교환권 관리 시스템</p>
@@ -411,6 +577,14 @@ export default function MobileVoucherBatchClient({ batch, vouchers, token }: Pro
           })}
         </p>
       </div>
+      
+      <style jsx>{`
+        @keyframes bounceIn {
+          0% { transform: scale(0.9); opacity: 0; }
+          50% { transform: scale(1.02); }
+          100% { transform: scale(1); opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }
