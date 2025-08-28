@@ -56,7 +56,10 @@ export async function POST(req: NextRequest) {
         query = query.ilike('name', `%${trimmedTerm}%`);
         break;
       case 'association':
-        query = query.ilike('association', `%${trimmedTerm}%`);
+        // 영농회 검색 시 발행된 교환권만 조회
+        query = query
+          .ilike('association', `%${trimmedTerm}%`)
+          .eq('status', 'issued');
         break;
       case 'user_id':
         // user_id로 검색하는 경우, user_profiles를 통해 해당 사용자의 교환권들을 찾음

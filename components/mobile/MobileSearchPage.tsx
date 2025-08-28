@@ -56,28 +56,19 @@ export function MobileSearchPage() {
   const [filteredResults, setFilteredResults] = useState<VoucherData[]>([]);
   const [selectedVoucher, setSelectedVoucher] = useState<VoucherData | null>(null);
   
-  // 필터 상태 - 영농회 검색 시에만 필터 적용
-  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  // 필터 상태
   const [nameFilter, setNameFilter] = useState('');
   const [cameraError, setCameraError] = useState('');
 
-  // 필터 적용 함수 - 영농회 검색 시에만 적용
+  // 필터 적용 함수 - 영농회 검색 시 조합원명 필터만 적용
   const applyFilters = (results: VoucherData[]) => {
     let filtered = [...results];
 
-    // 영농회 검색 시에만 필터 적용
-    if (searchType === 'association') {
-      // 상태 필터 적용
-      if (statusFilter.length > 0) {
-        filtered = filtered.filter(voucher => statusFilter.includes(voucher.status));
-      }
-
-      // 조합원명 필터 적용
-      if (nameFilter.trim()) {
-        filtered = filtered.filter(voucher => 
-          voucher.name.toLowerCase().includes(nameFilter.toLowerCase())
-        );
-      }
+    // 영농회 검색 시 조합원명 필터 적용
+    if (searchType === 'association' && nameFilter.trim()) {
+      filtered = filtered.filter(voucher => 
+        voucher.name.toLowerCase().includes(nameFilter.toLowerCase())
+      );
     }
 
     setFilteredResults(filtered);
@@ -86,7 +77,7 @@ export function MobileSearchPage() {
   // 필터나 검색 결과가 변경될 때 자동으로 필터 적용
   useEffect(() => {
     applyFilters(searchResults);
-  }, [searchResults, statusFilter, nameFilter, searchType]);
+  }, [searchResults, nameFilter, searchType]);
 
   // QR 스캔 시작
   const startQRScan = async () => {
@@ -212,12 +203,7 @@ export function MobileSearchPage() {
         }
       }
 
-      // 필터 상태 초기화 - 영농회 검색 시에만 '발행됨' 필터 적용
-      if (searchType === 'association') {
-        setStatusFilter(['issued']);
-      } else {
-        setStatusFilter([]);
-      }
+      // 필터 상태 초기화
       setNameFilter('');
 
       // 새로운 검색 API 사용
@@ -422,13 +408,13 @@ export function MobileSearchPage() {
           <div style={{ marginBottom: '16px' }}>
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
+              gridTemplateColumns: user?.role === 'admin' ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)',
               gap: '8px'
             }}>
               {[
                 { value: 'serial', label: '일련번호' },
                 { value: 'name', label: '조합원명' },
-                { value: 'association', label: '영농회' },
+                ...(user?.role === 'admin' ? [{ value: 'association', label: '영농회' }] : []),
                 { value: 'user_id', label: 'ID' }
               ].map((option) => (
                 <button
@@ -647,7 +633,7 @@ export function MobileSearchPage() {
               type="text"
               value={nameFilter}
               onChange={(e) => setNameFilter(e.target.value)}
-              placeholder="조합원명으로 필터링 (발행된 교환권만 표시)"
+              placeholder="조합원명으로 필터링"
               style={{
                 width: '100%',
                 padding: '10px 12px',
