@@ -108,6 +108,7 @@ export function MobileScanPage() {
   const [results, setResults] = useState<UsageResult[]>([]);
   const [processingMode, setProcessingMode] = useState<'batch'>('batch');
   const [manualInput, setManualInput] = useState('');
+  const [showResults, setShowResults] = useState(false);
   
   // 스캔 중복 방지를 위한 ref (동기적 상태 추적)
   const processingQRRef = useRef<Set<string>>(new Set());
@@ -115,6 +116,10 @@ export function MobileScanPage() {
 
   // QR 스캔 초기화
   useEffect(() => {
+    // 새로운 스캔 시작 시 결과 초기화
+    setShowResults(false);
+    setResults([]);
+    
     const codeReader = new BrowserMultiFormatReader();
     let isMounted = true;
 
@@ -240,6 +245,12 @@ export function MobileScanPage() {
               return;
             }
             
+            // 결과 표시 중이면 무시
+            if (showResults) {
+              console.log('결과 표시 중 - 스캔 무시');
+              return;
+            }
+            
             // 새로운 교환권 처리 시작
             console.log('새 교환권 스캔 처리 시작:', serial);
             processingQRRef.current.add(serial);
@@ -278,7 +289,7 @@ export function MobileScanPage() {
       processingQRRef.current.clear();
       isProcessingAnyRef.current = false;
     };
-  }, [scannedVouchers]);
+  }, [scannedVouchers, showResults]);
 
   // 교환권 정보 조회
   const handleVoucherScan = async (serialNo: string, fullPayload?: string) => {
@@ -478,6 +489,7 @@ export function MobileScanPage() {
 
     setIsProcessing(true);
     setResults([]);
+    setShowResults(true);
 
     try {
       const voucherList = validVouchers.map(voucher => ({
@@ -868,45 +880,164 @@ export function MobileScanPage() {
             ))}
           </div>
         )}
+      </div>
 
-        {/* 최근 결과 */}
-        {results.length > 0 && (
+      {/* 처리 결과 모달 */}
+      {showResults && results.length > 0 && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          zIndex: 1000,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: '20px'
+        }}>
           <div style={{
-            backgroundColor: 'rgba(255,255,255,0.1)',
-            borderRadius: '8px',
-            padding: '12px',
-            maxHeight: '120px',
+            backgroundColor: '#1f2937',
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '400px',
+            width: '100%',
+            maxHeight: '80vh',
             overflowY: 'auto'
           }}>
-            <h3 style={{
-              fontSize: '14px',
+            <h2 style={{
+              fontSize: '20px',
               fontWeight: '600',
-              margin: '0 0 8px 0'
+              marginBottom: '16px',
+              color: '#ffffff',
+              textAlign: 'center'
             }}>
-              최근 처리 결과
-            </h3>
-            {results.slice(0, 3).map((result, index) => (
-              <div
-                key={index}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '4px 0',
-                  fontSize: '12px'
-                }}
-              >
-                <span style={{ fontFamily: 'monospace' }}>
-                  {result.serial_no.length > 20 ? `${result.serial_no.substring(0, 20)}...` : result.serial_no}
-                </span>
-                <span style={{ color: result.success ? '#10b981' : '#f87171' }}>
-                  {result.success ? '✅' : '❌'}
+              처리 결과
+            </h2>
+            
+            {/* 요약 */}
+            <div style={{
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              borderRadius: '8px',
+              padding: '16px',
+              marginBottom: '16px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ color: '#9ca3af' }}>전체 처리</span>
+                <span style={{ color: '#ffffff', fontWeight: '600' }}>{results.length}건</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ color: '#9ca3af' }}>성공</span>
+                <span style={{ color: '#10b981', fontWeight: '600' }}>
+                  {results.filter(r => r.success).length}건
                 </span>
               </div>
-            ))}
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#9ca3af' }}>실패</span>
+                <span style={{ color: '#ef4444', fontWeight: '600' }}>
+                  {results.filter(r => !r.success).length}건
+                </span>
+              </div>
+            </div>
+            
+            {/* 상세 결과 */}
+            <div style={{ marginBottom: '20px' }}>
+              <h3 style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#9ca3af',
+                marginBottom: '12px'
+              }}>
+                상세 내역
+              </h3>
+              {results.map((result, index) => (
+                <div
+                  key={index}
+                  style={{
+                    backgroundColor: result.success ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                    borderLeft: `3px solid ${result.success ? '#10b981' : '#ef4444'}`,
+                    borderRadius: '6px',
+                    padding: '12px',
+                    marginBottom: '8px'
+                  }}
+                >
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    marginBottom: '4px'
+                  }}>
+                    <span style={{ 
+                      fontFamily: 'monospace', 
+                      fontSize: '12px',
+                      color: '#ffffff'
+                    }}>
+                      {result.serial_no}
+                    </span>
+                    <span style={{ fontSize: '20px' }}>
+                      {result.success ? '✅' : '❌'}
+                    </span>
+                  </div>
+                  <div style={{ 
+                    fontSize: '12px', 
+                    color: result.success ? '#86efac' : '#fca5a5'
+                  }}>
+                    {result.message}
+                  </div>
+                  {result.used_at && (
+                    <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>
+                      사용 시간: {new Date(result.used_at).toLocaleString('ko-KR')}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            
+            {/* 버튼 그룹 */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={() => {
+                  setShowResults(false);
+                  setResults([]);
+                  setScannedVouchers([]);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                새로운 스캔 시작
+              </button>
+              <button
+                onClick={() => setShowResults(false)}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  backgroundColor: '#374151',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                닫기
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+    </div>
     </div>
   );
 }
