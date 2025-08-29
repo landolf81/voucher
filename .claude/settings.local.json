@@ -13,7 +13,8 @@
       "mcp__wonderwhy-er-desktop-commander__list_processes",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Read(c:\\Users\\lando\\Downloads/**)"
     ],
     "defaultMode": "acceptEdits"
   }

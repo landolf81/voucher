@@ -1,13 +1,71 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useDevice } from '@/lib/hooks/useDevice';
 import { MobileLayout } from '@/components/mobile/MobileLayout';
+import { format } from 'date-fns';
+import { ko } from 'date-fns/locale';
+
+interface UsedVoucher {
+  id: string;
+  serial_no: string;
+  amount: number;
+  association: string;
+  member_id: string;
+  name: string;
+  used_at: string;
+  used_by: string;
+  site_name: string;
+}
 
 export default function MobilePage() {
   const { user, isLoading } = useAuth();
   const device = useDevice();
+  const [usedVouchers, setUsedVouchers] = useState<UsedVoucher[]>([]);
+  const [loadingVouchers, setLoadingVouchers] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // 오늘 사용된 교환권 가져오기
+  useEffect(() => {
+    const fetchUsedVouchers = async () => {
+      if (!user || !user.id) return;
+      
+      try {
+        setLoadingVouchers(true);
+        const response = await fetch(`/api/dashboard/today-used-vouchers?userId=${user.id}`);
+        const result = await response.json();
+
+        if (result.ok) {
+          setUsedVouchers(result.data);
+          setIsAdmin(result.isAdmin);
+        }
+      } catch (error) {
+        console.error('오늘 사용된 교환권 조회 오류:', error);
+      } finally {
+        setLoadingVouchers(false);
+      }
+    };
+
+    fetchUsedVouchers();
+    
+    // 30초마다 자동 새로고침
+    const interval = setInterval(fetchUsedVouchers, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // 금액 포맷팅
+  const formatAmount = (amount: number) => {
+    return new Intl.NumberFormat('ko-KR', {
+      style: 'currency',
+      currency: 'KRW'
+    }).format(amount);
+  };
+
+  // 시간 포맷팅
+  const formatTime = (dateString: string) => {
+    return format(new Date(dateString), 'HH:mm', { locale: ko });
+  };
 
   if (isLoading) {
     return (
@@ -175,33 +233,156 @@ export default function MobilePage() {
           </button>
         </div>
 
-        {/* 최근 활동 또는 통계 (추후 구현) */}
+        {/* 오늘 사용된 교환권 목록 */}
         <div style={{
           backgroundColor: 'white',
           borderRadius: '16px',
           padding: '24px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
         }}>
-          <h2 style={{
-            fontSize: '18px',
-            fontWeight: '600',
-            color: '#1f2937',
-            marginBottom: '16px'
-          }}>
-            📊 오늘의 활동
-          </h2>
           <div style={{
             display: 'flex',
-            justifyContent: 'center',
+            justifyContent: 'space-between',
             alignItems: 'center',
-            height: '100px',
-            color: '#6b7280'
+            marginBottom: '20px'
           }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '24px', marginBottom: '8px' }}>📈</div>
-              <p>통계 기능 준비 중입니다</p>
+            <h2 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#1f2937'
+            }}>
+              📊 오늘 사용된 교환권
+            </h2>
+            <div style={{
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              padding: '4px 12px',
+              borderRadius: '12px',
+              fontSize: '14px',
+              fontWeight: '600'
+            }}>
+              {usedVouchers.length}건
             </div>
           </div>
+
+          {loadingVouchers ? (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              height: '100px',
+              color: '#6b7280'
+            }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  border: '3px solid #e5e7eb',
+                  borderTop: '3px solid #3b82f6',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite',
+                  margin: '0 auto 12px'
+                }} />
+                <p style={{ fontSize: '14px' }}>로딩 중...</p>
+              </div>
+            </div>
+          ) : usedVouchers.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '40px 20px',
+              color: '#6b7280'
+            }}>
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>📋</div>
+              <p>오늘 사용된 교환권이 없습니다</p>
+            </div>
+          ) : (
+            <div style={{
+              maxHeight: '400px',
+              overflowY: 'auto',
+              margin: '-8px'
+            }}>
+              {usedVouchers.map((voucher, index) => (
+                <div
+                  key={voucher.id}
+                  style={{
+                    padding: '12px',
+                    borderBottom: index < usedVouchers.length - 1 ? '1px solid #f3f4f6' : 'none',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px'
+                  }}
+                >
+                  {/* 첫번째 줄: 시간, 사업장, 금액 */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <span style={{
+                        fontSize: '14px',
+                        color: '#6b7280',
+                        fontWeight: '500'
+                      }}>
+                        {formatTime(voucher.used_at)}
+                      </span>
+                      {isAdmin && (
+                        <span style={{
+                          fontSize: '12px',
+                          backgroundColor: '#f3f4f6',
+                          color: '#4b5563',
+                          padding: '2px 8px',
+                          borderRadius: '8px'
+                        }}>
+                          {voucher.site_name}
+                        </span>
+                      )}
+                    </div>
+                    <span style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#10b981'
+                    }}>
+                      {formatAmount(voucher.amount)}
+                    </span>
+                  </div>
+
+                  {/* 두번째 줄: 회원 정보 */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <div style={{
+                      fontSize: '14px',
+                      color: '#374151'
+                    }}>
+                      <span style={{ fontWeight: '500' }}>{voucher.name}</span>
+                      <span style={{ color: '#6b7280', marginLeft: '8px' }}>
+                        ({voucher.association} · {voucher.member_id})
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 세번째 줄: 일련번호, 사용 등록자 */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: '12px',
+                    color: '#9ca3af'
+                  }}>
+                    <span>#{voucher.serial_no}</span>
+                    <span>등록: {voucher.used_by}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </MobileLayout>
