@@ -418,7 +418,7 @@ export function VoucherUsageContent() {
         bulk_notes: notes.trim()
       });
 
-      const response = await fetch('/api/vouchers/bulk-register-use', {
+      const response = await fetch(`/api/vouchers/bulk-register-use?userId=${user?.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -495,7 +495,7 @@ export function VoucherUsageContent() {
         } : undefined
       }));
 
-      const response = await fetch('/api/vouchers/bulk-register-use', {
+      const response = await fetch(`/api/vouchers/bulk-register-use?userId=${user?.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

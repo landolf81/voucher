@@ -47,8 +47,21 @@ export async function POST(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY! // 서비스 역할 키 사용
     );
 
-    // 현재는 간단하게 처리 - 실제 운영환경에서는 인증 개선 필요
-    let currentUserId = '00000000-0000-0000-0000-000000000000'; // 기본 시스템 사용자 (UUID 형태)
+    // 현재 사용자 정보 추출 (URL 파라미터에서)
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+    
+    if (!userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: '사용자 인증이 필요합니다.'
+        },
+        { status: 401 }
+      );
+    }
+
+    let currentUserId = userId;
     let currentSiteId = null;
     
     // site_id 처리

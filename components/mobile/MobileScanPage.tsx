@@ -498,7 +498,7 @@ export function MobileScanPage() {
         notes: '모바일 QR 스캔을 통한 일괄 사용 등록'
       }));
 
-      const response = await fetch('/api/vouchers/bulk-register-use', {
+      const response = await fetch(`/api/vouchers/bulk-register-use?userId=${user?.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
