@@ -129,8 +129,9 @@ export async function PUT(
       }
     }
 
-    // user_metadata에 user_id(사원번호) 저장
+    // user_metadata에 display_name으로 user_id(사원번호) 저장
     updateData.user_metadata = {
+      display_name: user_id || '',  // display_name 필드에 사원번호 저장 (로그인에 사용)
       user_id: user_id || '',  // 사원번호
       name: name  // 실제 이름도 함께 저장
     };

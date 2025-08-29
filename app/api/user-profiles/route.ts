@@ -151,6 +151,7 @@ export async function POST(request: NextRequest) {
       password: tempPassword,
       phone_confirm: true,  // 전화번호 확인 자동 처리
       user_metadata: {
+        display_name: user_id,  // display_name 필드에 사원번호 저장 (로그인에 사용)
         user_id: user_id,  // 사원번호를 user_metadata에 저장
         name: name  // 실제 이름도 함께 저장
       }
