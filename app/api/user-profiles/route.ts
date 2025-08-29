@@ -149,7 +149,11 @@ export async function POST(request: NextRequest) {
     const createUserData: any = {
       phone: formattedPhone,
       password: tempPassword,
-      phone_confirm: true  // 전화번호 확인 자동 처리
+      phone_confirm: true,  // 전화번호 확인 자동 처리
+      user_metadata: {
+        full_name: name,
+        name: name
+      }
     };
     
     if (email) {

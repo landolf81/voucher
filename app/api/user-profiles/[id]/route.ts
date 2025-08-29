@@ -91,35 +91,47 @@ export async function PUT(
       }, { status: 500 });
     }
 
-    // Auth 사용자의 이메일/전화번호 업데이트 (필요한 경우)
-    if (email || phone) {
-      const updateData: any = {};
-      
-      if (email) {
-        updateData.email = email;
-      }
-      
-      if (phone) {
-        // 전화번호 형식 검증 및 변환
-        try {
-          const cleanedPhone = phone.replace(/[^0-9]/g, '');
-          
-          if (!validateKoreanPhoneInput(cleanedPhone)) {
-            return NextResponse.json({
-              success: false,
-              message: '올바른 전화번호 형식이 아닙니다. (예: 01012345678)'
-            }, { status: 400 });
-          }
-          
-          updateData.phone = formatPhoneForDB(cleanedPhone);
-        } catch (error: any) {
+    // Auth 사용자의 이메일/전화번호/이름 업데이트
+    const updateData: any = {};
+    let needsAuthUpdate = false;
+    
+    if (email) {
+      updateData.email = email;
+      needsAuthUpdate = true;
+    }
+    
+    if (phone) {
+      // 전화번호 형식 검증 및 변환
+      try {
+        const cleanedPhone = phone.replace(/[^0-9]/g, '');
+        
+        if (!validateKoreanPhoneInput(cleanedPhone)) {
           return NextResponse.json({
             success: false,
-            message: error.message || '전화번호 형식 오류'
+            message: '올바른 전화번호 형식이 아닙니다. (예: 01012345678)'
           }, { status: 400 });
         }
+        
+        updateData.phone = formatPhoneForDB(cleanedPhone);
+        needsAuthUpdate = true;
+      } catch (error: any) {
+        return NextResponse.json({
+          success: false,
+          message: error.message || '전화번호 형식 오류'
+        }, { status: 400 });
       }
-      
+    }
+
+    // 이름이 변경된 경우 auth.users의 user_metadata에도 업데이트
+    if (name) {
+      updateData.user_metadata = {
+        full_name: name,
+        name: name
+      };
+      needsAuthUpdate = true;
+    }
+    
+    if (needsAuthUpdate) {
       const { error: authError } = await supabase.auth.admin.updateUserById(
         userId,
         updateData
@@ -129,7 +141,7 @@ export async function PUT(
         console.error('Auth 사용자 업데이트 오류:', authError);
         return NextResponse.json({
           success: false,
-          message: '사용자 이메일/전화번호 업데이트에 실패했습니다.'
+          message: '사용자 정보 업데이트에 실패했습니다.'
         }, { status: 500 });
       }
     }
