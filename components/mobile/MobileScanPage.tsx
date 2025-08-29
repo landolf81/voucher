@@ -1038,6 +1038,5 @@ export function MobileScanPage() {
         </div>
       )}
     </div>
-    </div>
   );
 }
