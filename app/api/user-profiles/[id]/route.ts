@@ -55,7 +55,7 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
-    const { email, phone, name, role, site_id, is_active } = body;
+    const { email, phone, name, role, site_id, is_active, user_id } = body;
     const userId = params.id;
 
     // 필수 필드 확인
@@ -72,15 +72,22 @@ export async function PUT(
     );
 
     // user_profiles 업데이트
+    const updateProfileData: any = {
+      name,
+      role,
+      site_id,
+      is_active,
+      updated_at: new Date().toISOString()
+    };
+    
+    // user_id가 제공된 경우 업데이트
+    if (user_id !== undefined) {
+      updateProfileData.user_id = user_id;
+    }
+    
     const { error: profileError } = await supabase
       .from('user_profiles')
-      .update({
-        name,
-        role,
-        site_id,
-        is_active,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateProfileData)
       .eq('id', userId);
 
     if (profileError) {
@@ -122,14 +129,12 @@ export async function PUT(
       }
     }
 
-    // 이름이 변경된 경우 auth.users의 user_metadata에도 업데이트
-    if (name) {
-      updateData.user_metadata = {
-        full_name: name,
-        name: name
-      };
-      needsAuthUpdate = true;
-    }
+    // user_metadata에 user_id(사원번호) 저장
+    updateData.user_metadata = {
+      user_id: user_id || '',  // 사원번호
+      name: name  // 실제 이름도 함께 저장
+    };
+    needsAuthUpdate = true;
     
     if (needsAuthUpdate) {
       const { error: authError } = await supabase.auth.admin.updateUserById(
