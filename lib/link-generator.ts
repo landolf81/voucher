@@ -5,27 +5,35 @@
 
 import crypto from 'crypto';
 import { getBaseUrl } from './url-utils';
+import { UrlShortener } from './url-shortener';
 
 export interface LinkOptions {
   expiresInHours?: number;
+  expiresInDays?: number;
   length?: number;
   includeTimestamp?: boolean;
+  createShortUrl?: boolean; // 단축 URL 생성 여부
+  userId?: string; // 단축 URL 생성 시 사용자 ID
 }
 
 export interface GeneratedLink {
   token: string;
   url: string;
+  shortUrl?: string; // 단축 URL (생성된 경우)
   expiresAt: Date;
+  isShortened?: boolean; // 단축 URL 생성 여부
 }
 
 export class LinkGenerator {
   private readonly baseUrl: string;
-  private readonly defaultExpiryHours: number;
+  private readonly defaultExpiryDays: number;
+  private readonly maxExpiryDays: number;
   private readonly defaultTokenLength: number;
 
   constructor(baseUrl?: string) {
     this.baseUrl = baseUrl || getBaseUrl();
-    this.defaultExpiryHours = 24; // 24 hours default
+    this.defaultExpiryDays = 90; // 90 days (3 months) default
+    this.maxExpiryDays = 365; // 1 year maximum
     this.defaultTokenLength = 32;
   }
 
@@ -44,16 +52,28 @@ export class LinkGenerator {
   /**
    * Generate a secure link for mobile voucher batch access
    */
-  public generateMobileLink(
+  public async generateMobileLink(
     batchId: string,
     userId: string,
     options: LinkOptions = {}
-  ): GeneratedLink {
+  ): Promise<GeneratedLink> {
     const {
-      expiresInHours = this.defaultExpiryHours,
+      expiresInHours,
+      expiresInDays = this.defaultExpiryDays,
       length = this.defaultTokenLength,
-      includeTimestamp = true
+      includeTimestamp = true,
+      createShortUrl = false,
+      userId: shortUrlUserId
     } = options;
+
+    // Calculate expiration days (prioritize expiresInHours for backward compatibility)
+    let finalExpiryDays = expiresInDays;
+    if (expiresInHours) {
+      finalExpiryDays = Math.ceil(expiresInHours / 24);
+    }
+
+    // Enforce maximum expiry limit
+    finalExpiryDays = Math.min(finalExpiryDays, this.maxExpiryDays);
 
     // Generate base token
     let token = this.generateSecureToken(length);
@@ -66,7 +86,7 @@ export class LinkGenerator {
 
     // Calculate expiration
     const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + expiresInHours);
+    expiresAt.setDate(expiresAt.getDate() + finalExpiryDays);
 
     // Generate base URL
     let url = `${this.baseUrl}/mobile/vouchers/${token}`;
@@ -81,11 +101,45 @@ export class LinkGenerator {
       url += `?${params.toString()}`;
     }
 
-    return {
+    const result: GeneratedLink = {
       token,
       url,
-      expiresAt
+      expiresAt,
+      isShortened: false
     };
+
+    // 단축 URL 생성 (옵션이 활성화된 경우)
+    if (createShortUrl) {
+      try {
+        const shortener = new UrlShortener(this.baseUrl);
+        const shortUrlData = await shortener.createShortUrl(url, {
+          userId: shortUrlUserId || userId,
+          expiresAt,
+          metadata: {
+            batch_id: batchId,
+            original_url_length: url.length,
+            token
+          }
+        });
+
+        result.shortUrl = shortUrlData.shortUrl;
+        result.isShortened = true;
+
+        console.log('단축 URL 생성 완료:', {
+          token,
+          short_code: shortUrlData.shortCode,
+          original_length: url.length,
+          short_length: shortUrlData.shortUrl.length,
+          reduction: Math.round((1 - shortUrlData.shortUrl.length / url.length) * 100)
+        });
+
+      } catch (error) {
+        console.error('단축 URL 생성 실패:', error);
+        // 단축 URL 생성 실패해도 원본 URL은 반환
+      }
+    }
+
+    return result;
   }
 
   /**
@@ -274,13 +328,13 @@ ${url}
 }
 
 // Utility functions for common operations
-export function generateMobileVoucherLink(
+export async function generateMobileVoucherLink(
   batchId: string,
   userId: string,
   options?: LinkOptions
-): GeneratedLink {
+): Promise<GeneratedLink> {
   const generator = new LinkGenerator();
-  return generator.generateMobileLink(batchId, userId, options);
+  return await generator.generateMobileLink(batchId, userId, options);
 }
 
 export function validateVoucherToken(token: string): boolean {

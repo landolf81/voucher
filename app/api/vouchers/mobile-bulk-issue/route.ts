@@ -19,7 +19,8 @@ const mobileBulkIssueSchema = z.object({
   template_id: z.string().uuid('유효하지 않은 템플릿 ID입니다.'),
   design_template_id: z.string().uuid().optional().nullable(), // 모바일 디자인 템플릿 ID (선택사항)
   batch_name: z.string().min(1, '배치명을 입력해주세요.').max(100, '배치명은 100자 이하여야 합니다.'),
-  expires_in_hours: z.number().positive().max(168).optional().default(24), // 최대 7일
+  expires_in_hours: z.number().positive().max(168).optional(), // backward compatibility
+  expires_in_days: z.number().positive().max(365).optional().default(90), // 최대 1년, 기본 90일
   // 신규 데이터 또는 기존 ID 중 하나만 제공
   voucher_data: z.array(newVoucherSchema).min(1).max(1000).optional(),
   existing_voucher_ids: z.array(z.string().uuid()).min(1).max(1000).optional()
@@ -71,7 +72,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { user_id, template_id, design_template_id, batch_name, voucher_data, existing_voucher_ids, expires_in_hours } = validation.data;
+    const { user_id, template_id, design_template_id, batch_name, voucher_data, existing_voucher_ids, expires_in_hours, expires_in_days } = validation.data;
+    
+    // 만료 기간 계산 (expires_in_hours가 있으면 우선 사용, 없으면 expires_in_days 사용)
+    const finalExpiryDays = expires_in_hours ? Math.ceil(expires_in_hours / 24) : expires_in_days;
 
     // Supabase 클라이언트 생성
     const supabase = createClient(
@@ -126,10 +130,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 보안 링크 생성
-    const linkData = generateMobileVoucherLink(
+    const linkData = await generateMobileVoucherLink(
       'temp_batch_id', // 실제 batch_id는 아래에서 생성
       user_id,
-      { expiresInHours: expires_in_hours }
+      { expiresInDays: finalExpiryDays, createShortUrl: true, userId: user_id }
     );
 
     // 총 교환권 개수 계산
@@ -188,12 +192,12 @@ export async function POST(request: NextRequest) {
 
     if (voucher_data) {
       // 신규 교환권 생성
-      const vouchersToInsert = voucher_data.map(voucher => {
+      const vouchersToInsert = await Promise.all(voucher_data.map(async voucher => {
         // 각 교환권마다 고유한 링크 토큰 생성
-        const voucherLinkData = generateMobileVoucherLink(
+        const voucherLinkData = await generateMobileVoucherLink(
           'temp_voucher_id',
           user_id,
-          { expiresInHours: expires_in_hours }
+          { expiresInDays: finalExpiryDays, createShortUrl: true, userId: user_id }
         );
         
         return {
@@ -211,7 +215,7 @@ export async function POST(request: NextRequest) {
           link_expires_at: voucherLinkData.expiresAt.toISOString(),
           notes: `모바일 일괄 발행 - ${batch_name}`
         };
-      });
+      }));
 
       const { data: createdVouchers, error: vouchersError } = await supabase
         .from('vouchers')
@@ -300,10 +304,10 @@ export async function POST(request: NextRequest) {
       const updatedVouchers = [];
       for (const voucherId of existing_voucher_ids) {
         // 각 교환권마다 고유한 링크 토큰 생성
-        const voucherLinkData = generateMobileVoucherLink(
+        const voucherLinkData = await generateMobileVoucherLink(
           voucherId,
           user_id,
-          { expiresInHours: expires_in_hours }
+          { expiresInDays: finalExpiryDays, createShortUrl: true, userId: user_id }
         );
 
         // 기존 교환권의 상태를 확인해서 적절히 업데이트
@@ -420,6 +424,8 @@ export async function POST(request: NextRequest) {
         batch_id: batch.id,
         link_token: linkData.token,
         access_url: linkData.url,
+        short_url: linkData.shortUrl, // 단축 URL 추가
+        is_shortened: linkData.isShortened, // 단축 여부 추가
         total_count: processedVouchers.length,
         expires_at: linkData.expiresAt.toISOString(),
         voucher_serials: voucherSerials,

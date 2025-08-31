@@ -71,7 +71,7 @@ interface VoucherFormData {
 
 export function MobileVoucherManagement() {
   const { user } = useAuth();
-  const [currentTab, setCurrentTab] = useState<'create' | 'history'>('create');
+  const [currentTab, setCurrentTab] = useState<'create' | 'history' | 'analytics'>('create');
   
   // Form states
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -84,7 +84,7 @@ export function MobileVoucherManagement() {
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [selectedDesignTemplateId, setSelectedDesignTemplateId] = useState('');
   const [batchName, setBatchName] = useState('');
-  const [expiresInHours, setExpiresInHours] = useState(24);
+  const [expiresInDays, setExpiresInDays] = useState(90);
   const [vouchers, setVouchers] = useState<VoucherFormData[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -118,6 +118,13 @@ export function MobileVoucherManagement() {
   const [batchVouchers, setBatchVouchers] = useState<any[]>([]);
   const [showBatchDetail, setShowBatchDetail] = useState(false);
   const [loadingBatchDetail, setLoadingBatchDetail] = useState(false);
+
+  // Analytics state
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+  const [cleanupStats, setCleanupStats] = useState<any>(null);
+  const [loadingCleanup, setLoadingCleanup] = useState(false);
+  const [shortUrlStats, setShortUrlStats] = useState<any>(null);
 
   // Load initial data
   useEffect(() => {
@@ -341,13 +348,53 @@ export function MobileVoucherManagement() {
     setBatchVouchers([]);
   };
 
-  // Copy individual voucher link
-  const copyVoucherLink = (voucher: any) => {
-    if (voucher.mobile_access_url) {
-      navigator.clipboard.writeText(voucher.mobile_access_url);
-      alert(`${voucher.name}의 교환권 링크가 복사되었습니다.`);
-    } else {
+  // Copy individual voucher link with short URL option
+  const copyVoucherLink = async (voucher: any) => {
+    if (!voucher.mobile_access_url && !voucher.mobile_link_token) {
       alert('링크를 찾을 수 없습니다.');
+      return;
+    }
+
+    try {
+      // mobile_access_url이 없으면 mobile_link_token으로 URL 생성
+      const originalUrl = voucher.mobile_access_url || 
+        `${window.location.origin}/mobile/vouchers/${voucher.mobile_link_token}`;
+
+      // 단축 URL 생성 시도
+      const response = await fetch('/api/short-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          original_url: originalUrl,
+          expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 90일
+          user_id: user?.id,
+          metadata: {
+            voucher_id: voucher.id,
+            voucher_name: voucher.name,
+            source: 'individual_voucher'
+          }
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data?.short_url) {
+          // 단축 URL 복사
+          await navigator.clipboard.writeText(result.data.short_url);
+          alert(`${voucher.name}의 단축 링크가 복사되었습니다.\n${result.data.short_url}`);
+          return;
+        }
+      }
+
+      // 단축 URL 생성 실패 시 원본 URL 복사
+      await navigator.clipboard.writeText(originalUrl);
+      alert(`${voucher.name}의 교환권 링크가 복사되었습니다.\n${originalUrl}`);
+    } catch (error) {
+      console.error('링크 복사 오류:', error);
+      const originalUrl = voucher.mobile_access_url || 
+        `${window.location.origin}/mobile/vouchers/${voucher.mobile_link_token}`;
+      await navigator.clipboard.writeText(originalUrl);
+      alert(`${voucher.name}의 교환권 링크가 복사되었습니다.`);
     }
   };
 
@@ -465,7 +512,7 @@ export function MobileVoucherManagement() {
         design_template_id: selectedDesignTemplateId || null,
         batch_name: batchName,
         existing_voucher_ids: Array.from(selectedExistingVouchers),
-        expires_in_hours: expiresInHours
+        expires_in_days: expiresInDays
       };
 
       const response = await fetch('/api/vouchers/mobile-bulk-issue', {
@@ -479,14 +526,18 @@ export function MobileVoucherManagement() {
       const result = await response.json();
 
       if (response.ok && result.success) {
-        alert(`${result.message}\n\n액세스 링크:\n${result.data.access_url}`);
+        const linkInfo = result.data.is_shortened ? 
+          `단축 URL: ${result.data.short_url}\n원본 URL: ${result.data.access_url}` :
+          `액세스 링크: ${result.data.access_url}`;
+        
+        alert(`${result.message}\n\n${linkInfo}`);
         
         // Reset form
         setSelectedUserId(user?.id || '');
         setSelectedTemplateId('');
         setSelectedDesignTemplateId('');
         setBatchName('');
-        setExpiresInHours(24);
+        setExpiresInDays(90);
         setSelectedExistingVouchers(new Set());
         setExistingVouchers([]);
         setMobileDesignTemplates([]);
@@ -519,11 +570,134 @@ export function MobileVoucherManagement() {
     const url = `${window.location.origin}/mobile/vouchers/${token}`;
     try {
       await navigator.clipboard.writeText(url);
-      alert('링크가 클립보드에 복사되었습니다.');
+      alert('원본 링크가 클립보드에 복사되었습니다.');
     } catch (error) {
       alert(`링크: ${url}`);
     }
   };
+
+  // Copy short link to clipboard
+  const copyShortLink = async (token: string) => {
+    try {
+      // 단축 URL 생성 API 호출
+      const response = await fetch('/api/short-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          original_url: `${window.location.origin}/mobile/vouchers/${token}`,
+          expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 90일 후
+          user_id: user?.id,
+          metadata: { token, source: 'batch_management' }
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          await navigator.clipboard.writeText(result.data.short_url);
+          alert(`단축 링크가 복사되었습니다!\n길이: ${result.data.short_url.length}자 (${result.data.reduction_percentage}% 단축)`);
+        } else {
+          throw new Error(result.message);
+        }
+      } else {
+        throw new Error('단축 URL 생성 실패');
+      }
+    } catch (error) {
+      console.error('단축 링크 생성 오류:', error);
+      // 실패 시 원본 링크 복사
+      const url = `${window.location.origin}/mobile/vouchers/${token}`;
+      try {
+        await navigator.clipboard.writeText(url);
+        alert('단축 링크 생성에 실패하여 원본 링크를 복사했습니다.');
+      } catch {
+        alert(`단축 링크 생성 실패. 원본 링크: ${url}`);
+      }
+    }
+  };
+
+  // Load analytics data
+  const loadAnalyticsData = async () => {
+    setLoadingAnalytics(true);
+    try {
+      const response = await fetch(`/api/dashboard/stats`);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Analytics data loaded:', data);
+        setAnalyticsData(data.data || {});
+      }
+    } catch (error) {
+      console.error('분석 데이터 로드 오류:', error);
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  };
+
+  // Load cleanup statistics
+  const loadCleanupStats = async () => {
+    setLoadingCleanup(true);
+    try {
+      const response = await fetch('/api/vouchers/mobile-batch/cleanup?days_before=30');
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Cleanup stats loaded:', data);
+        setCleanupStats(data.data || {});
+      }
+    } catch (error) {
+      console.error('정리 통계 로드 오류:', error);
+    } finally {
+      setLoadingCleanup(false);
+    }
+  };
+
+  // Execute cleanup
+  const executeCleanup = async (dryRun: boolean = false) => {
+    const confirmed = dryRun || confirm('정말로 만료된 배치를 정리하시겠습니까? 이 작업은 되돌릴 수 없습니다.');
+    if (!confirmed) return;
+
+    setLoadingCleanup(true);
+    try {
+      const response = await fetch(`/api/vouchers/mobile-batch/cleanup?dry_run=${dryRun}&days_before=30`, {
+        method: 'POST'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        alert(data.message);
+        loadCleanupStats(); // 통계 새로고침
+        loadBatchHistory(); // 배치 히스토리 새로고침
+      } else {
+        const error = await response.json();
+        alert(`정리 실패: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('정리 실행 오류:', error);
+      alert('정리 실행 중 오류가 발생했습니다.');
+    } finally {
+      setLoadingCleanup(false);
+    }
+  };
+
+  // Load short URL statistics
+  const loadShortUrlStats = async () => {
+    try {
+      const response = await fetch('/api/short-url');
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Short URL stats loaded:', data);
+        setShortUrlStats(data.data || {});
+      }
+    } catch (error) {
+      console.error('단축 URL 통계 로드 오류:', error);
+    }
+  };
+
+  // Load analytics when tab changes
+  useEffect(() => {
+    if (currentTab === 'analytics') {
+      loadAnalyticsData();
+      loadCleanupStats();
+      loadShortUrlStats();
+    }
+  }, [currentTab]);
 
   return (
     <div>
@@ -572,6 +746,21 @@ export function MobileVoucherManagement() {
           }}
         >
           📋 배치 히스토리
+        </button>
+        <button
+          onClick={() => setCurrentTab('analytics')}
+          style={{
+            padding: '12px 24px',
+            backgroundColor: currentTab === 'analytics' ? '#3b82f6' : 'transparent',
+            color: currentTab === 'analytics' ? 'white' : '#64748b',
+            border: 'none',
+            borderRadius: '8px 8px 0 0',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '500'
+          }}
+        >
+          📊 사용 분석
         </button>
       </div>
 
@@ -707,11 +896,11 @@ export function MobileVoucherManagement() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: '#374151' }}>
-                  링크 만료 시간
+                  링크 만료 기간
                 </label>
                 <select
-                  value={expiresInHours}
-                  onChange={(e) => setExpiresInHours(Number(e.target.value))}
+                  value={expiresInDays}
+                  onChange={(e) => setExpiresInDays(Number(e.target.value))}
                   style={{
                     width: '100%',
                     padding: '12px',
@@ -720,14 +909,18 @@ export function MobileVoucherManagement() {
                     fontSize: '14px'
                   }}
                 >
-                  <option value={1}>1시간</option>
-                  <option value={6}>6시간</option>
-                  <option value={12}>12시간</option>
-                  <option value={24}>24시간 (기본)</option>
-                  <option value={48}>48시간</option>
-                  <option value={72}>72시간</option>
-                  <option value={168}>7일</option>
+                  <option value={1}>1일</option>
+                  <option value={3}>3일</option>
+                  <option value={7}>1주일</option>
+                  <option value={14}>2주일</option>
+                  <option value={30}>1개월</option>
+                  <option value={90}>3개월 (기본)</option>
+                  <option value={180}>6개월</option>
+                  <option value={365}>1년</option>
                 </select>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+                  링크는 선택한 기간 후 자동으로 만료됩니다
+                </div>
               </div>
             </div>
           </div>
@@ -1145,8 +1338,24 @@ export function MobileVoucherManagement() {
                               cursor: 'pointer',
                               fontSize: '12px'
                             }}
+                            title="원본 링크 복사"
                           >
                             📋
+                          </button>
+                          <button
+                            onClick={() => copyShortLink(batch.link_token)}
+                            style={{
+                              padding: '6px 8px',
+                              backgroundColor: '#8b5cf6',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '12px'
+                            }}
+                            title="단축 링크 복사"
+                          >
+                            🔗
                           </button>
                           <button
                             onClick={() => handleShowBatchDetail(batch)}
@@ -1178,6 +1387,295 @@ export function MobileVoucherManagement() {
               <p>생성된 모바일 교환권 배치가 없습니다.</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Analytics Tab */}
+      {currentTab === 'analytics' && (
+        <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#374151' }}>
+              📊 사용 패턴 분석 및 관리
+            </h4>
+            <button
+              onClick={() => {
+                loadAnalyticsData();
+                loadCleanupStats();
+                loadShortUrlStats();
+              }}
+              disabled={loadingAnalytics || loadingCleanup}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#6b7280',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: loadingAnalytics || loadingCleanup ? 'not-allowed' : 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              {loadingAnalytics || loadingCleanup ? '로딩 중...' : '🔄 새로고침'}
+            </button>
+          </div>
+
+          {/* System Overview */}
+          {analyticsData && (
+            <div style={{ marginBottom: '32px' }}>
+              <h5 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#374151' }}>
+                시스템 전체 현황
+              </h5>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                gap: '16px',
+                marginBottom: '16px'
+              }}>
+                <div style={{
+                  backgroundColor: '#f0f9ff',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '1px solid #0ea5e9'
+                }}>
+                  <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#0ea5e9', marginBottom: '8px' }}>
+                    {analyticsData.totalVouchers?.toLocaleString() || '0'}
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#64748b' }}>총 교환권 수</div>
+                </div>
+                <div style={{
+                  backgroundColor: '#f0fdf4',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '1px solid #22c55e'
+                }}>
+                  <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#22c55e', marginBottom: '8px' }}>
+                    {analyticsData.totalSites?.toLocaleString() || '0'}
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#64748b' }}>활성 사업장 수</div>
+                </div>
+                <div style={{
+                  backgroundColor: '#fefce8',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '1px solid #facc15'
+                }}>
+                  <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#facc15', marginBottom: '8px' }}>
+                    {analyticsData.totalUsers?.toLocaleString() || '0'}
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#64748b' }}>등록 사용자 수</div>
+                </div>
+                <div style={{
+                  backgroundColor: '#fdf2f8',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '1px solid #ec4899'
+                }}>
+                  <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#ec4899', marginBottom: '8px' }}>
+                    {batches.length}
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#64748b' }}>모바일 배치 수</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* URL Shortening Statistics */}
+          {shortUrlStats && (
+            <div style={{ marginBottom: '32px' }}>
+              <h5 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#374151' }}>
+                URL 단축 통계
+              </h5>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+                gap: '12px',
+                marginBottom: '16px'
+              }}>
+                <div style={{ textAlign: 'center', padding: '16px', backgroundColor: '#f0f9ff', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#0ea5e9' }}>
+                    {shortUrlStats.total_urls || 0}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280' }}>총 단축 URL</div>
+                </div>
+                <div style={{ textAlign: 'center', padding: '16px', backgroundColor: '#f0fdf4', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#22c55e' }}>
+                    {shortUrlStats.active_urls || 0}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280' }}>활성 URL</div>
+                </div>
+                <div style={{ textAlign: 'center', padding: '16px', backgroundColor: '#fecaca', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ef4444' }}>
+                    {shortUrlStats.expired_urls || 0}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280' }}>만료된 URL</div>
+                </div>
+                <div style={{ textAlign: 'center', padding: '16px', backgroundColor: '#fef3c7', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#f59e0b' }}>
+                    {shortUrlStats.total_clicks || 0}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280' }}>총 클릭 수</div>
+                </div>
+                <div style={{ textAlign: 'center', padding: '16px', backgroundColor: '#fdf2f8', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ec4899' }}>
+                    {shortUrlStats.average_clicks || 0}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280' }}>평균 클릭</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Mobile Batch Statistics */}
+          <div style={{ marginBottom: '32px' }}>
+            <h5 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#374151' }}>
+              모바일 배치 통계
+            </h5>
+            {batches.length > 0 ? (
+              <div>
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+                  gap: '12px',
+                  marginBottom: '16px'
+                }}>
+                  <div style={{ textAlign: 'center', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#22c55e' }}>
+                      {batches.filter(b => b.status === 'completed').length}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>완료된 배치</div>
+                  </div>
+                  <div style={{ textAlign: 'center', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#f59e0b' }}>
+                      {batches.filter(b => b.status === 'generating').length}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>생성 중</div>
+                  </div>
+                  <div style={{ textAlign: 'center', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ef4444' }}>
+                      {batches.filter(b => b.status === 'failed').length}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>실패</div>
+                  </div>
+                  <div style={{ textAlign: 'center', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#3b82f6' }}>
+                      {batches.reduce((sum, b) => sum + (b.download_count || 0), 0)}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>총 다운로드 수</div>
+                  </div>
+                  <div style={{ textAlign: 'center', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#8b5cf6' }}>
+                      {batches.reduce((sum, b) => sum + b.total_count, 0)}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>총 교환권 수</div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ 
+                textAlign: 'center', 
+                padding: '40px', 
+                color: '#9ca3af',
+                backgroundColor: '#f9fafb',
+                borderRadius: '8px'
+              }}>
+                <p>모바일 배치 데이터가 없습니다.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Cleanup Management */}
+          <div>
+            <h5 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#374151' }}>
+              배치 정리 관리
+            </h5>
+            
+            {cleanupStats && (
+              <div style={{
+                backgroundColor: '#fef3c7',
+                border: '1px solid #f59e0b',
+                borderRadius: '8px',
+                padding: '16px',
+                marginBottom: '16px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <h6 style={{ fontSize: '14px', fontWeight: '600', color: '#92400e', margin: 0 }}>
+                    ⚠️ 정리 대상 (30일 이전 만료)
+                  </h6>
+                  <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                    기준일: {cleanupStats.cleanup_date ? new Date(cleanupStats.cleanup_date).toLocaleDateString('ko-KR') : '-'}
+                  </div>
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                  <div>
+                    <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#92400e' }}>
+                      {cleanupStats.total_batches || 0}개 배치
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>정리 대상 배치</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#92400e' }}>
+                      {cleanupStats.total_vouchers || 0}개 교환권
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>정리 대상 링크</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => executeCleanup(true)}
+                    disabled={loadingCleanup || !cleanupStats.total_batches}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: cleanupStats.total_batches ? '#3b82f6' : '#9ca3af',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: cleanupStats.total_batches && !loadingCleanup ? 'pointer' : 'not-allowed',
+                      fontSize: '14px',
+                      fontWeight: '500'
+                    }}
+                  >
+                    🔍 시뮬레이션
+                  </button>
+                  <button
+                    onClick={() => executeCleanup(false)}
+                    disabled={loadingCleanup || !cleanupStats.total_batches}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: cleanupStats.total_batches ? '#ef4444' : '#9ca3af',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: cleanupStats.total_batches && !loadingCleanup ? 'pointer' : 'not-allowed',
+                      fontSize: '14px',
+                      fontWeight: '500'
+                    }}
+                  >
+                    🗑️ 실제 정리
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div style={{
+              backgroundColor: '#f3f4f6',
+              border: '1px solid #d1d5db',
+              borderRadius: '8px',
+              padding: '16px',
+              fontSize: '14px',
+              color: '#6b7280'
+            }}>
+              <h6 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                🛡️ 정리 정책
+              </h6>
+              <ul style={{ margin: 0, paddingLeft: '16px' }}>
+                <li>30일 이전에 만료된 배치가 정리 대상입니다</li>
+                <li>정리 시 배치는 삭제되지 않고 'cleaned' 상태로 변경됩니다</li>
+                <li>교환권의 모바일 링크 토큰만 제거되어 더 이상 접근할 수 없게 됩니다</li>
+                <li>시뮬레이션으로 먼저 확인한 후 실제 정리를 수행하세요</li>
+              </ul>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1499,21 +1997,45 @@ export function MobileVoucherManagement() {
                             </span>
                           </td>
                           <td style={{ padding: '8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center' }}>
-                            <button
-                              onClick={() => copyVoucherLink(voucher)}
-                              disabled={!voucher.mobile_access_url}
-                              style={{
-                                padding: '4px 8px',
-                                backgroundColor: voucher.mobile_access_url ? '#3b82f6' : '#9ca3af',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: voucher.mobile_access_url ? 'pointer' : 'not-allowed',
-                                fontSize: '12px'
-                              }}
-                            >
-                              📋 복사
-                            </button>
+                            <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                              <button
+                                onClick={() => {
+                                  const url = voucher.mobile_access_url || 
+                                    `${window.location.origin}/mobile/vouchers/${voucher.mobile_link_token}`;
+                                  navigator.clipboard.writeText(url);
+                                  alert('원본 링크가 복사되었습니다.');
+                                }}
+                                disabled={!voucher.mobile_access_url && !voucher.mobile_link_token}
+                                style={{
+                                  padding: '4px 6px',
+                                  backgroundColor: (voucher.mobile_access_url || voucher.mobile_link_token) ? '#6b7280' : '#e5e7eb',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: (voucher.mobile_access_url || voucher.mobile_link_token) ? 'pointer' : 'not-allowed',
+                                  fontSize: '11px'
+                                }}
+                                title="원본 링크 복사"
+                              >
+                                원본
+                              </button>
+                              <button
+                                onClick={() => copyVoucherLink(voucher)}
+                                disabled={!voucher.mobile_access_url && !voucher.mobile_link_token}
+                                style={{
+                                  padding: '4px 6px',
+                                  backgroundColor: (voucher.mobile_access_url || voucher.mobile_link_token) ? '#3b82f6' : '#9ca3af',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: (voucher.mobile_access_url || voucher.mobile_link_token) ? 'pointer' : 'not-allowed',
+                                  fontSize: '11px'
+                                }}
+                                title="단축 링크 복사"
+                              >
+                                단축
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
