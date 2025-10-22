@@ -92,16 +92,52 @@ export async function GET(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
-    
+
     // Get voucher with mobile link token
     const { data: voucher, error } = await supabase
       .from('vouchers')
       .select('id, status, version, used_at, usage_location, mobile_link_token, link_expires_at')
       .eq('mobile_link_token', token)
       .single();
-    
+
+    // If not found as individual voucher, check if it's a batch token
     if (error || !voucher) {
-      // Log suspicious 404s
+      const { data: batch } = await supabase
+        .from('mobile_voucher_batches')
+        .select('id, status, expires_at')
+        .eq('link_token', token)
+        .single();
+
+      if (batch) {
+        // This is a batch token, return batch status
+        const batchETag = generateETag({ status: batch.status, version: 0, used_at: null });
+
+        if (ifNoneMatch === batchETag) {
+          return new NextResponse(null, {
+            status: 304,
+            headers: {
+              'ETag': batchETag,
+              'Cache-Control': 'no-store, no-cache, must-revalidate',
+              'X-Session-ID': validSessionId || ''
+            }
+          });
+        }
+
+        return NextResponse.json({
+          status: batch.status,
+          status_changed: false,
+          timestamp: new Date().toISOString(),
+          isBatch: true
+        }, {
+          headers: {
+            'ETag': batchETag,
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
+            'X-Session-ID': validSessionId || ''
+          }
+        });
+      }
+
+      // Neither voucher nor batch found
       console.warn('Mobile voucher not found:', { token, ip, userAgent });
       return new NextResponse('Not Found', { status: 404 });
     }

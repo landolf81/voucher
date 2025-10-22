@@ -14,7 +14,9 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Read(c:\\Users\\lando\\Downloads/**)"
+      "Read(c:\\Users\\lando\\Downloads/**)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :3000)"
     ],
     "defaultMode": "acceptEdits"
   }

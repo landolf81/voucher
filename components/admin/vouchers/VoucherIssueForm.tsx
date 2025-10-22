@@ -599,7 +599,8 @@ export function VoucherIssueForm() {
               border: '1px solid #d1d5db',
               borderRadius: '6px',
               fontSize: '14px',
-              backgroundColor: 'white'
+              backgroundColor: 'white',
+              color: '#1a202c'
             }}
           />
           <input
@@ -612,7 +613,8 @@ export function VoucherIssueForm() {
               border: '1px solid #d1d5db',
               borderRadius: '6px',
               fontSize: '14px',
-              backgroundColor: 'white'
+              backgroundColor: 'white',
+              color: '#1a202c'
             }}
           />
           <input
@@ -625,7 +627,8 @@ export function VoucherIssueForm() {
               border: '1px solid #d1d5db',
               borderRadius: '6px',
               fontSize: '14px',
-              backgroundColor: 'white'
+              backgroundColor: 'white',
+              color: '#1a202c'
             }}
           />
           <input
@@ -638,7 +641,8 @@ export function VoucherIssueForm() {
               border: '1px solid #d1d5db',
               borderRadius: '6px',
               fontSize: '14px',
-              backgroundColor: 'white'
+              backgroundColor: 'white',
+              color: '#1a202c'
             }}
           />
           <select

@@ -216,7 +216,8 @@ export async function POST(req: NextRequest) {
         const { data: batchVouchers, error: batchError } = await supabase
           .from('vouchers')
           .select('*')
-          .in('id', batchIds);
+          .in('id', batchIds)
+          .order('name', { ascending: true });
 
         if (batchError) {
           console.error(`Batch ${batchNumber} error:`, {

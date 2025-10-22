@@ -602,6 +602,63 @@ export function VoucherRecipientsForm() {
     setTimeout(() => fetchRecipients(1), 0);
   };
 
+  // Excel 다운로드
+  const handleExcelDownload = async () => {
+    if (!selectedTemplate) {
+      setMessage({ type: 'error', text: '템플릿을 먼저 선택해주세요.' });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // URL 파라미터 생성 (필터 조건 포함)
+      const params = new URLSearchParams();
+      params.append('template_id', selectedTemplate);
+
+      if (filters.status) {
+        params.append('status', filters.status);
+      }
+
+      // API 호출하여 파일 다운로드
+      const response = await fetch(`/api/vouchers/download-excel?${params.toString()}`);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setMessage({ type: 'error', text: errorData.message || 'Excel 다운로드에 실패했습니다.' });
+        return;
+      }
+
+      // 파일 다운로드
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+
+      // Content-Disposition 헤더에서 파일명 추출 또는 기본 파일명 사용
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = '교환권목록.xlsx';
+      if (contentDisposition) {
+        const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+        if (matches && matches[1]) {
+          filename = decodeURIComponent(matches[1].replace(/['"]/g, ''));
+        }
+      }
+
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      setMessage({ type: 'success', text: 'Excel 파일이 다운로드되었습니다.' });
+    } catch (error) {
+      console.error('Excel 다운로드 오류:', error);
+      setMessage({ type: 'error', text: '다운로드 중 오류가 발생했습니다.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 페이지 변경
   const handlePageChange = (newPage: number) => {
     setPagination(prev => ({ ...prev, page: newPage }));
@@ -1142,23 +1199,43 @@ export function VoucherRecipientsForm() {
             <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#1a202c', margin: 0 }}>
               교환권 검색 및 필터
             </h4>
-            <button
-              onClick={handleFilterReset}
-              disabled={loading}
-              style={{
-                backgroundColor: '#64748b',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                padding: '6px 12px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                fontSize: '12px',
-                fontWeight: '500',
-                opacity: loading ? 0.6 : 1
-              }}
-            >
-              초기화
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={handleExcelDownload}
+                disabled={loading}
+                style={{
+                  backgroundColor: '#059669',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  padding: '6px 12px',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  opacity: loading ? 0.6 : 1
+                }}
+                title="현재 필터 조건에 맞는 교환권 목록을 Excel로 다운로드"
+              >
+                📥 Excel 다운로드
+              </button>
+              <button
+                onClick={handleFilterReset}
+                disabled={loading}
+                style={{
+                  backgroundColor: '#64748b',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  padding: '6px 12px',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  opacity: loading ? 0.6 : 1
+                }}
+              >
+                초기화
+              </button>
+            </div>
           </div>
 
           <form onSubmit={handleFilterSubmit}>

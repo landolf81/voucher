@@ -780,7 +780,9 @@ export function VoucherInquiryContent() {
                 border: '1px solid #d1d5db',
                 borderRadius: '6px',
                 fontSize: '14px',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                color: '#1a202c',
+                backgroundColor: 'white'
               }}
             />
           </div>
@@ -807,7 +809,9 @@ export function VoucherInquiryContent() {
                 border: '1px solid #d1d5db',
                 borderRadius: '6px',
                 fontSize: '14px',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                color: '#1a202c',
+                backgroundColor: 'white'
               }}
             />
           </div>
@@ -834,7 +838,9 @@ export function VoucherInquiryContent() {
                 border: '1px solid #d1d5db',
                 borderRadius: '6px',
                 fontSize: '14px',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                color: '#1a202c',
+                backgroundColor: 'white'
               }}
             />
           </div>
@@ -861,7 +867,9 @@ export function VoucherInquiryContent() {
                 border: '1px solid #d1d5db',
                 borderRadius: '6px',
                 fontSize: '14px',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                color: '#1a202c',
+                backgroundColor: 'white'
               }}
             />
           </div>
@@ -964,7 +972,9 @@ export function VoucherInquiryContent() {
                 border: '1px solid #d1d5db',
                 borderRadius: '6px',
                 fontSize: '14px',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                color: '#1a202c',
+                backgroundColor: 'white'
               }}
             />
           </div>
@@ -989,7 +999,9 @@ export function VoucherInquiryContent() {
                 border: '1px solid #d1d5db',
                 borderRadius: '6px',
                 fontSize: '14px',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                color: '#1a202c',
+                backgroundColor: 'white'
               }}
             />
           </div>
@@ -1014,7 +1026,9 @@ export function VoucherInquiryContent() {
                 border: '1px solid #d1d5db',
                 borderRadius: '6px',
                 fontSize: '14px',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                color: '#1a202c',
+                backgroundColor: 'white'
               }}
             />
           </div>
@@ -1039,7 +1053,9 @@ export function VoucherInquiryContent() {
                 border: '1px solid #d1d5db',
                 borderRadius: '6px',
                 fontSize: '14px',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                color: '#1a202c',
+                backgroundColor: 'white'
               }}
             />
           </div>
@@ -1254,7 +1270,9 @@ export function VoucherInquiryContent() {
                   border: '1px solid #d1d5db',
                   borderRadius: '6px',
                   fontSize: '14px',
-                  boxSizing: 'border-box'
+                  boxSizing: 'border-box',
+                  color: '#1a202c',
+                  backgroundColor: 'white'
                 }}
               />
             </div>
