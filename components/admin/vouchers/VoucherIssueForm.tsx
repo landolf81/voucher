@@ -262,7 +262,7 @@ export function VoucherIssueForm() {
 
     setIsGenerating(true);
     
-    const BATCH_SIZE = 100; // 한 번에 처리할 최대 개수 (414 에러 방지)
+    const BATCH_SIZE = 500; // 한 번에 처리할 최대 개수 (414 에러 방지)
     const totalBatches = Math.ceil(selectedVouchers.length / BATCH_SIZE);
     
     try {
