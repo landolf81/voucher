@@ -60,8 +60,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 교환권 상태 확인 - 발행된 상태에서만 사용 가능
-    if (voucher.status !== 'issued') {
+    // 교환권 상태 확인 - 발행된 상태(issued) 또는 발행 가능 상태(issuable)에서 사용 가능
+    // issuable 상태는 과거에 발행된 교환권으로, 사용 등록 시 자동으로 issued 상태로 변경됨
+    const allowedStatuses = ['issued', 'issuable'];
+    if (!allowedStatuses.includes(voucher.status)) {
       let statusMessage = '';
       switch (voucher.status) {
         case 'used':
@@ -74,12 +76,12 @@ export async function POST(request: NextRequest) {
           statusMessage = '폐기된 교환권은 사용할 수 없습니다.';
           break;
         case 'registered':
-          statusMessage = '아직 발행되지 않은 교환권입니다.';
+          statusMessage = '아직 등록만 된 교환권입니다.';
           break;
         default:
           statusMessage = '사용할 수 없는 상태의 교환권입니다.';
       }
-      
+
       return NextResponse.json(
         {
           success: false,
