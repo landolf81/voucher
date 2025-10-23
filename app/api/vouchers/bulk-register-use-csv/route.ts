@@ -463,7 +463,7 @@ export async function POST(request: NextRequest) {
     console.log(`${processedVouchers.length}개 교환권 처리 시작`);
 
     // 배치 처리
-    const BATCH_SIZE = 100; // 한 번에 처리할 배치 크기
+    const BATCH_SIZE = 500; // 한 번에 처리할 배치 크기
     const allResults: ProcessingResult[] = [];
     
     for (let i = 0; i < processedVouchers.length; i += BATCH_SIZE) {

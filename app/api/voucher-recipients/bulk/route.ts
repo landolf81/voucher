@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     );
 
     // 배치 크기로 나누어 처리
-    const batchSize = 100;
+    const batchSize = 500;
     for (let i = 0; i < recipientsToInsert.length; i += batchSize) {
       const batch = recipientsToInsert.slice(i, i + batchSize);
       
