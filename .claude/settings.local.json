@@ -16,7 +16,17 @@
       "Bash(git push:*)",
       "Read(c:\\Users\\lando\\Downloads/**)",
       "Bash(netstat -ano)",
-      "Bash(findstr :3000)"
+      "Bash(findstr :3000)",
+      "Bash(powershell -Command:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm install)",
+      "Bash(npm cache clean:*)",
+      "Bash(npm install:*)",
+      "Bash(yarn install)",
+      "Bash(yarn install:*)",
+      "Bash(yarn build)",
+      "Bash(yarn dev)",
+      "Bash(git rm:*)"
     ],
     "defaultMode": "acceptEdits"
   }
