@@ -83,25 +83,22 @@ export async function POST(req: NextRequest){
           qr_issued_date_formatted: qrIssuedDateKo,
           db_issued_date_formatted: dbIssuedDateFormatted,
           is_match: issuedDate === dbIssuedDate,
-          message: issuedDate === dbIssuedDate 
-            ? "발행일자가 일치합니다." 
-            : `발행일자가 다릅니다. QR코드: ${qrIssuedDateKo}, 데이터베이스: ${dbIssuedDateFormatted}`
+          message: issuedDate === dbIssuedDate
+            ? "발행일자 일치"
+            : "발행일자 불일치"
         };
-        
+
         // 발행일자 불일치 시 에러 반환
         if (issuedDate !== dbIssuedDate) {
           console.log('발행일자 불일치 - 사용 거부:', {
             qrIssued: issuedDate,
-            dbIssued: dbIssuedDate,
-            qrIssuedFormatted: qrIssuedDateKo,
-            dbIssuedFormatted: dbIssuedDateFormatted
+            dbIssued: dbIssuedDate
           });
 
           return NextResponse.json({
             ok: false,
             error: "ISSUED_DATE_MISMATCH",
-            message: `발행일자가 다릅니다. QR코드: ${qrIssuedDateKo}, 데이터베이스: ${dbIssuedDateFormatted}`,
-            date_comparison: dateComparison
+            message: "발행일자가 다릅니다. 올바른 교환권을 사용해주세요."
           }, { status: 400 });
         }
       } else {
