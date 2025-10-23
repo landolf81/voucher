@@ -186,7 +186,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data: profile, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
 
       if (error || !profile) {
-        console.error('프로필 로드 오류:', error);
+        console.error('프로필 로드 오류:', {
+          error: error,
+          errorMessage: error?.message || 'Unknown error',
+          profile: profile,
+          userId: authUser.id,
+          userEmail: authUser.email
+        });
         
         // OAuth 사용자의 경우 linking이 필요한지 확인
         const isOAuthUser = authUser.app_metadata?.provider !== 'email';
