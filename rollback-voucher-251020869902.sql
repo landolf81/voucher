@@ -3,8 +3,8 @@
 SELECT
   serial_no,
   status,
-  issued_date,
-  used_date,
+  issued_at,
+  used_at,
   usage_location,
   used_by_user_id
 FROM vouchers
@@ -14,7 +14,7 @@ WHERE serial_no = '251020869902';
 UPDATE vouchers
 SET
   status = 'issued',
-  used_date = NULL,
+  used_at = NULL,
   usage_location = NULL,
   used_by_user_id = NULL
 WHERE serial_no = '251020869902';
@@ -23,8 +23,8 @@ WHERE serial_no = '251020869902';
 SELECT
   serial_no,
   status,
-  issued_date,
-  used_date,
+  issued_at,
+  used_at,
   usage_location,
   used_by_user_id
 FROM vouchers
