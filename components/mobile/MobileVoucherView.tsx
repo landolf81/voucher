@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import QRCode from 'qrcode';
 import { useState, useEffect } from 'react';
 
@@ -37,7 +36,7 @@ export function MobileVoucherView({ voucher, template }: MobileVoucherViewProps)
   useEffect(() => {
     // Generate QR code for the voucher
     QRCode.toDataURL(voucher.serial_no, {
-      width: 200,
+      width: 300,
       margin: 2,
       color: {
         dark: '#000000',
@@ -54,15 +53,18 @@ export function MobileVoucherView({ voucher, template }: MobileVoucherViewProps)
     <div style={{
       minHeight: '100vh',
       backgroundColor: '#f3f4f6',
-      padding: '20px'
+      padding: '24px 16px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
     }}>
       <div style={{
-        maxWidth: '400px',
-        margin: '0 auto',
+        maxWidth: '420px',
+        width: '100%',
         backgroundColor: 'white',
-        borderRadius: '16px',
-        padding: '24px',
-        boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+        borderRadius: '20px',
+        padding: '32px 24px',
+        boxShadow: '0 12px 32px rgba(0,0,0,0.12)'
       }}>
         {/* Header */}
         <div style={{
@@ -84,22 +86,30 @@ export function MobileVoucherView({ voucher, template }: MobileVoucherViewProps)
           </h1>
           <p style={{
             fontSize: '16px',
-            color: '#6b7280'
+            color: '#6b7280',
+            marginBottom: '4px'
           }}>
             {voucher.association}
+          </p>
+          <p style={{
+            fontSize: '18px',
+            fontWeight: '700',
+            color: '#1f2937'
+          }}>
+            {voucher.name}
           </p>
         </div>
 
         {/* Amount */}
         <div style={{
           textAlign: 'center',
-          marginBottom: '24px',
-          padding: '20px',
+          marginBottom: '32px',
+          padding: '24px',
           backgroundColor: '#eff6ff',
-          borderRadius: '12px'
+          borderRadius: '16px'
         }}>
           <div style={{
-            fontSize: '40px',
+            fontSize: '48px',
             fontWeight: '800',
             color: '#2563eb'
           }}>
@@ -107,65 +117,37 @@ export function MobileVoucherView({ voucher, template }: MobileVoucherViewProps)
           </div>
         </div>
 
-        {/* Personal Info */}
-        <div style={{
-          backgroundColor: '#f9fafb',
-          borderRadius: '12px',
-          padding: '16px',
-          marginBottom: '24px'
-        }}>
-          <div style={{
-            display: 'grid',
-            gap: '12px',
-            fontSize: '15px'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#6b7280' }}>성명</span>
-              <span style={{ fontWeight: '600', color: '#1f2937' }}>{voucher.name}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#6b7280' }}>회원번호</span>
-              <span style={{ fontWeight: '600', color: '#1f2937' }}>{voucher.member_id}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#6b7280' }}>생년월일</span>
-              <span style={{ fontWeight: '600', color: '#1f2937' }}>{voucher.dob}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#6b7280' }}>연락처</span>
-              <span style={{ fontWeight: '600', color: '#1f2937' }}>{voucher.phone}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* QR Code */}
+        {/* QR Code - Centered and Enlarged */}
         <div style={{
           textAlign: 'center',
-          marginBottom: '24px'
+          marginBottom: '32px'
         }}>
           {qrCodeUrl && (
             <div style={{
               display: 'inline-block',
-              padding: '16px',
+              padding: '24px',
               backgroundColor: 'white',
-              border: '2px solid #e5e7eb',
-              borderRadius: '12px'
+              border: '3px solid #2563eb',
+              borderRadius: '16px',
+              boxShadow: '0 4px 16px rgba(37, 99, 235, 0.2)'
             }}>
-              <img 
-                src={qrCodeUrl} 
+              <img
+                src={qrCodeUrl}
                 alt="QR Code"
                 style={{
-                  width: '180px',
-                  height: '180px'
+                  width: '260px',
+                  height: '260px'
                 }}
               />
             </div>
           )}
           <p style={{
-            marginTop: '12px',
-            fontSize: '13px',
+            marginTop: '16px',
+            fontSize: '16px',
             fontFamily: 'monospace',
-            color: '#6b7280'
+            fontWeight: '600',
+            color: '#1f2937',
+            letterSpacing: '0.05em'
           }}>
             {voucher.serial_no}
           </p>
@@ -174,41 +156,41 @@ export function MobileVoucherView({ voucher, template }: MobileVoucherViewProps)
         {/* Status */}
         <div style={{
           textAlign: 'center',
-          marginBottom: '16px'
+          marginBottom: '20px'
         }}>
           {voucher.status === 'issued' ? (
             <div style={{
               display: 'inline-block',
-              padding: '8px 16px',
+              padding: '12px 24px',
               backgroundColor: '#10b981',
               color: 'white',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '600'
+              borderRadius: '12px',
+              fontSize: '18px',
+              fontWeight: '700'
             }}>
               ✅ 사용 가능
             </div>
           ) : voucher.status === 'used' ? (
             <div style={{
               display: 'inline-block',
-              padding: '8px 16px',
+              padding: '12px 24px',
               backgroundColor: '#6b7280',
               color: 'white',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '600'
+              borderRadius: '12px',
+              fontSize: '18px',
+              fontWeight: '700'
             }}>
               사용 완료
             </div>
           ) : (
             <div style={{
               display: 'inline-block',
-              padding: '8px 16px',
+              padding: '12px 24px',
               backgroundColor: '#fbbf24',
               color: 'white',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '600'
+              borderRadius: '12px',
+              fontSize: '18px',
+              fontWeight: '700'
             }}>
               {voucher.status}
             </div>
@@ -218,8 +200,9 @@ export function MobileVoucherView({ voucher, template }: MobileVoucherViewProps)
         {/* Issue Date */}
         <div style={{
           textAlign: 'center',
-          fontSize: '13px',
-          color: '#9ca3af'
+          fontSize: '14px',
+          color: '#9ca3af',
+          fontWeight: '500'
         }}>
           발행일: {new Date(voucher.issued_at).toLocaleDateString('ko-KR')}
         </div>
@@ -228,9 +211,10 @@ export function MobileVoucherView({ voucher, template }: MobileVoucherViewProps)
         {voucher.used_at && (
           <div style={{
             textAlign: 'center',
-            fontSize: '13px',
+            fontSize: '14px',
             color: '#9ca3af',
-            marginTop: '4px'
+            fontWeight: '500',
+            marginTop: '8px'
           }}>
             사용일: {new Date(voucher.used_at).toLocaleDateString('ko-KR')}
           </div>

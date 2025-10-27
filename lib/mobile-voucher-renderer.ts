@@ -88,16 +88,26 @@ export class MobileVoucherRenderer {
   /**
    * Generate mobile voucher HTML
    */
-  public generateMobileHTML(voucher: VoucherData, template: MobileTemplate): string {
+  public async generateMobileHTML(voucher: VoucherData, template: MobileTemplate): Promise<string> {
     const {
-      background_color = '#ffffff',
-      text_color = '#000000',
       font_family = 'Pretendard, -apple-system, BlinkMacSystemFont, sans-serif'
     } = template;
 
     // Generate QR code data with HMAC signature
     const qrData = this.generateQRData(voucher);
-    
+
+    // Generate QR code as Data URL using qrcode library
+    const QRCode = require('qrcode');
+    const qrCodeDataUrl = await QRCode.toDataURL(voucher.serial_no, {
+      width: 260,
+      margin: 2,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      },
+      errorCorrectionLevel: 'H'
+    });
+
     return `
 <!DOCTYPE html>
 <html lang="ko">
@@ -107,174 +117,149 @@ export class MobileVoucherRenderer {
   <title>교환권 - ${voucher.serial_no}</title>
   <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-    
+
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
-    
+
     body {
       font-family: ${font_family};
-      background: ${background_color};
-      color: ${text_color};
-      width: 400px;
-      height: 400px;
+      background: #f3f4f6;
+      width: 420px;
+      min-height: 600px;
       display: flex;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
+      padding: 24px 16px;
     }
-    
+
     .voucher-container {
+      max-width: 420px;
       width: 100%;
-      height: 100%;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      ${template.mobile_image_url ? `
-        background-image: url('${template.mobile_image_url}');
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-      ` : `
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 20px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-      `}
+      background: white;
+      border-radius: 20px;
+      padding: 32px 24px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.12);
     }
-    
+
     .voucher-header {
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 24px;
     }
-    
+
     .voucher-title {
-      font-size: 24px;
+      font-size: 28px;
+      font-weight: bold;
+      color: #1f2937;
+      margin-bottom: 8px;
+    }
+
+    .voucher-association {
+      font-size: 16px;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+
+    .voucher-name {
+      font-size: 18px;
       font-weight: 700;
-      margin-bottom: 8px;
-      color: ${text_color};
-      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      color: #1f2937;
     }
-    
-    .voucher-subtitle {
-      font-size: 14px;
-      opacity: 0.9;
-      color: ${text_color};
-    }
-    
-    .voucher-body {
+
+    .amount-section {
       text-align: center;
-      margin-bottom: 20px;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
+      margin-bottom: 32px;
+      padding: 24px;
+      background: #eff6ff;
+      border-radius: 16px;
     }
-    
+
     .amount {
-      font-size: 36px;
+      font-size: 48px;
       font-weight: 800;
-      margin-bottom: 16px;
-      color: ${text_color};
-      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      color: #2563eb;
     }
-    
-    .voucher-info {
-      background: rgba(255,255,255,0.9);
-      padding: 16px;
-      border-radius: 12px;
-      margin-bottom: 16px;
-      color: #333;
-    }
-    
-    .info-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 8px;
-      font-size: 14px;
-    }
-    
-    .info-row:last-child {
-      margin-bottom: 0;
-    }
-    
-    .info-label {
-      font-weight: 600;
-      color: #666;
-    }
-    
-    .info-value {
-      font-weight: 500;
-      color: #333;
-    }
-    
+
     .qr-section {
       text-align: center;
+      margin-bottom: 32px;
     }
-    
-    .qr-code {
-      width: 80px;
-      height: 80px;
+
+    .qr-code-container {
+      display: inline-block;
+      padding: 24px;
       background: white;
-      border-radius: 8px;
-      padding: 8px;
-      margin: 0 auto 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      border: 3px solid #2563eb;
+      border-radius: 16px;
+      box-shadow: 0 4px 16px rgba(37, 99, 235, 0.2);
     }
-    
+
+    .qr-image {
+      width: 260px;
+      height: 260px;
+      margin: 0 auto;
+      display: block;
+    }
+
     .serial-no {
-      font-size: 12px;
-      font-family: 'Monaco', 'Menlo', monospace;
-      color: ${text_color};
-      opacity: 0.8;
+      margin-top: 16px;
+      font-size: 16px;
+      font-family: monospace;
+      font-weight: 600;
+      color: #1f2937;
+      letter-spacing: 0.05em;
     }
-    
-    /* Dynamic field positioning */
-    ${this.generateFieldCSS(template.mobile_field_positions)}
+
+    .status-section {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 12px 24px;
+      background: #10b981;
+      color: white;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .issue-date {
+      text-align: center;
+      font-size: 14px;
+      color: #9ca3af;
+      font-weight: 500;
+    }
   </style>
 </head>
 <body>
   <div class="voucher-container">
     <div class="voucher-header">
       <div class="voucher-title">교환권</div>
-      <div class="voucher-subtitle">${voucher.association}</div>
+      <div class="voucher-association">${voucher.association}</div>
+      <div class="voucher-name">${voucher.name}</div>
     </div>
-    
-    <div class="voucher-body">
+
+    <div class="amount-section">
       <div class="amount">${voucher.amount.toLocaleString()}원</div>
-      
-      <div class="voucher-info">
-        <div class="info-row">
-          <span class="info-label">성명</span>
-          <span class="info-value">${voucher.name}</span>
-        </div>
-        ${voucher.member_id ? `
-        <div class="info-row">
-          <span class="info-label">회원번호</span>
-          <span class="info-value">${voucher.member_id}</span>
-        </div>
-        ` : ''}
-        <div class="info-row">
-          <span class="info-label">발행일</span>
-          <span class="info-value">${new Date(voucher.issued_at).toLocaleDateString('ko-KR')}</span>
-        </div>
-      </div>
     </div>
-    
+
     <div class="qr-section">
-      <div class="qr-code">
-        <div style="font-size: 8px; text-align: center; color: #666;">
-          QR 코드<br/>
-          ${voucher.serial_no.slice(0, 8)}...
-        </div>
+      <div class="qr-code-container">
+        <img src="${qrCodeDataUrl}" alt="QR Code" class="qr-image" />
       </div>
       <div class="serial-no">${voucher.serial_no}</div>
+    </div>
+
+    <div class="status-section">
+      <div class="status-badge">✅ 사용 가능</div>
+    </div>
+
+    <div class="issue-date">
+      발행일: ${new Date(voucher.issued_at).toLocaleDateString('ko-KR')}
     </div>
   </div>
 </body>
@@ -324,8 +309,8 @@ export class MobileVoucherRenderer {
    * Render single mobile voucher to image
    */
   public async renderVoucher(
-    voucher: VoucherData, 
-    template: MobileTemplate, 
+    voucher: VoucherData,
+    template: MobileTemplate,
     options: RenderOptions = {}
   ): Promise<Buffer> {
     const browser = await this.ensureBrowser();
@@ -333,31 +318,29 @@ export class MobileVoucherRenderer {
 
     try {
       const {
-        width = 400,
-        height = 400,
-        quality = 90,
+        width = 420,
+        height = 700,
+        quality = 95,
         format = 'png',
         background = true
       } = options;
 
       // Set viewport and page size
-      await page.setViewport({ width, height });
+      await page.setViewport({ width, height, deviceScaleFactor: 2 });
 
       // Generate and set HTML content
-      const html = this.generateMobileHTML(voucher, template);
+      const html = await this.generateMobileHTML(voucher, template);
       await page.setContent(html, { waitUntil: 'networkidle0' });
+
+      // Wait for fonts and images to load
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Take screenshot
       const imageBuffer = await page.screenshot({
         type: format,
         quality: format === 'jpeg' ? quality : undefined,
         omitBackground: !background,
-        clip: {
-          x: 0,
-          y: 0,
-          width,
-          height
-        }
+        fullPage: true
       });
 
       return imageBuffer as Buffer;

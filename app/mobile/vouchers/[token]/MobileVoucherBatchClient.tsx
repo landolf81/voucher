@@ -423,54 +423,165 @@ export default function MobileVoucherBatchClient({ batch, vouchers, token }: Pro
 
       {/* Voucher List */}
       <div className="max-w-md mx-auto px-4 py-4">
-        <div className="space-y-3">
+        <div className="space-y-4">
           {vouchers.map((voucher) => (
-            <div key={voucher.id} className="bg-white rounded-lg shadow-sm border">
-              <div className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedVouchers.has(voucher.id)}
-                        onChange={() => handleToggleVoucher(voucher.id)}
-                        className="w-4 h-4 text-blue-600 rounded border-gray-300"
-                      />
-                      <div>
-                        <h3 className="font-medium text-gray-900">{voucher.name}</h3>
-                        <p className="text-sm text-gray-600">{voucher.association}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-2 text-sm text-gray-600 mb-3">
-                      <div>
-                        <span className="font-medium text-blue-600">
-                          {voucher.amount.toLocaleString()}원
-                        </span>
-                      </div>
-                      {voucher.member_id && (
-                        <div>회원번호: {voucher.member_id}</div>
-                      )}
-                      <div>
-                        발행일: {new Date(voucher.issued_at).toLocaleDateString('ko-KR')}
-                      </div>
-                      <div className="text-xs font-mono text-gray-500">
-                        {voucher.serial_no}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex justify-end">
-                  <button
-                    onClick={() => handleDownloadSingle(voucher)}
-                    disabled={isGeneratingImages}
-                    className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50 transition-colors"
-                  >
-                    {isGeneratingImages ? '생성 중...' : '다운로드'}
-                  </button>
+            <div
+              key={voucher.id}
+              style={{
+                backgroundColor: 'white',
+                borderRadius: '20px',
+                padding: '24px',
+                boxShadow: '0 12px 32px rgba(0,0,0,0.12)',
+                position: 'relative'
+              }}
+            >
+              {/* Checkbox */}
+              <div style={{
+                position: 'absolute',
+                top: '16px',
+                left: '16px',
+                zIndex: 10
+              }}>
+                <input
+                  type="checkbox"
+                  checked={selectedVouchers.has(voucher.id)}
+                  onChange={() => handleToggleVoucher(voucher.id)}
+                  style={{
+                    width: '20px',
+                    height: '20px',
+                    cursor: 'pointer'
+                  }}
+                />
+              </div>
+
+              {/* Header - Association & Name */}
+              <div style={{
+                textAlign: 'center',
+                marginBottom: '20px',
+                paddingTop: '12px'
+              }}>
+                <p style={{
+                  fontSize: '14px',
+                  color: '#6b7280',
+                  marginBottom: '4px'
+                }}>
+                  {voucher.association}
+                </p>
+                <h3 style={{
+                  fontSize: '20px',
+                  fontWeight: '700',
+                  color: '#1f2937'
+                }}>
+                  {voucher.name}
+                </h3>
+              </div>
+
+              {/* Amount */}
+              <div style={{
+                textAlign: 'center',
+                marginBottom: '20px',
+                padding: '16px',
+                backgroundColor: '#eff6ff',
+                borderRadius: '12px'
+              }}>
+                <div style={{
+                  fontSize: '32px',
+                  fontWeight: '800',
+                  color: '#2563eb'
+                }}>
+                  {voucher.amount.toLocaleString()}원
                 </div>
               </div>
+
+              {/* Serial Number */}
+              <div style={{
+                textAlign: 'center',
+                marginBottom: '16px'
+              }}>
+                <p style={{
+                  fontSize: '14px',
+                  fontFamily: 'monospace',
+                  fontWeight: '600',
+                  color: '#6b7280',
+                  letterSpacing: '0.05em'
+                }}>
+                  {voucher.serial_no}
+                </p>
+              </div>
+
+              {/* Status Badge */}
+              <div style={{
+                textAlign: 'center',
+                marginBottom: '12px'
+              }}>
+                {voucher.status === 'issued' ? (
+                  <span style={{
+                    display: 'inline-block',
+                    padding: '8px 16px',
+                    backgroundColor: '#10b981',
+                    color: 'white',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}>
+                    ✅ 사용 가능
+                  </span>
+                ) : voucher.status === 'used' ? (
+                  <span style={{
+                    display: 'inline-block',
+                    padding: '8px 16px',
+                    backgroundColor: '#6b7280',
+                    color: 'white',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}>
+                    사용 완료
+                  </span>
+                ) : (
+                  <span style={{
+                    display: 'inline-block',
+                    padding: '8px 16px',
+                    backgroundColor: '#fbbf24',
+                    color: 'white',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}>
+                    {voucher.status}
+                  </span>
+                )}
+              </div>
+
+              {/* Issue Date */}
+              <div style={{
+                textAlign: 'center',
+                fontSize: '12px',
+                color: '#9ca3af',
+                marginBottom: '16px'
+              }}>
+                발행일: {new Date(voucher.issued_at).toLocaleDateString('ko-KR')}
+              </div>
+
+              {/* Download Button */}
+              <button
+                onClick={() => handleDownloadSingle(voucher)}
+                disabled={isGeneratingImages}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  backgroundColor: isGeneratingImages ? '#d1d5db' : '#2563eb',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: isGeneratingImages ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                {isGeneratingImages ? '생성 중...' : '📥 다운로드'}
+              </button>
             </div>
           ))}
         </div>
