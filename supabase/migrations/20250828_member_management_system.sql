@@ -196,6 +196,7 @@ SELECT
   -- Grafting schedule info
   gs.grafting_date as current_year_grafting_date,
   gs.time_period as current_year_grafting_time,
+  gs.id as current_year_grafting_id,
   -- Voucher statistics
   COUNT(DISTINCT v.id) FILTER (WHERE v.status = 'issued') as issued_voucher_count,
   COUNT(DISTINCT v.id) FILTER (WHERE v.status = 'used') as used_voucher_count,
@@ -206,10 +207,10 @@ SELECT
   s.site_name
 FROM members m
 LEFT JOIN sites s ON m.site_id = s.id
-LEFT JOIN grafting_schedules gs ON m.id = gs.member_id AND gs.year = EXTRACT(YEAR FROM NOW())
+LEFT JOIN grafting_schedules gs ON m.id = gs.member_id AND gs.year = EXTRACT(YEAR FROM NOW())::INTEGER
 LEFT JOIN vouchers v ON m.member_id = v.member_id
 WHERE m.is_active = true
-GROUP BY m.id, s.site_name, gs.grafting_date, gs.time_period;
+GROUP BY m.id, s.site_name, s.id, gs.id, gs.grafting_date, gs.time_period;
 
 -- ============================================
 -- 9. Row Level Security (RLS) Policies
