@@ -297,7 +297,7 @@ CREATE POLICY "Admin can do everything with members"
   USING (
     EXISTS (
       SELECT 1 FROM user_profiles
-      WHERE user_id = auth.uid()
+      WHERE user_id::uuid = auth.uid()
       AND role = 'admin'
     )
   );
@@ -309,7 +309,7 @@ CREATE POLICY "Admin can do everything with grafting schedules"
   USING (
     EXISTS (
       SELECT 1 FROM user_profiles
-      WHERE user_id = auth.uid()
+      WHERE user_id::uuid = auth.uid()
       AND role = 'admin'
     )
   );
@@ -321,7 +321,7 @@ CREATE POLICY "Admin can read member audit logs"
   USING (
     EXISTS (
       SELECT 1 FROM user_profiles
-      WHERE user_id = auth.uid()
+      WHERE user_id::uuid = auth.uid()
       AND role = 'admin'
     )
   );
