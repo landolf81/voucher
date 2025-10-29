@@ -12,8 +12,9 @@ import { VoucherUsageContent } from '@/components/admin/vouchers/VoucherUsageCon
 import { VoucherInquiryContent } from '@/components/admin/vouchers/VoucherInquiryContent';
 import { SiteManagement } from '@/components/admin/sites/SiteManagement';
 import { UserManagement } from '@/components/admin/users/UserManagement';
+import { MemberManagement } from '@/components/admin/members/MemberManagement';
 
-type MenuType = 'overview' | 'vouchers' | 'usage' | 'inquiry' | 'users' | 'sites';
+type MenuType = 'overview' | 'vouchers' | 'usage' | 'inquiry' | 'users' | 'sites' | 'members';
 
 export default function AdminDashboard() {
   const device = useDevice();
@@ -27,6 +28,7 @@ export default function AdminDashboard() {
       { id: 'vouchers', label: '교환권 관리', icon: '🎫', roles: ['admin', 'staff'] },
       { id: 'usage', label: '교환권 사용 등록', icon: '✅', roles: ['admin', 'staff', 'viewer'] },
       { id: 'inquiry', label: '교환권 조회', icon: '🔍', roles: ['admin', 'staff', 'viewer'] },
+      { id: 'members', label: '조합원 관리', icon: '👤', roles: ['admin'] },
       { id: 'sites', label: '사업장 관리', icon: '🏢', roles: ['admin', 'staff'] },
       { id: 'users', label: '사용자 관리', icon: '👥', roles: ['admin'] },
     ];
@@ -48,6 +50,8 @@ export default function AdminDashboard() {
         return <VoucherUsageContent />;
       case 'inquiry':
         return <VoucherInquiryContent />;
+      case 'members':
+        return <MemberManagement />;
       case 'sites':
         return <SiteManagement />;
       case 'users':
