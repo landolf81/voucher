@@ -5,18 +5,41 @@
 -- ============================================
 -- 0. Drop existing objects if they exist (for clean reinstall)
 -- ============================================
-DROP VIEW IF EXISTS member_overview;
-DROP TRIGGER IF EXISTS trigger_log_member_changes ON members;
-DROP TRIGGER IF EXISTS trigger_update_member_updated_at ON members;
-DROP FUNCTION IF EXISTS log_member_changes();
-DROP FUNCTION IF EXISTS update_member_updated_at();
-DROP TABLE IF EXISTS member_audit_logs;
-DROP TABLE IF EXISTS grafting_schedules;
-DROP TABLE IF EXISTS members;
-DROP TABLE IF EXISTS crops;
+
+-- Drop view first (depends on tables)
+DROP VIEW IF EXISTS member_overview CASCADE;
+
+-- Drop triggers (depends on tables and functions)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trigger_log_member_changes') THEN
+    DROP TRIGGER trigger_log_member_changes ON members;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trigger_update_member_updated_at') THEN
+    DROP TRIGGER trigger_update_member_updated_at ON members;
+  END IF;
+END $$;
+
+-- Drop functions
+DROP FUNCTION IF EXISTS log_member_changes() CASCADE;
+DROP FUNCTION IF EXISTS update_member_updated_at() CASCADE;
+
+-- Drop tables with CASCADE (in reverse dependency order)
+DROP TABLE IF EXISTS member_audit_logs CASCADE;
+DROP TABLE IF EXISTS grafting_schedules CASCADE;
+DROP TABLE IF EXISTS members CASCADE;
+DROP TABLE IF EXISTS crops CASCADE;
 
 -- Also drop the member_id column from vouchers if it exists
-ALTER TABLE vouchers DROP COLUMN IF EXISTS member_id;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'vouchers' AND column_name = 'member_id'
+  ) THEN
+    ALTER TABLE vouchers DROP COLUMN member_id;
+  END IF;
+END $$;
 
 -- ============================================
 -- 1. Create crops master table
