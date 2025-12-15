@@ -24,7 +24,7 @@
     "jsonwebtoken": "^9.0.2",
     "jszip": "^3.10.1",
     "nanoid": "^5.1.5",
-    "next": "^15.4.6",
+    "next": "15.4.10",
     "pdfmake": "^0.2.10",
     "puppeteer": "^24.16.2",
     "qrcode": "^1.5.4",
