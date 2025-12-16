@@ -29,7 +29,9 @@
       "Bash(git rm:*)",
       "Bash(yarn add:*)",
       "Bash(taskkill:*)",
-      "Bash(git pull:*)"
+      "Read(//Users/jeongbyeong-geun/Library/**)",
+      "Bash(git pull:*)",
+      "Bash(npm audit fix:*)"
     ],
     "defaultMode": "acceptEdits"
   }
