@@ -109,17 +109,81 @@ export function ProtectedRoute({
 
 /**
  * 관리자 전용 라우트 래퍼
+ * admin, staff 모두 관리자 대시보드 접근 가능
  */
 export function AdminRoute({ children, fallback }: { children: React.ReactNode; fallback?: React.ReactNode }) {
-  return (
-    <ProtectedRoute 
-      requireAuth={true} 
-      requireRole="admin" 
-      fallback={fallback}
-    >
-      {children}
-    </ProtectedRoute>
-  );
+  const { isLoading, isAuthenticated, user } = useAuth();
+
+  // 로딩 중
+  if (isLoading) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        flexDirection: 'column',
+        gap: '16px'
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '4px solid #f3f3f3',
+          borderTop: '4px solid #007bff',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }}></div>
+        <p style={{ color: '#666', fontSize: '14px' }}>
+          인증 확인 중...
+        </p>
+        <style jsx>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  // 인증 필요
+  if (!isAuthenticated || !user) {
+    return fallback || (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        flexDirection: 'column',
+        gap: '16px'
+      }}>
+        <h2 style={{ color: '#333', marginBottom: '8px' }}>
+          로그인이 필요합니다
+        </h2>
+      </div>
+    );
+  }
+
+  // admin, staff, viewer 모두 대시보드 접근 허용
+  const allowedRoles = ['admin', 'staff', 'viewer'];
+  if (!allowedRoles.includes(user.role)) {
+    return fallback || (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        flexDirection: 'column',
+        gap: '16px'
+      }}>
+        <h2 style={{ color: '#333', marginBottom: '8px' }}>
+          접근 권한이 없습니다
+        </h2>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
 }
 
 /**

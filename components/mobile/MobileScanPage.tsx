@@ -45,60 +45,8 @@ interface UsageResult {
 
 export function MobileScanPage() {
   const { user } = useAuth();
-  
-  // 조회 권한 사용자는 사용 등록 스캔 불가
-  if (user?.role === 'inquiry') {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        backgroundColor: '#f9fafb',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px'
-      }}>
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '16px',
-          padding: '40px',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-          textAlign: 'center',
-          maxWidth: '400px'
-        }}>
-          <div style={{
-            fontSize: '48px',
-            marginBottom: '20px'
-          }}>
-            🚫
-          </div>
-          <h2 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#1f2937',
-            marginBottom: '12px'
-          }}>
-            접근 권한 없음
-          </h2>
-          <p style={{
-            fontSize: '16px',
-            color: '#6b7280',
-            lineHeight: '1.5',
-            marginBottom: '0'
-          }}>
-            조회 권한으로는 교환권 사용 등록을<br/>
-            할 수 없습니다.
-          </p>
-          <p style={{
-            fontSize: '14px',
-            color: '#9ca3af',
-            marginTop: '16px'
-          }}>
-            교환권 조회는 '조회' 메뉴를 이용해주세요.
-          </p>
-        </div>
-      </div>
-    );
-  }
+
+  // hooks는 조건문 전에 모두 선언
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [cameraError, setCameraError] = useState('');
@@ -119,9 +67,10 @@ export function MobileScanPage() {
     // 새로운 스캔 시작 시 결과 초기화
     setShowResults(false);
     setResults([]);
-    
+
     const codeReader = new BrowserMultiFormatReader();
     let isMounted = true;
+    let activeStream: MediaStream | null = null;
 
     const startScanning = async () => {
       try {
@@ -216,7 +165,8 @@ export function MobileScanPage() {
           }
         };
 
-        await codeReader.decodeFromVideoDevice(deviceId, videoRef.current!, (res) => {
+        // 스트림 저장을 위해 decodeFromVideoDevice 결과 캡처
+        const controls = await codeReader.decodeFromVideoDevice(deviceId, videoRef.current!, (res) => {
           if (!isMounted) return;
           if (res) {
             const scannedPayload = res.getText();
@@ -259,6 +209,11 @@ export function MobileScanPage() {
             handleVoucherScan(serial, fullPayload);
           }
         });
+
+        // 비디오 엘리먼트에서 스트림 저장
+        if (videoRef.current?.srcObject) {
+          activeStream = videoRef.current.srcObject as MediaStream;
+        }
       } catch (e: any) {
         console.error('카메라 오류:', e);
         if (e.name === 'NotAllowedError') {
@@ -278,18 +233,77 @@ export function MobileScanPage() {
 
     startScanning();
 
-    return () => { 
-      isMounted = false; 
-      try {
-        codeReader.reset();
-      } catch (e) {
-        console.log('카메라 정리 중 오류:', e);
+    return () => {
+      isMounted = false;
+      // 스트림 정리
+      if (activeStream) {
+        activeStream.getTracks().forEach(track => {
+          track.stop();
+        });
+      }
+      // 비디오 엘리먼트 정리
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
       }
       // 잠금 상태 정리
       processingQRRef.current.clear();
       isProcessingAnyRef.current = false;
     };
   }, [scannedVouchers, showResults]);
+
+  // 조회 권한 사용자는 사용 등록 스캔 불가
+  if (user?.role === 'inquiry') {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: '#f9fafb',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px'
+      }}>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '40px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+          textAlign: 'center',
+          maxWidth: '400px'
+        }}>
+          <div style={{
+            fontSize: '48px',
+            marginBottom: '20px'
+          }}>
+            🚫
+          </div>
+          <h2 style={{
+            fontSize: '20px',
+            fontWeight: '600',
+            color: '#1f2937',
+            marginBottom: '12px'
+          }}>
+            접근 권한 없음
+          </h2>
+          <p style={{
+            fontSize: '16px',
+            color: '#6b7280',
+            lineHeight: '1.5',
+            marginBottom: '0'
+          }}>
+            조회 권한으로는 교환권 사용 등록을<br/>
+            할 수 없습니다.
+          </p>
+          <p style={{
+            fontSize: '14px',
+            color: '#9ca3af',
+            marginTop: '16px'
+          }}>
+            교환권 조회는 '조회' 메뉴를 이용해주세요.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // 교환권 정보 조회
   const handleVoucherScan = async (serialNo: string, fullPayload?: string) => {

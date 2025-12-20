@@ -110,54 +110,64 @@ export default function LoginPage() {
   }, []);
 
   // 카카오 OAuth 리다이렉트 후 연동 상태 확인
+  // AuthContext의 getSession과 충돌하지 않도록 onAuthStateChange 이벤트로 확인
   useEffect(() => {
+    // isLoading이 완료된 후에만 확인 (AuthContext 초기화 완료 후)
+    if (isLoading || user || isLinkingKakao) return;
+
     const checkKakaoLinkingAfterAuth = async () => {
       const supabase = getSupabaseClient();
-      
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (session && session.user && !user && !isLinkingKakao) {
-          console.log('카카오 OAuth 세션 확인:', session.user.id);
-          
+
+      // onAuthStateChange를 사용하여 세션 확인 (getSession 직접 호출 대신)
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          // INITIAL_SESSION 이벤트에서만 처리
+          if (event !== 'INITIAL_SESSION' || !session?.user) return;
+
+          console.log('카카오 OAuth 세션 확인 (onAuthStateChange):', session.user.id);
+
           // OAuth 사용자이고 프로필이 없는 경우 연동 필요
           const isOAuthUser = session.user.app_metadata?.provider === 'kakao';
-          
+
           if (isOAuthUser) {
             console.log('카카오 사용자 연동 확인 중...');
-            
-            const response = await fetch('/api/auth/check-oauth-linking', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                authUserId: session.user.id
-              }),
-            });
-            
-            const linkingData = await response.json();
-            
-            if (linkingData.success && linkingData.linking_required) {
-              console.log('카카오 계정 연동 필요');
-              setIsLinkingKakao(true);
-              setKakaoAuthUserId(session.user.id);
-              setMessage({ 
-                type: 'info', 
-                text: '카카오 계정을 기존 회원과 연동해야 합니다. 휴대폰 번호를 입력하세요.' 
+
+            try {
+              const response = await fetch('/api/auth/check-oauth-linking', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  authUserId: session.user.id
+                }),
               });
+
+              const linkingData = await response.json();
+
+              if (linkingData.success && linkingData.linking_required) {
+                console.log('카카오 계정 연동 필요');
+                setIsLinkingKakao(true);
+                setKakaoAuthUserId(session.user.id);
+                setMessage({
+                  type: 'info',
+                  text: '카카오 계정을 기존 회원과 연동해야 합니다. 휴대폰 번호를 입력하세요.'
+                });
+              }
+            } catch (error) {
+              console.error('카카오 연동 상태 확인 오류:', error);
             }
           }
+
+          // 한 번만 실행 후 구독 해제
+          subscription.unsubscribe();
         }
-      } catch (error) {
-        console.error('카카오 연동 상태 확인 오류:', error);
-      }
+      );
+
+      return () => subscription.unsubscribe();
     };
 
-    // 페이지 로드 시와 세션 변경 시 확인
-    if (!user && !isLoading) {
-      checkKakaoLinkingAfterAuth();
-    }
+    checkKakaoLinkingAfterAuth();
   }, [user, isLoading, isLinkingKakao]);
 
   useEffect(() => {
@@ -211,8 +221,6 @@ export default function LoginPage() {
     employeeId: '',
     email: '',
     phone: '',
-    password: '',
-    confirmPassword: '',
     name: '',
     role: 'staff' as 'admin' | 'staff' | 'viewer' | 'part_time',
     site_id: ''
@@ -317,30 +325,28 @@ export default function LoginPage() {
         setUserHasEmail(result.has_email);
         setNeedsEmailSetup(result.needs_email_setup);
         
-        // 인증 방법에 따라 다음 단계 결정
+        // 인증 방법에 따라 다음 단계 결정 (이메일, SMS 모두 코드 입력 단계로)
         if (result.auth_method === 'email') {
-          // 이메일은 Magic Link 방식이므로 코드 입력 단계 없이 완료
-          setActualEmail(result.actual_email); // 실제 이메일 저장
-          setMessage({ 
-            type: 'success', 
-            text: result.message + ' 이메일의 링크를 클릭하여 로그인을 완료하세요.' 
+          setAuthStep('code');
+          setAuthMethod('email');
+          setActualEmail(result.actual_email);
+          setMessage({
+            type: 'success',
+            text: result.message
           });
-          // 폼 데이터에 사용자 정보 저장
           setFormData(prev => ({
             ...prev,
             name: result.user.name,
             role: result.user.role
           }));
         } else if (result.auth_method === 'sms') {
-          // SMS는 코드 입력 단계로
           setAuthStep('code');
           setAuthMethod('sms');
-          setActualPhone(result.actual_phone); // 실제 전화번호 저장
-          setMessage({ 
-            type: 'success', 
-            text: result.message 
+          setActualPhone(result.actual_phone);
+          setMessage({
+            type: 'success',
+            text: result.message
           });
-          // 폼 데이터에 사용자 정보 저장
           setFormData(prev => ({
             ...prev,
             name: result.user.name,
@@ -598,6 +604,7 @@ export default function LoginPage() {
           </div>
         )}
 
+        {/* OTP 인증 로그인 폼 */}
         {authStep === 'id' && (
           <form onSubmit={handleEmployeeIdSubmit}>
             <div style={{ marginBottom: '20px' }}>
@@ -620,7 +627,8 @@ export default function LoginPage() {
                   padding: '12px',
                   border: '1px solid #d1d5db',
                   borderRadius: '8px',
-                  fontSize: '16px'
+                  fontSize: '16px',
+                  boxSizing: 'border-box'
                 }}
                 placeholder="사번을 입력하세요"
               />

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { isValidUserMetadata } from '@/lib/types/auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     // auth.users에서 display_name으로 사용자 검색
     const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
-    
+
     if (authError) {
       console.error('Auth users 조회 오류:', authError);
       return NextResponse.json({
@@ -43,16 +44,10 @@ export async function POST(request: NextRequest) {
       }, { status: 404 });
     }
 
-    // user_profiles에서 추가 정보 조회 (이름, 역할 등)
-    const { data: userProfile, error: profileError } = await supabaseAdmin
-      .from('user_profiles')
-      .select('id, name, user_id, role, site_id, is_active')
-      .eq('user_id', user_id)
-      .maybeSingle();
+    const metadata = targetAuthUser.user_metadata;
 
-    // user_profiles가 없어도 auth.users 정보로 진행 가능하지만, 
-    // 있다면 활성화 상태 확인
-    if (userProfile && !userProfile.is_active) {
+    // 1. user_metadata에서 is_active 확인 (우선)
+    if (isValidUserMetadata(metadata) && metadata.is_active === false) {
       return NextResponse.json({
         success: false,
         message: '비활성화된 사용자입니다.',
@@ -61,19 +56,54 @@ export async function POST(request: NextRequest) {
       }, { status: 403 });
     }
 
+    // 2. 폴백: user_profiles에서 추가 정보 조회 (이름, 역할 등)
+    const { data: userProfile, error: profileError } = await supabaseAdmin
+      .from('user_profiles')
+      .select('id, name, user_id, role, site_id, is_active')
+      .eq('user_id', user_id)
+      .maybeSingle();
+
+    // user_profiles가 있고 비활성화 상태면 차단 (폴백)
+    if (userProfile && !userProfile.is_active && !isValidUserMetadata(metadata)) {
+      return NextResponse.json({
+        success: false,
+        message: '비활성화된 사용자입니다.',
+        user_exists: true,
+        is_active: false
+      }, { status: 403 });
+    }
+
+    // 사용자 정보 결정 (user_metadata 우선)
+    let userName: string;
+    let userRole: string;
+    let isActive: boolean;
+
+    if (isValidUserMetadata(metadata)) {
+      userName = metadata.name;
+      userRole = metadata.role;
+      isActive = metadata.is_active ?? true;
+    } else if (userProfile) {
+      userName = userProfile.name;
+      userRole = userProfile.role;
+      isActive = userProfile.is_active !== false;
+    } else {
+      userName = targetAuthUser.user_metadata?.display_name || user_id;
+      userRole = 'user';
+      isActive = true;
+    }
+
     // 사용자 상태 정보 반환
     const hasEmail = !!targetAuthUser.email;
     const hasPhone = !!targetAuthUser.phone;
-    const userName = userProfile?.name || targetAuthUser.user_metadata?.display_name || user_id;
 
     return NextResponse.json({
       success: true,
       user_exists: true,
-      is_active: userProfile?.is_active !== false,
+      is_active: isActive,
       user: {
         user_id: user_id,
         name: userName,
-        role: userProfile?.role || 'user'
+        role: userRole
       },
       // 인증 방법 정보
       has_email: hasEmail,

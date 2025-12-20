@@ -26,6 +26,25 @@ export default function MobilePage() {
   const [loadingVouchers, setLoadingVouchers] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
+  // 디버깅용 로그
+  console.log('MobilePage 렌더링:', { isLoading, hasUser: !!user, userName: user?.name });
+
+  // CSS 애니메이션 추가 (클라이언트 사이드에서만)
+  useEffect(() => {
+    const styleId = 'mobile-page-spin-animation';
+    if (!document.getElementById(styleId)) {
+      const styleSheet = document.createElement('style');
+      styleSheet.id = styleId;
+      styleSheet.innerText = `
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `;
+      document.head.appendChild(styleSheet);
+    }
+  }, []);
+
   // 오늘 사용된 교환권 가져오기
   useEffect(() => {
     const fetchUsedVouchers = async () => {
@@ -148,7 +167,9 @@ export default function MobilePage() {
     <MobileLayout>
       <div style={{
         padding: '20px',
-        paddingBottom: '100px' // 하단 네비게이션 공간 확보
+        paddingBottom: '100px', // 하단 네비게이션 공간 확보
+        backgroundColor: '#f8fafc',
+        minHeight: '100%'
       }}>
         {/* 환영 섹션 */}
         <div style={{
@@ -387,18 +408,4 @@ export default function MobilePage() {
       </div>
     </MobileLayout>
   );
-}
-
-// CSS 애니메이션 추가
-const styles = `
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`;
-
-if (typeof document !== 'undefined') {
-  const styleSheet = document.createElement('style');
-  styleSheet.innerText = styles;
-  document.head.appendChild(styleSheet);
 }

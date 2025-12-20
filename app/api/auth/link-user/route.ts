@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { isValidUserMetadata } from '@/lib/types/auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
 
     // auth.users에서 display_name으로 사용자 검색
     const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
-    
+
     if (authError) {
       console.error('Auth users 조회 오류:', authError);
       return NextResponse.json({
@@ -45,20 +46,48 @@ export async function POST(request: NextRequest) {
       }, { status: 404 });
     }
 
-    // user_profiles에서 추가 정보 조회 (이름, 역할 등)
-    const { data: userProfile, error: profileError } = await supabaseAdmin
-      .from('user_profiles')
-      .select('id, name, user_id, role, site_id, is_active')
-      .eq('user_id', user_id)
-      .maybeSingle(); // single 대신 maybeSingle 사용
+    const metadata = targetAuthUser.user_metadata;
 
-    // user_profiles가 없어도 auth.users 정보로 진행 가능하지만, 
-    // 있다면 활성화 상태 확인
-    if (userProfile && !userProfile.is_active) {
+    // 1. user_metadata에서 is_active 확인 (우선)
+    if (isValidUserMetadata(metadata) && metadata.is_active === false) {
       return NextResponse.json({
         success: false,
         message: '비활성화된 사용자입니다.'
       }, { status: 403 });
+    }
+
+    // 2. 폴백: user_profiles에서 추가 정보 조회 (이름, 역할 등)
+    const { data: userProfile, error: profileError } = await supabaseAdmin
+      .from('user_profiles')
+      .select('id, name, user_id, role, site_id, is_active')
+      .eq('user_id', user_id)
+      .maybeSingle();
+
+    // user_profiles가 있고 비활성화 상태면 차단 (폴백)
+    if (userProfile && !userProfile.is_active && !isValidUserMetadata(metadata)) {
+      return NextResponse.json({
+        success: false,
+        message: '비활성화된 사용자입니다.'
+      }, { status: 403 });
+    }
+
+    // 사용자 정보 결정 (user_metadata 우선)
+    let userName: string;
+    let userRole: string;
+    let siteId: string | null;
+
+    if (isValidUserMetadata(metadata)) {
+      userName = metadata.name;
+      userRole = metadata.role;
+      siteId = metadata.site_id;
+    } else if (userProfile) {
+      userName = userProfile.name;
+      userRole = userProfile.role;
+      siteId = userProfile.site_id;
+    } else {
+      userName = targetAuthUser.user_metadata?.display_name || user_id;
+      userRole = 'user';
+      siteId = null;
     }
 
     // auto_lookup 모드인 경우 auth.users에서 이메일/전화번호 정보 조회
@@ -120,27 +149,17 @@ export async function POST(request: NextRequest) {
     let result;
     
     if (finalEmail) {
-      // 이메일은 Magic Link 방식 사용
-      // API Route에서 origin 추출
-      const origin = request.headers.get('origin') || 
-                     request.headers.get('referer')?.replace(/\/[^\/]*$/, '') ||
-                     process.env.NEXT_PUBLIC_SITE_URL ||
-                     'https://voucher-iota.vercel.app';
-      
-      // Safari 호환성을 위해 로그인 페이지로 리다이렉트
-      const redirectTo = `${origin}/login?type=magiclink&user=${user_id}`;
-      
+      // 이메일 OTP 방식 사용 (SMS와 동일하게 6자리 코드 입력)
       result = await supabase.auth.signInWithOtp({
         email: finalEmail,
         options: {
-          shouldCreateUser: true,
-          emailRedirectTo: redirectTo,
+          shouldCreateUser: false, // 기존 사용자만 로그인
           data: {
-            // 사용자 메타데이터에 정보 저장
             user_id: user_id,
-            name: userProfile?.name || targetAuthUser.user_metadata?.display_name || user_id,
-            role: userProfile?.role || 'user',
-            site_id: userProfile?.site_id || null,
+            display_name: user_id,
+            name: userName,
+            role: userRole,
+            site_id: siteId,
             profile_id: userProfile?.id || null,
             auth_user_id: targetAuthUser.id
           }
@@ -167,9 +186,10 @@ export async function POST(request: NextRequest) {
           channel: 'sms',
           data: {
             user_id: user_id,
-            name: userProfile?.name || targetAuthUser.user_metadata?.display_name || user_id,
-            role: userProfile?.role || 'user',
-            site_id: userProfile?.site_id || null,
+            display_name: user_id,
+            name: userName,
+            role: userRole,
+            site_id: siteId,
             profile_id: userProfile?.id || null,
             auth_user_id: targetAuthUser.id
           }
@@ -187,17 +207,16 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    const authMethodText = authMethod === 'email' ? '로그인 링크가 이메일로' : '인증 코드가 SMS로';
-    
-    const displayName = userProfile?.name || targetAuthUser.user_metadata?.display_name || user_id;
-    
+    const authMethodText = authMethod === 'email' ? '인증 코드가 이메일로' : '인증 코드가 SMS로';
+
     return NextResponse.json({
       success: true,
-      message: `${displayName}님, ${authMethodText} 전송되었습니다.`,
+      message: `${userName}님, ${authMethodText} 전송되었습니다.`,
       user: {
         user_id: user_id,
-        name: displayName,
-        role: userProfile?.role || 'user'
+        display_name: user_id,
+        name: userName,
+        role: userRole
       },
       auth_method: authMethod,
       auto_lookup: !!auto_lookup,

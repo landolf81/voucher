@@ -5,6 +5,8 @@
   --background-end-rgb: 255, 255, 255;
 }
 
+/* 다크모드 비활성화 - 항상 라이트 모드 사용 */
+/*
 @media (prefers-color-scheme: dark) {
   :root {
     --foreground-rgb: 255, 255, 255;
@@ -12,6 +14,7 @@
     --background-end-rgb: 0, 0, 0;
   }
 }
+*/
 
 * {
   box-sizing: border-box;
@@ -38,11 +41,11 @@ body {
 
 /* Next.js wrapper elements */
 #__next {
-  height: 100%;
+  min-height: 100%;
 }
 
 body > div {
-  height: 100%;
+  min-height: 100%;
 }
 
 /* Select and option 기본 스타일 */
@@ -56,29 +59,29 @@ select option {
   background-color: white !important;
 }
 
-/* 다크모드 대응 */
+/* 다크모드 비활성화 - select도 항상 라이트 모드 */
+/*
 @media (prefers-color-scheme: dark) {
   select {
     color: #e5e7eb !important;
     background-color: #1f2937 !important;
   }
-  
+
   select option {
     color: #e5e7eb !important;
     background-color: #1f2937 !important;
   }
 }
+*/
 
 a {
   color: inherit;
   text-decoration: none;
 }
 
-/* 다크 모드 스키마 설정 */
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+/* 항상 라이트 모드 강제 */
+html {
+  color-scheme: light only;
 }
 
 /* 기본 버튼 스타일 */

@@ -2,7 +2,7 @@
  * 권한 관리 시스템
  */
 
-export type UserRole = 'admin' | 'staff' | 'viewer' | 'part_time';
+export type UserRole = 'admin' | 'staff' | 'viewer' | 'part_time' | 'inquiry';
 
 export type Permission =
   // 사용자 관리
@@ -74,8 +74,14 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     // 아르바이트: 기본적인 교환권 처리 권한
     'voucher:read',
     'voucher:use',
-    'scan:read', 
+    'scan:read',
     'scan:write',
+    'site:read'
+  ],
+
+  inquiry: [
+    // 조회 전용: 읽기 권한만
+    'voucher:read',
     'site:read'
   ]
 };
@@ -150,6 +156,8 @@ export function getDefaultRedirectUrl(userRole: UserRole): string {
       return '/admin/dashboard';  // viewer도 대시보드에서 조회만 가능
     case 'part_time':
       return '/admin/dashboard';  // part_time도 대시보드에서 제한적 접근
+    case 'inquiry':
+      return '/admin/dashboard';  // inquiry는 조회만 가능
     default:
       return '/login';
   }

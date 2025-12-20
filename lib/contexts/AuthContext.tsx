@@ -2,27 +2,39 @@
 
 /**
  * Supabase 인증 컨텍스트 제공자
+ * - 로컬 캐시 우선 사용으로 Supabase auth 요청 최소화
+ * - 중복 프로필 로딩 방지
  */
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSupabaseClient, resetSupabaseClient } from '@/lib/supabase';
 import { UserRole, getDefaultRedirectUrl, canAccessPage } from '@/lib/auth/permissions';
 import { formatPhoneForDisplay } from '@/lib/phone-utils';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
+const AUTH_CACHE_KEY = 'voucher_auth_cache';
+const CACHE_EXPIRY_MS = 5 * 60 * 1000; // 5분
+
 export interface User {
   id: string;
-  email?: string;  // Made optional for OAuth users
+  email?: string;
   phone?: string;
+  /** 사원번호 (display_name) */
+  display_name: string;
   name: string;
   role: UserRole;
   site_id: string;
   site_name?: string;
   is_active: boolean;
-  oauth_provider?: string;     // OAuth provider (e.g., 'kakao')
-  oauth_provider_id?: string;  // OAuth provider user ID
-  oauth_linked_at?: string;    // When OAuth was linked
+  oauth_provider?: string;
+  oauth_provider_id?: string;
+  oauth_linked_at?: string;
+}
+
+interface CachedAuth {
+  user: User;
+  timestamp: number;
 }
 
 export interface AuthContextType {
@@ -33,272 +45,304 @@ export interface AuthContextType {
   logout: () => Promise<void>;
   checkPermission: (permission: string) => boolean;
   canAccess: (pathname: string) => boolean;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// 캐시 관련 유틸리티
+function getCachedAuth(): CachedAuth | null {
+  try {
+    const cached = localStorage.getItem(AUTH_CACHE_KEY);
+    if (!cached) return null;
+
+    const parsed: CachedAuth = JSON.parse(cached);
+    const now = Date.now();
+
+    // 캐시 만료 확인
+    if (now - parsed.timestamp > CACHE_EXPIRY_MS) {
+      localStorage.removeItem(AUTH_CACHE_KEY);
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedAuth(user: User): void {
+  try {
+    const cached: CachedAuth = {
+      user,
+      timestamp: Date.now()
+    };
+    localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(cached));
+  } catch {
+    // 캐시 저장 실패 무시
+  }
+}
+
+function clearCachedAuth(): void {
+  try {
+    localStorage.removeItem(AUTH_CACHE_KEY);
+  } catch {
+    // 캐시 삭제 실패 무시
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
-  const [loadingUserId, setLoadingUserId] = useState<string | null>(null); // 중복 방지용
   const router = useRouter();
   const supabase = getSupabaseClient();
 
-  // 초기 인증 상태 확인 및 auth 상태 변경 감지
-  useEffect(() => {
-    // 현재 세션 확인
-    checkAuthStatus();
+  // 중복 로딩 방지용 ref
+  const isLoadingRef = useRef(false);
+  const loadedUserIdRef = useRef<string | null>(null);
+  const initCompletedRef = useRef(false);
 
-    // auth 상태 변경 리스너
+  // 사용자 프로필 로드 (캐시 우선)
+  // accessToken을 옵션으로 받아서 getSession() 호출 회피
+  const loadUserProfile = useCallback(async (
+    authUser: SupabaseUser,
+    forceRefresh = false,
+    accessTokenParam?: string
+  ): Promise<User | null> => {
+    const userId = authUser.id;
+
+    // 이미 같은 사용자 로딩 완료
+    if (!forceRefresh && loadedUserIdRef.current === userId && user) {
+      setIsLoading(false);
+      return user;
+    }
+
+    // 중복 로딩 방지
+    if (isLoadingRef.current && loadedUserIdRef.current === userId) {
+      return null;
+    }
+
+    // 캐시 확인 (강제 새로고침이 아닌 경우)
+    if (!forceRefresh) {
+      const cached = getCachedAuth();
+      if (cached && cached.user.id === userId) {
+        console.log('캐시된 프로필 사용:', cached.user.name);
+        setUser(cached.user);
+        loadedUserIdRef.current = userId;
+        setIsLoading(false);
+        return cached.user;
+      }
+    }
+
+    isLoadingRef.current = true;
+    loadedUserIdRef.current = userId;
+
+    try {
+      console.log('프로필 API 조회 시작:', userId);
+
+      // accessToken이 전달되었으면 사용, 아니면 getSession() 호출
+      let accessToken = accessTokenParam;
+      if (!accessToken) {
+        console.log('getSession 호출 중...');
+        const { data: { session } } = await supabase.auth.getSession();
+        accessToken = session?.access_token;
+        console.log('getSession 완료:', accessToken ? '토큰있음' : '토큰없음');
+      }
+
+      if (!accessToken) {
+        console.error('액세스 토큰 없음 - 로그인 페이지로 이동');
+        clearCachedAuth();
+        setIsLoading(false);
+        router.push('/login');
+        return null;
+      }
+
+      // API를 통해 프로필 조회 (service_role로 RLS 우회)
+      console.log('/api/auth/me 요청 시작...');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const response = await fetch('/api/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        signal: controller.signal
+      });
+      console.log('/api/auth/me 응답:', response.status);
+
+      clearTimeout(timeoutId);
+
+      // 401 에러 = 토큰 무효 → 로그아웃 처리
+      if (response.status === 401) {
+        console.log('토큰 무효 (401) - 로그아웃 처리');
+        await supabase.auth.signOut();
+        clearCachedAuth();
+        setUser(null);
+        loadedUserIdRef.current = null;
+        setIsLoading(false);
+        router.push('/login');
+        return null;
+      }
+
+      const result = await response.json();
+      console.log('프로필 API 응답:', result.success ? '성공' : '실패', result.message || '');
+
+      if (!result.success || !result.data) {
+        console.error('프로필 로드 오류:', result.message || '프로필 없음');
+
+        // OAuth 사용자 확인
+        const isOAuthUser = authUser.app_metadata?.provider !== 'email';
+        if (isOAuthUser) {
+          console.log('OAuth 사용자 프로필 없음 - 연동 필요');
+          await supabase.auth.signOut();
+          clearCachedAuth();
+          setIsLoading(false);
+          router.push('/login?oauth_linking_required=true');
+          return null;
+        }
+
+        setIsLoading(false);
+        return null;
+      }
+
+      const profileData = result.data;
+      console.log('프로필 발견:', profileData.name);
+      const userData: User = {
+        id: authUser.id,
+        email: profileData.email || authUser.email || undefined,
+        phone: formatPhoneForDisplay(profileData.phone || authUser.phone),
+        display_name: profileData.display_name || profileData.user_id || '', // user_metadata.display_name 또는 user_profiles.user_id
+        name: profileData.name,
+        role: profileData.role,
+        site_id: profileData.site_id,
+        site_name: profileData.sites?.site_name || profileData.site_name,
+        is_active: profileData.is_active ?? true,
+        oauth_provider: profileData.oauth_provider || undefined,
+        oauth_provider_id: profileData.oauth_provider_id || undefined,
+        oauth_linked_at: profileData.oauth_linked_at || undefined
+      };
+
+      // 캐시 저장
+      setCachedAuth(userData);
+      setUser(userData);
+      setIsLoading(false);
+      console.log('프로필 로드 완료, isLoading = false');
+
+      return userData;
+    } catch (error) {
+      console.error('프로필 로드 예외:', error);
+      setIsLoading(false);
+      return null;
+    } finally {
+      isLoadingRef.current = false;
+    }
+  }, [supabase, router, user]);
+
+  // 초기화 (한 번만 실행)
+  useEffect(() => {
+    if (initCompletedRef.current) return;
+    initCompletedRef.current = true;
+
+    console.log('AuthContext 초기화 시작');
+
+    // 초기 세션 확인 함수
+    const initializeAuth = async () => {
+      // 1. 먼저 로컬 캐시 확인
+      const cached = getCachedAuth();
+      if (cached) {
+        console.log('캐시된 사용자 발견:', cached.user.name);
+        setUser(cached.user);
+        loadedUserIdRef.current = cached.user.id;
+        setIsLoading(false);
+        return; // 캐시가 있으면 즉시 완료
+      }
+
+      // 2. 캐시 없으면 getSession으로 세션 확인
+      console.log('캐시 없음, 세션 확인 중...');
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error('세션 확인 오류:', error);
+          setIsLoading(false);
+          return;
+        }
+
+        if (session?.user) {
+          console.log('세션 발견, 프로필 로드');
+          // access_token을 직접 전달하여 getSession() 중복 호출 방지
+          await loadUserProfile(session.user, false, session.access_token);
+        } else {
+          console.log('세션 없음 - 로그인 필요');
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('세션 확인 예외:', error);
+        setIsLoading(false);
+      }
+    };
+
+    // 초기화 실행
+    initializeAuth();
+
+    // auth 상태 변경 리스너 (로그인/로그아웃/토큰갱신 이벤트 처리용)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.id);
-        
-        if (event === 'SIGNED_IN' && session?.user) {
-          console.log('SIGNED_IN 이벤트 처리 시작');
-          
-          // 이미 같은 사용자가 로딩 중이면 중복 호출 방지
-          if (loadingUserId === session.user.id) {
-            console.log('중복 프로필 로딩 방지:', session.user.id);
+        console.log('Auth 이벤트:', event, '현재 loadedUserId:', loadedUserIdRef.current);
+
+        // INITIAL_SESSION: 구독 시 현재 세션 상태 알림 (캐시 있으면 무시)
+        if (event === 'INITIAL_SESSION') {
+          if (loadedUserIdRef.current) {
+            console.log('캐시에서 이미 로드됨, INITIAL_SESSION 무시');
             return;
           }
-          
-          // iPhone Safari에서는 더 긴 debounce 적용
-          const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-          const debounceTime = isIOS ? 500 : 100;
-          
-          // debounce로 중복 이벤트 방지
-          setTimeout(async () => {
-            // 한 번 더 확인
-            if (loadingUserId === session.user.id) {
-              console.log('debounce 후 중복 프로필 로딩 방지:', session.user.id);
-              return;
-            }
-            await loadUserProfile(session.user);
-          }, debounceTime);
+          // 캐시 없고 세션 있으면 프로필 로드
+          if (session?.user) {
+            console.log('INITIAL_SESSION에서 프로필 로드');
+            await loadUserProfile(session.user, false, session.access_token);
+          }
+          return;
+        }
+
+        if (event === 'SIGNED_IN' && session?.user) {
+          // 새 로그인 (이미 로드된 사용자면 무시)
+          if (loadedUserIdRef.current === session.user.id) {
+            console.log('동일 사용자 SIGNED_IN 무시');
+            return;
+          }
+          console.log('새 로그인 감지, 프로필 로드');
+          // access_token을 직접 전달하여 getSession() 호출 회피
+          await loadUserProfile(session.user, false, session.access_token);
         } else if (event === 'SIGNED_OUT') {
-          console.log('SIGNED_OUT 이벤트 처리');
+          console.log('로그아웃');
+          clearCachedAuth();
           setUser(null);
-          setLoadingUserId(null);
+          loadedUserIdRef.current = null;
           setIsLoading(false);
           router.push('/login');
+        } else if (event === 'TOKEN_REFRESHED') {
+          // 토큰 갱신 시 캐시 타임스탬프 업데이트
+          const cachedData = getCachedAuth();
+          if (cachedData) {
+            setCachedAuth(cachedData.user);
+          }
         }
       }
     );
 
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase, loadUserProfile, router]);
 
-  // 인증 상태 확인 (타임아웃 추가)
-  const checkAuthStatus = async () => {
-    console.log('checkAuthStatus 시작');
-    try {
-      // 5초 타임아웃 추가
-      const timeoutPromise = new Promise((resolve) => 
-        setTimeout(() => resolve({ data: { user: null }, error: new Error('getUser timeout') }), 5000)
-      );
-      
-      const getUserPromise = supabase.auth.getUser();
-      const result = await Promise.race([getUserPromise, timeoutPromise]) as any;
-      const { data: { user: authUser } } = result;
-      
-      console.log('getUser 결과:', authUser?.id);
-      
-      if (authUser) {
-        await loadUserProfile(authUser);
-      } else {
-        console.log('authUser 없음');
-        setUser(null);
-        setIsLoading(false);
-      }
-    } catch (error) {
-      console.error('인증 상태 확인 오류:', error);
-      setUser(null);
-      setIsLoading(false);
+  // 프로필 새로고침 (수동)
+  const refreshProfile = useCallback(async () => {
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (authUser) {
+      await loadUserProfile(authUser, true);
     }
-    console.log('checkAuthStatus 완료');
-  };
-
-  // 사용자 프로필 로드
-  const loadUserProfile = async (authUser: SupabaseUser, retryCount = 0) => {
-    console.log('loadUserProfile 시작:', authUser.id, 'retry:', retryCount);
-    
-    // 이미 프로필 로딩 중이거나 같은 사용자면 중단
-    if (isLoadingProfile || loadingUserId === authUser.id) {
-      console.log('이미 프로필 로딩 중이므로 중단');
-      return;
-    }
-    
-    setLoadingUserId(authUser.id);
-    setIsLoadingProfile(true);
-    try {
-      // 먼저 metadata에서 프로필 정보 확인
-      const metadata = authUser.user_metadata;
-      console.log('metadata:', metadata);
-      
-      // metadata 기반 로그인은 현재 사용하지 않으므로 바로 user_profiles로 이동
-      // if (metadata && metadata.user_id && metadata.name) {
-      //   // OTP 로그인으로 metadata가 있는 경우
-      //   console.log('metadata 기반 사용자 데이터 설정');
-      //   const userData: User = {
-      //     id: authUser.id,
-      //     email: authUser.email || '',
-      //     phone: formatPhoneForDisplay(authUser.phone),
-      //     name: metadata.name,
-      //     role: metadata.role || 'staff',
-      //     site_id: metadata.site_id || '',
-      //     site_name: '',
-      //     is_active: true
-      //   };
-      //   
-      //   setUser(userData);
-      //   setIsLoading(false);
-      //   setIsLoadingProfile(false);
-      //   console.log('metadata 기반 로딩 완료');
-      //   return;
-      // }
-
-      // 기존 방식: user_profiles 테이블에서 조회 (타임아웃 추가)
-      console.log('user_profiles 테이블 조회 시작');
-      
-      // iPhone Safari에서는 타임아웃을 더 길게 설정
-      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-      const timeout = isIOS ? 10000 : 5000;
-      
-      const timeoutPromise = new Promise((resolve) => 
-        setTimeout(() => resolve({ data: null, error: new Error('profile query timeout') }), timeout)
-      );
-      
-      // 임시로 RLS 문제를 우회하기 위해 직접 조회 시도
-      const profilePromise = supabase
-        .from('user_profiles')
-        .select(`
-          *,
-          sites (
-            id,
-            site_name
-          )
-        `)
-        .eq('id', authUser.id)
-        .maybeSingle(); // single() 대신 maybeSingle() 사용
-      
-      const { data: profile, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
-
-      if (error || !profile) {
-        console.error('프로필 로드 오류:', {
-          error: error,
-          errorMessage: error?.message || 'Unknown error',
-          profile: profile,
-          userId: authUser.id,
-          userEmail: authUser.email
-        });
-        
-        // OAuth 사용자의 경우 linking이 필요한지 확인
-        const isOAuthUser = authUser.app_metadata?.provider !== 'email';
-        console.log('OAuth 사용자 여부:', isOAuthUser, 'provider:', authUser.app_metadata?.provider);
-        
-        if (isOAuthUser) {
-          // OAuth 사용자이지만 프로필이 없음 - 기존 회원 연동 필요
-          console.log('OAuth 사용자 프로필 없음 - 연동 필요');
-          setUser(null);
-          setIsLoading(false);
-          setIsLoadingProfile(false);
-          setLoadingUserId(null);
-          // 연동 페이지로 이동하지 않고 로그아웃 - 로그인 페이지에서 연동 처리
-          await supabase.auth.signOut();
-          router.push('/login?oauth_linking_required=true');
-          return;
-        }
-        
-        // Magic Link 로그인의 경우 재시도
-        if (authUser.email && retryCount < 3) {
-          console.log(`프로필 로드 재시도 (${retryCount + 1}/3)`);
-          setIsLoadingProfile(false);
-          setLoadingUserId(null);
-          
-          // 재시도 전 대기
-          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
-          
-          // 재시도
-          return loadUserProfile(authUser, retryCount + 1);
-        }
-        
-        // 재시도 횟수 초과 또는 SMS 로그인의 경우에만 로그아웃
-        if (retryCount >= 3 || !authUser.email) {
-          console.log('프로필 없음, 로그아웃 처리');
-          await supabase.auth.signOut();
-          setUser(null);
-          setIsLoading(false);
-          setIsLoadingProfile(false);
-          setLoadingUserId(null);
-          console.log('프로필 없음으로 인한 로그아웃 완료');
-          router.push('/login');
-        } else {
-          // 일시적인 오류로 간주하고 대기
-          setIsLoading(false);
-          setIsLoadingProfile(false);
-          setLoadingUserId(null);
-        }
-        return;
-      }
-
-      if (profile) {
-        console.log('프로필 발견:', profile.name);
-        const userData: User = {
-          id: authUser.id,
-          email: authUser.email || profile.email || undefined,
-          phone: formatPhoneForDisplay(authUser.phone || profile.phone),
-          name: profile.name,
-          role: profile.role,
-          site_id: profile.site_id,
-          site_name: profile.sites?.site_name,
-          is_active: profile.is_active,
-          oauth_provider: profile.oauth_provider || undefined,
-          oauth_provider_id: profile.oauth_provider_id || undefined,
-          oauth_linked_at: profile.oauth_linked_at || undefined
-        };
-
-        setUser(userData);
-      }
-      setIsLoading(false);
-      setIsLoadingProfile(false);
-      setLoadingUserId(null);
-      console.log('프로필 기반 로딩 완료');
-    } catch (error) {
-      console.error('프로필 로드 오류:', error);
-      
-      // Magic Link 로그인의 경우 재시도
-      if (authUser.email && retryCount < 3) {
-        console.log(`프로필 로드 재시도 (${retryCount + 1}/3) - 예외 발생`);
-        setIsLoadingProfile(false);
-        setLoadingUserId(null);
-        
-        // 재시도 전 대기
-        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
-        
-        // 재시도
-        return loadUserProfile(authUser, retryCount + 1);
-      }
-      
-      // 재시도 횟수 초과 시에만 로그아웃
-      if (retryCount >= 3) {
-        console.log('예외 발생, 로그아웃 처리');
-        await supabase.auth.signOut();
-        setUser(null);
-        setIsLoading(false);
-        setIsLoadingProfile(false);
-        setLoadingUserId(null);
-        console.log('예외 발생으로 인한 로그아웃 완료');
-        router.push('/login');
-      } else {
-        // 일시적인 오류로 간주
-        setIsLoading(false);
-        setIsLoadingProfile(false);
-        setLoadingUserId(null);
-      }
-    }
-  };
+  }, [supabase, loadUserProfile]);
 
   // 로그인
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
@@ -309,19 +353,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
-        return { 
-          success: false, 
-          error: error.message === 'Invalid login credentials' 
+        return {
+          success: false,
+          error: error.message === 'Invalid login credentials'
             ? '이메일 또는 비밀번호가 잘못되었습니다.'
             : '로그인에 실패했습니다.'
         };
       }
 
-      if (data.user) {
-        await loadUserProfile(data.user);
-        
-        // 역할에 따른 기본 페이지로 리다이렉트는 onAuthStateChange에서 처리
-        return { success: true };
+      if (data.user && data.session) {
+        // access_token 직접 전달
+        const userData = await loadUserProfile(data.user, false, data.session.access_token);
+        if (userData) {
+          return { success: true };
+        }
+        return { success: false, error: '프로필을 찾을 수 없습니다.' };
       }
 
       return { success: false, error: '로그인에 실패했습니다.' };
@@ -335,61 +381,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async (): Promise<void> => {
     try {
       await supabase.auth.signOut();
-      
-      // 모든 저장소에서 Supabase 관련 데이터 완전 제거
+
+      // 캐시 삭제
+      clearCachedAuth();
+
+      // 모든 저장소에서 Supabase 관련 데이터 제거
       const localStorageKeys = Object.keys(localStorage);
       localStorageKeys.forEach(key => {
         if (key.includes('supabase') || key.includes('sb-')) {
           localStorage.removeItem(key);
-          console.log('localStorage 제거:', key);
         }
       });
-      
+
       const sessionStorageKeys = Object.keys(sessionStorage);
       sessionStorageKeys.forEach(key => {
         if (key.includes('supabase') || key.includes('sb-')) {
           sessionStorage.removeItem(key);
-          console.log('sessionStorage 제거:', key);
         }
       });
-      
-      // IndexedDB 정리 (Supabase가 사용할 수 있는 저장소)
+
+      // IndexedDB 정리
       if ('indexedDB' in window) {
         try {
           const dbs = await indexedDB.databases();
           dbs.forEach(db => {
             if (db.name && (db.name.includes('supabase') || db.name.includes('sb-'))) {
               indexedDB.deleteDatabase(db.name);
-              console.log('IndexedDB 제거:', db.name);
             }
           });
         } catch (e) {
-          console.log('IndexedDB 정리 건너뜀:', e);
+          // IndexedDB 정리 실패 무시
         }
       }
-      
-      // Supabase 클라이언트 인스턴스도 재설정
+
+      // Supabase 클라이언트 재설정
       resetSupabaseClient();
-      
+
       setUser(null);
-      
-      console.log('완전 로그아웃 완료 - 페이지 새로고침');
-      // 완전한 페이지 새로고침으로 모든 상태 초기화
+      loadedUserIdRef.current = null;
+
       window.location.href = '/login';
     } catch (error) {
       console.error('로그아웃 오류:', error);
-      // 오류가 발생해도 로컬 상태는 정리
+      clearCachedAuth();
       setUser(null);
       window.location.href = '/login';
     }
   };
 
   // 권한 확인
-  const checkPermission = (permission: string): boolean => {
+  const checkPermission = (_permission: string): boolean => {
     if (!user) return false;
-    
-    // 권한 확인 로직 구현
-    // 실제로는 permissions.ts의 hasPermission 함수 사용
     return true; // 임시로 모든 권한 허용
   };
 
@@ -407,6 +449,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logout,
     checkPermission,
     canAccess,
+    refreshProfile,
   };
 
   return (
@@ -477,7 +520,6 @@ export function useRequireRole(requiredRole: UserRole): void {
       if (!user) {
         router.push('/login');
       } else if (user.role !== requiredRole) {
-        // 권한이 없으면 기본 페이지로 리다이렉트
         const defaultUrl = getDefaultRedirectUrl(user.role);
         router.push(defaultUrl);
       }
@@ -495,7 +537,6 @@ export function useRequirePageAccess(pathname: string): void {
       if (!user) {
         router.push('/login');
       } else if (!canAccess(pathname)) {
-        // 접근 권한이 없으면 기본 페이지로 리다이렉트
         const defaultUrl = getDefaultRedirectUrl(user.role);
         router.push(defaultUrl);
       }
