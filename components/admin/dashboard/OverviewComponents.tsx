@@ -106,16 +106,8 @@ export function OverviewContent() {
   };
 
   return (
-    <div style={{ padding: '32px' }}>
+    <div>
       <div style={{ marginBottom: '32px' }}>
-        <h2 style={{
-          fontSize: '28px',
-          fontWeight: 'bold',
-          color: '#1a202c',
-          margin: '0 0 8px 0'
-        }}>
-          대시보드
-        </h2>
         <p style={{
           fontSize: '16px',
           color: '#64748b',

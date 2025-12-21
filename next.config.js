@@ -29,8 +29,11 @@ const nextConfig = {
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
   },
-  // Webpack 최적화
+  // Turbopack 설정 (Next.js 16 기본)
+  turbopack: {},
+  // Webpack 최적화 (프로덕션 빌드용 - Turbopack과 함께 사용 가능)
   webpack: (config, { dev, isServer }) => {
+    // 개발 모드에서는 Turbopack 사용, 프로덕션 빌드에서만 webpack 사용
     if (!dev && !isServer) {
       config.optimization.splitChunks = {
         chunks: 'all',

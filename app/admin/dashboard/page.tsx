@@ -78,8 +78,9 @@ export default function AdminDashboard() {
           backgroundColor: 'white',
           borderRight: '1px solid #e2e8f0',
           boxShadow: '2px 0 10px rgba(0,0,0,0.1)',
-          position: device.isMobile ? 'fixed' : 'sticky',
+          position: 'fixed',
           top: 0,
+          left: 0,
           height: '100vh',
           zIndex: 1000,
           overflowY: 'auto'
@@ -178,12 +179,43 @@ export default function AdminDashboard() {
 
         {/* 메인 컨텐츠 */}
         <main style={{
-          flex: 1,
-          padding: device.isMobile ? '20px' : '0',
-          marginLeft: device.isMobile ? 0 : '0',
-          overflow: 'auto'
+          position: 'fixed',
+          top: 0,
+          left: device.isMobile ? 0 : '280px',
+          right: 0,
+          bottom: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: '#f8fafc',
+          overflow: 'hidden'
         }}>
-          {renderContent()}
+          {/* 본문 헤더 */}
+          <div style={{
+            backgroundColor: 'white',
+            borderBottom: '1px solid #e2e8f0',
+            padding: '24px 32px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+            zIndex: 100,
+            flexShrink: 0
+          }}>
+            <h2 style={{
+              fontSize: '24px',
+              fontWeight: 'bold',
+              color: '#1a202c',
+              margin: 0
+            }}>
+              {menuItems.find(item => item.id === currentMenu)?.icon} {menuItems.find(item => item.id === currentMenu)?.label || '대시보드'}
+            </h2>
+          </div>
+          
+          {/* 스크롤 가능한 컨텐츠 영역 */}
+          <div style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: device.isMobile ? '20px' : '32px'
+          }}>
+            {renderContent()}
+          </div>
         </main>
       </div>
     </AdminRoute>
