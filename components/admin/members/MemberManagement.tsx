@@ -1,16 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import type { MemberOverview, MemberListResponse } from '@/types/member';
+import type { MemberOverview, MemberListResponse, Crop } from '@/types/member';
+import { MemberFormModal } from './MemberFormModal';
 
-interface Site {
+interface Association {
   id: string;
-  site_name: string;
-}
-
-interface Crop {
-  id: string;
-  crop_name: string;
+  name: string;
 }
 
 export function MemberManagement() {
@@ -23,32 +19,35 @@ export function MemberManagement() {
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSite, setSelectedSite] = useState('');
+  const [selectedAssociation, setSelectedAssociation] = useState('');
   const [selectedCrop, setSelectedCrop] = useState('');
   const [isActive, setIsActive] = useState(true);
 
   // Master data
-  const [sites, setSites] = useState<Site[]>([]);
+  const [associations, setAssociations] = useState<Association[]>([]);
   const [crops, setCrops] = useState<Crop[]>([]);
 
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   useEffect(() => {
-    fetchSites();
+    fetchAssociations();
     fetchCrops();
   }, []);
 
   useEffect(() => {
     fetchMembers();
-  }, [page, searchQuery, selectedSite, selectedCrop, isActive]);
+  }, [page, searchQuery, selectedAssociation, selectedCrop, isActive]);
 
-  const fetchSites = async () => {
+  const fetchAssociations = async () => {
     try {
-      const response = await fetch('/api/sites');
+      const response = await fetch('/api/associations');
       const data = await response.json();
-      if (data.sites) {
-        setSites(data.sites);
+      if (data.success && data.data) {
+        setAssociations(data.data);
       }
     } catch (error) {
-      console.error('Failed to fetch sites:', error);
+      console.error('Failed to fetch associations:', error);
     }
   };
 
@@ -76,7 +75,7 @@ export function MemberManagement() {
       });
 
       if (searchQuery) params.append('q', searchQuery);
-      if (selectedSite) params.append('site_id', selectedSite);
+      if (selectedAssociation) params.append('association_id', selectedAssociation);
       if (selectedCrop) params.append('crop_id', selectedCrop);
 
       const response = await fetch(`/api/members?${params}`);
@@ -122,7 +121,7 @@ export function MemberManagement() {
           조합원 관리
         </h2>
         <button
-          onClick={() => alert('조합원 등록 기능 - 준비 중')}
+          onClick={() => setIsModalOpen(true)}
           style={{
             padding: '10px 20px',
             backgroundColor: '#3b82f6',
@@ -137,6 +136,18 @@ export function MemberManagement() {
           + 조합원 등록
         </button>
       </div>
+
+      {/* 조합원 등록/수정 모달 */}
+      <MemberFormModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={() => {
+          fetchMembers();
+          setIsModalOpen(false);
+        }}
+        associations={associations}
+        crops={crops}
+      />
 
       {/* Filters */}
       <form onSubmit={handleSearch} style={{
@@ -188,8 +199,8 @@ export function MemberManagement() {
               영농회
             </label>
             <select
-              value={selectedSite}
-              onChange={(e) => setSelectedSite(e.target.value)}
+              value={selectedAssociation}
+              onChange={(e) => setSelectedAssociation(e.target.value)}
               style={{
                 width: '100%',
                 padding: '8px 12px',
@@ -199,9 +210,9 @@ export function MemberManagement() {
               }}
             >
               <option value="">전체</option>
-              {sites.map(site => (
-                <option key={site.id} value={site.id}>
-                  {site.site_name}
+              {associations.map(assoc => (
+                <option key={assoc.id} value={assoc.id}>
+                  {assoc.name}
                 </option>
               ))}
             </select>
@@ -342,9 +353,9 @@ export function MemberManagement() {
                     <tr key={member.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
                       <td style={tableCellStyle}>{member.member_id}</td>
                       <td style={tableCellStyle}>{member.name}</td>
-                      <td style={tableCellStyle}>{member.site_name}</td>
+                      <td style={tableCellStyle}>{member.association_name || '-'}</td>
                       <td style={tableCellStyle}>{member.main_crop_name || '-'}</td>
-                      <td style={tableCellStyle}>{member.phone}</td>
+                      <td style={tableCellStyle}>{member.phone || '-'}</td>
                       <td style={tableCellStyle}>
                         {member.issued_voucher_count}건 / {member.total_issued_amount.toLocaleString()}원
                       </td>

@@ -29,7 +29,7 @@ export async function GET(
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // 배치 정보 확인
+    // 배치 정보 확인 (user_profiles 조인 제거)
     const { data: batch, error: batchError } = await supabase
       .from('mobile_voucher_batches')
       .select(`
@@ -43,7 +43,6 @@ export async function GET(
         status,
         expires_at,
         created_at,
-        user_profiles(name),
         voucher_templates(voucher_name, voucher_type)
       `)
       .eq('id', batchId)

@@ -31,7 +31,9 @@
       "Bash(taskkill:*)",
       "Read(//Users/jeongbyeong-geun/Library/**)",
       "Bash(git pull:*)",
-      "Bash(npm audit fix:*)"
+      "Bash(npm audit fix:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)"
     ],
     "defaultMode": "acceptEdits"
   }

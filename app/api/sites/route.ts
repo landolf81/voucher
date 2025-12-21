@@ -5,6 +5,7 @@ import { z } from 'zod';
 // 사업장 등록 스키마
 const createSiteSchema = z.object({
   site_name: z.string().min(1, '사업장명을 입력해주세요.').max(100, '사업장명은 100자 이하여야 합니다.'),
+  short_code: z.string().max(10, '코드는 10자 이하여야 합니다.').optional(),
   address: z.string().optional(),
   phone: z.string().optional(),
   fax: z.string().optional(),
@@ -95,10 +96,18 @@ export async function POST(request: NextRequest) {
     console.log('Supabase 사용 - 사업장 등록');
     const supabase = supabaseServer();
 
-    // 현재 sites 테이블은 site_name만 지원
+    // 모든 필드를 저장
     const { data: newSite, error } = await supabase
       .from('sites')
-      .insert([{ site_name: siteData.site_name }])
+      .insert([{
+        site_name: siteData.site_name,
+        short_code: siteData.short_code || null,
+        address: siteData.address || null,
+        phone: siteData.phone || null,
+        fax: siteData.fax || null,
+        business_number: siteData.business_number || null,
+        status: siteData.status || 'active'
+      }])
       .select()
       .single();
 

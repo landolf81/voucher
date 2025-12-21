@@ -3,68 +3,67 @@ import { createClient } from '@supabase/supabase-js';
 import { formatPhoneForDisplay, formatPhoneForDB, validateKoreanPhoneInput } from '@/lib/phone-utils';
 import { isValidUserMetadata, type UserMetadata } from '@/lib/types/auth';
 
-/**
- * GET: 사용자 목록 조회
- * - user_metadata 우선 사용, user_profiles 폴백
- */
-export async function GET() {
-  try {
-    const supabaseAdmin = createClient(
+// Supabase Admin 클라이언트 싱글톤 (매 요청마다 생성 방지)
+let supabaseAdminInstance: ReturnType<typeof createClient> | null = null;
+
+function getSupabaseAdmin() {
+  if (!supabaseAdminInstance) {
+    supabaseAdminInstance = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+  }
+  return supabaseAdminInstance;
+}
 
-    // 1. auth.users 목록 조회
-    const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+/**
+ * GET: 사용자 목록 조회
+ * - auth.users.user_metadata만 사용 (user_profiles 폴백 제거)
+ */
+export async function GET() {
+  try {
+    const supabaseAdmin = getSupabaseAdmin();
 
-    if (authError) {
-      console.error('Auth 사용자 조회 오류:', authError);
+    // 병렬로 auth.users와 sites 조회 (API 호출 최소화)
+    const [authResult, sitesResult] = await Promise.all([
+      supabaseAdmin.auth.admin.listUsers(),
+      supabaseAdmin.from('sites').select('id, site_name').order('site_name')
+    ]);
+
+    if (authResult.error) {
+      console.error('Auth 사용자 조회 오류:', authResult.error);
       return NextResponse.json({
         success: false,
         message: 'Auth 사용자 조회에 실패했습니다.'
       }, { status: 500 });
     }
 
-    // 2. sites 목록 조회
-    const { data: sites, error: sitesError } = await supabaseAdmin
-      .from('sites')
-      .select('id, site_name')
-      .order('site_name');
-
-    if (sitesError) {
-      console.error('사업장 조회 오류:', sitesError);
+    if (sitesResult.error) {
+      console.error('사업장 조회 오류:', sitesResult.error);
       return NextResponse.json({
         success: false,
         message: '사업장 목록 조회에 실패했습니다.'
       }, { status: 500 });
     }
 
-    const sitesMap = new Map(sites?.map(s => [s.id, s.site_name]) || []);
+    const sitesMap = new Map((sitesResult.data || []).map((s: { id: string; site_name: string }) => [s.id, s.site_name]));
 
-    // 3. user_profiles 조회 (폴백용)
-    const { data: profiles } = await supabaseAdmin
-      .from('user_profiles')
-      .select('*');
+    // 사용자 데이터 변환 (모든 사용자 포함, 불완전한 metadata도 표시)
+    const users = authResult.data.users
+      .map(authUser => {
+        const metadata = authUser.user_metadata || {};
+        const phone = authUser.phone || '';
+        const displayPhone = formatPhoneForDisplay(phone);
+        const hasCompleteProfile = isValidUserMetadata(authUser.user_metadata);
 
-    const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
-
-    // 4. 사용자 데이터 병합 (user_metadata 우선, user_profiles 폴백)
-    const users = authUsers.users.map(authUser => {
-      const metadata = authUser.user_metadata;
-      const profile = profilesMap.get(authUser.id);
-      const phone = authUser.phone || '';
-      const displayPhone = formatPhoneForDisplay(phone);
-
-      // user_metadata가 유효하면 사용
-      if (isValidUserMetadata(metadata)) {
         return {
           id: authUser.id,
-          display_name: metadata.display_name,
-          user_id: metadata.display_name, // 호환성 유지
-          name: metadata.name,
-          role: metadata.role,
-          site_id: metadata.site_id,
-          site_name: sitesMap.get(metadata.site_id) || '',
+          display_name: metadata.display_name || '',
+          user_id: metadata.display_name || '',
+          name: metadata.name || authUser.email?.split('@')[0] || '미설정',
+          role: metadata.role || 'viewer',
+          site_id: metadata.site_id || '',
+          site_name: metadata.site_id ? (sitesMap.get(metadata.site_id) || '') : '',
           is_active: metadata.is_active ?? true,
           email: authUser.email || '',
           phone: phone,
@@ -73,58 +72,21 @@ export async function GET() {
           email_confirmed_at: authUser.email_confirmed_at,
           oauth_provider: metadata.oauth_provider,
           oauth_provider_id: metadata.oauth_provider_id,
-          source: 'user_metadata'
+          has_complete_profile: hasCompleteProfile
         };
-      }
+      });
 
-      // 폴백: user_profiles 사용
-      if (profile) {
-        return {
-          id: authUser.id,
-          display_name: profile.user_id,
-          user_id: profile.user_id,
-          name: profile.name,
-          role: profile.role,
-          site_id: profile.site_id,
-          site_name: sitesMap.get(profile.site_id) || '',
-          is_active: profile.is_active ?? true,
-          email: authUser.email || '',
-          phone: phone,
-          phone_masked: displayPhone || '***-****-****',
-          last_sign_in_at: authUser.last_sign_in_at,
-          email_confirmed_at: authUser.email_confirmed_at,
-          oauth_provider: profile.oauth_provider,
-          oauth_provider_id: profile.oauth_provider_id,
-          source: 'user_profiles'
-        };
-      }
-
-      // 프로필이 없는 사용자 (관리용)
-      return {
-        id: authUser.id,
-        display_name: authUser.user_metadata?.display_name || '',
-        user_id: '',
-        name: authUser.user_metadata?.name || '(프로필 없음)',
-        role: 'viewer',
-        site_id: '',
-        site_name: '',
-        is_active: false,
-        email: authUser.email || '',
-        phone: phone,
-        phone_masked: displayPhone || '***-****-****',
-        last_sign_in_at: authUser.last_sign_in_at,
-        email_confirmed_at: authUser.email_confirmed_at,
-        source: 'none'
-      };
-    }).filter(u => u.user_id || u.display_name); // 프로필 있는 사용자만 반환
-
-    return NextResponse.json({
+    // 캐싱 헤더 추가 (60초간 캐시)
+    const response = NextResponse.json({
       success: true,
       data: {
         users: users.sort((a, b) => (b.last_sign_in_at || '').localeCompare(a.last_sign_in_at || '')),
-        sites: sites || []
+        sites: sitesResult.data || []
       }
     });
+
+    response.headers.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=30');
+    return response;
 
   } catch (error) {
     console.error('사용자 목록 조회 오류:', error);
@@ -159,16 +121,8 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-
-    // 1. Auth 사용자 생성 (service role 클라이언트 사용)
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    // Auth 사용자 생성 (싱글톤 클라이언트 사용)
+    const supabaseAdmin = getSupabaseAdmin();
     
     // 전화번호 형식 검증 및 변환
     console.log('전화번호 검증 시작:', phone);
@@ -242,29 +196,8 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // 2. 프로필 생성
-    const { error: profileError } = await supabase
-      .from('user_profiles')
-      .insert([{
-        id: authData.user.id,
-        name,
-        role,
-        site_id,
-        user_id,
-        is_active
-      }]);
-
-    if (profileError) {
-      console.error('프로필 생성 오류:', profileError);
-      
-      // Auth 사용자는 생성되었으므로 롤백을 위해 삭제
-      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
-      
-      return NextResponse.json({
-        success: false,
-        message: '프로필 생성에 실패했습니다.'
-      }, { status: 500 });
-    }
+    // user_metadata에 모든 정보가 저장되었으므로 user_profiles 테이블 사용 안함
+    console.log('사용자 생성 완료 (user_metadata만 사용):', authData.user.id);
 
     return NextResponse.json({
       success: true,

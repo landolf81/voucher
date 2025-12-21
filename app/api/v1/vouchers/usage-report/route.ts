@@ -26,27 +26,29 @@ export async function GET(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // 먼저 사용자 정보와 소속 사업장 조회
-    const { data: userProfile, error: userError } = await supabase
-      .from('user_profiles')
-      .select('site_id, role')
-      .eq('id', userId)
-      .maybeSingle();
+    // 먼저 사용자 정보와 소속 사업장 조회 (auth.users에서)
+    const { data: authUser, error: userError } = await supabase.auth.admin.getUserById(userId);
 
     if (userError) {
       console.error('사용자 프로필 조회 오류:', userError);
-      return NextResponse.json({ 
-        success: false, 
-        error: 'USER_PROFILE_ERROR' 
+      return NextResponse.json({
+        success: false,
+        error: 'USER_PROFILE_ERROR'
       }, { status: 500 });
     }
 
-    if (!userProfile) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'USER_NOT_FOUND' 
+    if (!authUser.user) {
+      return NextResponse.json({
+        success: false,
+        error: 'USER_NOT_FOUND'
       }, { status: 404 });
     }
+
+    const userMetadata = authUser.user.user_metadata || {};
+    const userProfile = {
+      site_id: userMetadata.site_id || null,
+      role: userMetadata.role || 'user'
+    };
 
     // 사용등록된 교환권 조회 (사용처 기준)
     let query = supabase

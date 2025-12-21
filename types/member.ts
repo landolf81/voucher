@@ -15,6 +15,8 @@ export interface Member {
 
   // Basic Information
   site_id: string;
+  association_id?: string;
+  association_name?: string;
   name: string;
   member_id: string;
   security_number?: string;
@@ -83,6 +85,7 @@ export interface MemberOverview extends Member {
 // Form data types for creating/updating
 export interface MemberFormData {
   site_id: string;
+  association_id?: string;
   name: string;
   member_id: string;
   security_number?: string;
@@ -127,6 +130,7 @@ export interface MemberListResponse {
 export interface MemberSearchParams {
   q?: string; // Search query (name, member_id, phone)
   site_id?: string;
+  association_id?: string;
   crop_id?: string;
   is_active?: boolean;
   has_grafting?: boolean;

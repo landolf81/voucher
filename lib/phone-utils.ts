@@ -67,6 +67,23 @@ export function cleanPhoneInput(value: string): string {
   return value.replace(/[^0-9]/g, '');
 }
 
+// DB 형식 (+821012345678) → 입력 형식 (01012345678) - 수정 폼용
+export function formatPhoneForInput(phone: string | null | undefined): string {
+  if (!phone) return '';
+
+  // +821012345678 → 01012345678
+  if (phone.startsWith('+821')) {
+    return `0${phone.substring(3)}`;
+  }
+  // 821012345678 → 01012345678 (missing + prefix case)
+  if (phone.startsWith('821') && phone.length === 12) {
+    return `0${phone.substring(2)}`;
+  }
+
+  // 이미 010으로 시작하면 하이픈만 제거
+  return phone.replace(/[^0-9]/g, '');
+}
+
 // 전화번호 유효성 검사 오류 메시지
 export function getPhoneValidationMessage(phone: string): string | null {
   const cleaned = cleanPhoneInput(phone);

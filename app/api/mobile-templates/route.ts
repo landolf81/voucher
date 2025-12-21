@@ -11,23 +11,24 @@ import { z } from 'zod';
 const createMobileTemplateSchema = z.object({
   template_id: z.string().uuid(),
   name: z.string().min(1).max(100),
-  description: z.string().optional(),
+  description: z.string().optional().nullable(),
   background_color: z.string().default('#ffffff'),
   text_color: z.string().default('#000000'),
   accent_color: z.string().default('#3b82f6'),
   font_family: z.string().default('Pretendard, sans-serif'),
-  font_size_base: z.number().int().min(8).max(72).default(14),
+  font_size_base: z.number().int().min(8).max(72).optional().default(14),
   width: z.number().int().min(200).max(800).default(400),
   height: z.number().int().min(200).max(800).default(400),
-  padding: z.number().int().min(0).max(100).default(20),
-  border_radius: z.number().int().min(0).max(50).default(12),
-  background_image_url: z.string().url().optional().nullable(),
-  background_image_position: z.string().default('center'),
-  background_image_size: z.string().default('cover'),
-  field_positions: z.record(z.any()).default({}),
-  template_config: z.record(z.any()).default({}),
-  status: z.enum(['active', 'inactive', 'draft']).default('active'),
-  is_default: z.boolean().default(false)
+  padding: z.number().int().min(0).max(100).optional().default(20),
+  border_radius: z.number().int().min(0).max(50).optional().default(12),
+  background_image_url: z.string().optional().nullable(),
+  background_image_position: z.string().optional().default('center'),
+  background_image_size: z.string().optional().default('cover'),
+  qr_background_image: z.string().optional().nullable(),
+  field_positions: z.record(z.any()).optional().default({}),
+  template_config: z.record(z.any()).optional().default({}),
+  status: z.enum(['active', 'inactive', 'draft']).optional().default('active'),
+  is_default: z.boolean().optional().default(false)
 });
 
 const updateMobileTemplateSchema = createMobileTemplateSchema.partial();
@@ -119,8 +120,9 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (voucherError || !voucherTemplate) {
+      console.error('Voucher template not found:', voucherError);
       return NextResponse.json(
-        { error: 'Voucher template not found' },
+        { error: 'Voucher template not found', message: '교환권 템플릿을 찾을 수 없습니다.' },
         { status: 404 }
       );
     }
@@ -188,10 +190,12 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error('Validation error details:', error.errors);
       return NextResponse.json(
-        { 
-          error: 'Validation failed', 
-          details: error.errors 
+        {
+          error: 'Validation failed',
+          message: '입력 데이터 검증에 실패했습니다.',
+          details: error.errors
         },
         { status: 400 }
       );
@@ -199,7 +203,7 @@ export async function POST(request: NextRequest) {
 
     console.error('Mobile template creation error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', message: '서버 오류가 발생했습니다.' },
       { status: 500 }
     );
   }

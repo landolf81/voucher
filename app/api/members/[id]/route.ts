@@ -16,12 +16,16 @@ export async function GET(
 
     // Get member details
     const { data: member, error } = await supabase
-      .from('member_overview')
+      .from('members')
       .select('*')
       .eq('id', id)
       .single();
 
     if (error) {
+      // members 테이블이 없는 경우
+      if (error.message.includes('does not exist') || error.message.includes('schema cache')) {
+        return NextResponse.json({ error: 'Member feature not available' }, { status: 404 });
+      }
       console.error('Failed to fetch member:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }

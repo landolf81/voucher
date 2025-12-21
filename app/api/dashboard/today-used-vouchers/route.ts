@@ -20,14 +20,10 @@ export async function GET(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // 사용자 프로필 가져오기 (id 필드로 조회)
-    const { data: userProfile, error: profileError } = await supabase
-      .from('user_profiles')
-      .select('role, site_id')
-      .eq('id', userId)
-      .single();
+    // 사용자 프로필 가져오기 (auth.users에서 조회)
+    const { data: authUser, error: profileError } = await supabase.auth.admin.getUserById(userId);
 
-    if (profileError || !userProfile) {
+    if (profileError || !authUser.user) {
       console.error('프로필 조회 오류:', profileError);
       return NextResponse.json(
         { ok: false, message: '사용자 정보를 찾을 수 없습니다.' },
@@ -35,18 +31,23 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const userMetadata = authUser.user.user_metadata || {};
+    const userProfile = {
+      role: userMetadata.role || 'user',
+      site_id: userMetadata.site_id || null
+    };
+
     // 오늘 날짜 범위 설정 (한국 시간 기준)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // 쿼리 구성
+    // 쿼리 구성 (user_profiles 조인 제거)
     let query = supabase
       .from('vouchers')
       .select(`
         *,
-        used_by_user:user_profiles!vouchers_used_by_user_id_fkey(name),
         used_at_site:sites!vouchers_used_at_site_id_fkey(site_name)
       `)
       .eq('status', 'used')
@@ -69,6 +70,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // used_by_user_id로 사용자 이름 조회
+    const usedByUserIds = [...new Set((vouchers || []).map(v => v.used_by_user_id).filter(id => id))];
+    const userNameMap = new Map<string, string>();
+
+    if (usedByUserIds.length > 0) {
+      const { data: authUsers } = await supabase.auth.admin.listUsers();
+      if (authUsers?.users) {
+        for (const user of authUsers.users) {
+          if (usedByUserIds.includes(user.id)) {
+            const metadata = user.user_metadata || {};
+            userNameMap.set(user.id, metadata.name || metadata.display_name || 'Unknown');
+          }
+        }
+      }
+    }
+
     // 데이터 포맷팅
     const formattedVouchers = (vouchers || []).map(voucher => ({
       id: voucher.id,
@@ -78,7 +95,7 @@ export async function GET(request: NextRequest) {
       member_id: voucher.member_id,
       name: voucher.name,
       used_at: voucher.used_at,
-      used_by: voucher.used_by_user?.name || '알 수 없음',
+      used_by: voucher.used_by_user_id ? userNameMap.get(voucher.used_by_user_id) || '알 수 없음' : '알 수 없음',
       site_name: voucher.used_at_site?.site_name || '알 수 없음'
     }));
 

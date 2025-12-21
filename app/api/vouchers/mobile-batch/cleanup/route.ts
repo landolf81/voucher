@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`만료된 배치 정리 시작 - ${cleanupDate.toISOString()} 이전에 만료된 배치 정리`);
 
-    // 만료된 배치 조회
+    // 만료된 배치 조회 (user_profiles 조인 제거)
     const { data: expiredBatches, error: queryError } = await supabase
       .from('mobile_voucher_batches')
       .select(`
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         expires_at,
         created_at,
         total_count,
-        user_profiles(name)
+        user_id
       `)
       .lte('expires_at', cleanupDate.toISOString())
       .neq('status', 'cleaned'); // 이미 정리된 것은 제외
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
           status: batch.status,
           total_count: batch.total_count,
           voucher_count: voucherCount || 0,
-          user_name: batch.user_profiles?.name || 'Unknown',
+          user_id: batch.user_id,
           action: 'would_be_cleaned'
         });
 
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
           status: batch.status,
           total_count: batch.total_count,
           voucher_count: voucherCount,
-          user_name: batch.user_profiles?.name || 'Unknown',
+          user_id: batch.user_id,
           action: 'cleaned'
         });
 
@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
           status: batch.status,
           total_count: batch.total_count,
           voucher_count: 0,
-          user_name: batch.user_profiles?.name || 'Unknown',
+          user_id: batch.user_id,
           action: 'failed',
           error: error instanceof Error ? error.message : 'Unknown error'
         });
@@ -249,7 +249,7 @@ export async function GET(request: NextRequest) {
     const cleanupDate = new Date();
     cleanupDate.setDate(cleanupDate.getDate() - daysBefore);
 
-    // 만료된 배치 통계 조회
+    // 만료된 배치 통계 조회 (user_profiles 조인 제거)
     const { data: stats, error: statsError } = await supabase
       .from('mobile_voucher_batches')
       .select(`
@@ -260,7 +260,7 @@ export async function GET(request: NextRequest) {
         created_at,
         total_count,
         download_count,
-        user_profiles(name)
+        user_id
       `)
       .lte('expires_at', cleanupDate.toISOString())
       .neq('status', 'cleaned')

@@ -16,6 +16,11 @@ export async function GET() {
       .order('display_order');
 
     if (error) {
+      // crops 테이블이 없는 경우 빈 배열 반환
+      if (error.message.includes('does not exist') || error.message.includes('schema cache')) {
+        console.warn('crops 테이블이 존재하지 않습니다. 빈 배열을 반환합니다.');
+        return NextResponse.json({ crops: [] });
+      }
       console.error('Failed to fetch crops:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }

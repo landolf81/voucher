@@ -20,6 +20,7 @@ export async function GET(request: Request) {
     const params: MemberSearchParams = {
       q: searchParams.get('q') || undefined,
       site_id: searchParams.get('site_id') || undefined,
+      association_id: searchParams.get('association_id') || undefined,
       crop_id: searchParams.get('crop_id') || undefined,
       is_active: searchParams.get('is_active') === 'false' ? false : true,
       page: parseInt(searchParams.get('page') || '1'),
@@ -28,10 +29,14 @@ export async function GET(request: Request) {
       sort_order: (searchParams.get('sort_order') as any) || 'desc',
     };
 
-    // Build query
+    // Build query with site and association joins
     let query = supabase
-      .from('member_overview')
-      .select('*', { count: 'exact' });
+      .from('members')
+      .select(`
+        *,
+        sites:site_id (id, site_name),
+        associations:association_id (id, name)
+      `, { count: 'exact' });
 
     // Apply filters
     if (params.is_active !== undefined) {
@@ -40,6 +45,10 @@ export async function GET(request: Request) {
 
     if (params.site_id) {
       query = query.eq('site_id', params.site_id);
+    }
+
+    if (params.association_id) {
+      query = query.eq('association_id', params.association_id);
     }
 
     if (params.crop_id) {
@@ -62,12 +71,39 @@ export async function GET(request: Request) {
     const { data, error, count } = await query;
 
     if (error) {
+      // members 테이블이 없는 경우 빈 결과 반환
+      if (error.message.includes('does not exist') || error.message.includes('schema cache')) {
+        console.warn('members 테이블이 존재하지 않습니다. 빈 결과를 반환합니다.');
+        const response: MemberListResponse = {
+          members: [],
+          total: 0,
+          page: params.page!,
+          page_size: params.page_size!,
+        };
+        return NextResponse.json(response);
+      }
       console.error('Failed to fetch members:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Transform data to include site_name and association_name
+    const transformedData = (data || []).map((member: any) => ({
+      ...member,
+      site_name: member.sites?.site_name || '',
+      association_name: member.associations?.name || '',
+      // Remove nested objects
+      sites: undefined,
+      associations: undefined,
+      // Default values for voucher stats (to be implemented later)
+      issued_voucher_count: member.issued_voucher_count || 0,
+      used_voucher_count: member.used_voucher_count || 0,
+      total_issued_amount: member.total_issued_amount || 0,
+      total_used_amount: member.total_used_amount || 0,
+      remaining_amount: member.remaining_amount || 0,
+    }));
+
     const response: MemberListResponse = {
-      members: data || [],
+      members: transformedData,
       total: count || 0,
       page: params.page!,
       page_size: params.page_size!,
@@ -89,17 +125,11 @@ export async function POST(request: Request) {
     );
     const body: CreateMemberRequest = await request.json();
 
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if member_id already exists for this site
+    // Check if member_id already exists (association_id 기준으로 변경)
     const { data: existing } = await supabase
       .from('members')
       .select('id')
-      .eq('site_id', body.member.site_id)
+      .eq('association_id', body.member.association_id)
       .eq('member_id', body.member.member_id)
       .single();
 
@@ -139,8 +169,6 @@ export async function POST(request: Request) {
         ...body.member,
         main_crop_name,
         sub_crop_name,
-        created_by: user.id,
-        updated_by: user.id,
       })
       .select()
       .single();
@@ -157,7 +185,6 @@ export async function POST(request: Request) {
         .insert({
           ...body.grafting_schedule,
           member_id: member.id,
-          created_by: user.id,
         });
 
       if (scheduleError) {

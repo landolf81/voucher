@@ -27,20 +27,38 @@ export async function POST(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // 해당 user_id의 사용자 확인
-    const { data: userProfile, error: profileError } = await supabaseAdmin
-      .from('user_profiles')
-      .select('id, name, user_id, role, site_id, is_active')
-      .eq('user_id', user_id)
-      .maybeSingle();
+    // auth.users에서 display_name으로 사용자 확인
+    const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
 
-    if (profileError || !userProfile) {
-      console.error('사용자 프로필 조회 오류:', profileError);
+    if (authError) {
+      console.error('Auth 사용자 조회 오류:', authError);
+      return NextResponse.json({
+        success: false,
+        message: '사용자 조회 중 오류가 발생했습니다.'
+      }, { status: 500 });
+    }
+
+    const targetAuthUser = authUsers.users.find(user => {
+      const displayName = user.user_metadata?.display_name || user.user_metadata?.user_id;
+      return displayName === user_id;
+    });
+
+    if (!targetAuthUser) {
       return NextResponse.json({
         success: false,
         message: '등록되지 않은 사용자입니다.'
       }, { status: 404 });
     }
+
+    const userMetadata = targetAuthUser.user_metadata || {};
+    const userProfile = {
+      id: targetAuthUser.id,
+      name: userMetadata.name || userMetadata.display_name || user_id,
+      user_id: userMetadata.display_name || user_id,
+      role: userMetadata.role || 'user',
+      site_id: userMetadata.site_id || null,
+      is_active: userMetadata.is_active !== false
+    };
 
     if (!userProfile.is_active) {
       return NextResponse.json({
@@ -73,12 +91,7 @@ export async function POST(request: NextRequest) {
       }, { status: 409 });
     }
 
-    // 현재 사용자의 auth.users 레코드 찾기
-    const targetAuthUser = existingUsers.users.find(user => {
-      const displayName = user.user_metadata?.display_name || user.user_metadata?.user_id;
-      return displayName === user_id;
-    });
-
+    // targetAuthUser는 이미 위에서 찾음
     if (!targetAuthUser) {
       return NextResponse.json({
         success: false,

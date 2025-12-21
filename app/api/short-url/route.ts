@@ -57,15 +57,11 @@ export async function POST(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // 사용자 확인 (선택사항)
+    // 사용자 확인 (선택사항) - auth.users에서 조회
     if (user_id) {
-      const { data: userProfile, error: userError } = await supabase
-        .from('user_profiles')
-        .select('id, name')
-        .eq('id', user_id)
-        .single();
+      const { data: authUser, error: userError } = await supabase.auth.admin.getUserById(user_id);
 
-      if (userError || !userProfile) {
+      if (userError || !authUser.user) {
         console.error('사용자 확인 실패:', userError);
         return NextResponse.json(
           {

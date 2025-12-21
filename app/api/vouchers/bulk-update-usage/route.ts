@@ -53,16 +53,23 @@ export async function POST(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // 권한 확인 - user_id로 관리자 권한 확인
+    // 권한 확인 - user_id로 관리자 권한 확인 (auth.users에서 조회)
     if (user_id) {
-      const { data: userProfile, error: userError } = await supabase
-        .from('user_profiles')
-        .select('role')
-        .eq('id', user_id)
-        .single();
+      const { data: authUser, error: userError } = await supabase.auth.admin.getUserById(user_id);
 
-      if (userError || !userProfile || userProfile.role !== 'admin') {
+      if (userError || !authUser.user) {
         console.error('권한 확인 실패:', userError);
+        return NextResponse.json(
+          {
+            success: false,
+            message: '관리자 권한이 필요합니다.'
+          },
+          { status: 403 }
+        );
+      }
+
+      const userRole = authUser.user.user_metadata?.role || 'user';
+      if (userRole !== 'admin') {
         return NextResponse.json(
           {
             success: false,

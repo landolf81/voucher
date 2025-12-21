@@ -1285,11 +1285,11 @@ export function MobileVoucherManagement() {
                       <td style={{ padding: '12px', borderBottom: '1px solid #e5e7eb' }}>
                         <div>
                           <div style={{ fontWeight: '500' }}>{batch.batch_name}</div>
-                          <div style={{ fontSize: '12px', color: '#6b7280' }}>{batch.voucher_templates.voucher_name}</div>
+                          <div style={{ fontSize: '12px', color: '#6b7280' }}>{batch.voucher_templates?.voucher_name || '-'}</div>
                         </div>
                       </td>
                       <td style={{ padding: '12px', borderBottom: '1px solid #e5e7eb' }}>
-                        {batch.user_profiles.name}
+                        {batch.user_profiles?.name || '-'}
                       </td>
                       <td style={{ padding: '12px', borderBottom: '1px solid #e5e7eb', textAlign: 'center' }}>
                         {batch.generated_count}/{batch.total_count}
@@ -1901,12 +1901,12 @@ export function MobileVoucherManagement() {
               fontSize: '14px'
             }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-                <div><strong>템플릿:</strong> {selectedBatch.voucher_templates.voucher_name}</div>
+                <div><strong>템플릿:</strong> {selectedBatch.voucher_templates?.voucher_name || '-'}</div>
                 <div><strong>총 수량:</strong> {selectedBatch.total_count}개</div>
                 <div><strong>상태:</strong> {selectedBatch.status === 'completed' ? '완료' : selectedBatch.status === 'failed' ? '실패' : '생성중'}</div>
-                <div><strong>발행자:</strong> {selectedBatch.user_profiles.name}</div>
+                <div><strong>발행자:</strong> {selectedBatch.user_profiles?.name || '-'}</div>
                 <div><strong>생성일:</strong> {new Date(selectedBatch.created_at).toLocaleDateString('ko-KR')}</div>
-                <div><strong>만료일:</strong> {new Date(selectedBatch.expires_at).toLocaleDateString('ko-KR')}</div>
+                <div><strong>만료일:</strong> {selectedBatch.expires_at ? new Date(selectedBatch.expires_at).toLocaleDateString('ko-KR') : '-'}</div>
               </div>
             </div>
 

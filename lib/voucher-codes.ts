@@ -1,5 +1,6 @@
 import QRCode from 'qrcode';
 import JsBarcode from 'jsbarcode';
+import bwipjs from 'bwip-js';
 
 export interface VoucherData {
   serial_no: string;
@@ -132,17 +133,22 @@ export function generateBarcodeSVG(serialNo: string, options?: {
 }
 
 /**
- * 바코드 Data URL 생성 (PNG)
+ * 바코드 Data URL 생성 (PNG) - 클라이언트용
  */
 export function generateBarcodeDataURL(serialNo: string, options?: {
   width?: number;
   height?: number;
   displayValue?: boolean;
 }): string {
+  // 서버 환경에서는 서버용 함수 사용
+  if (typeof document === 'undefined') {
+    throw new Error('클라이언트 환경에서만 사용 가능합니다. 서버에서는 generateBarcodeDataURLServer를 사용하세요.');
+  }
+
   const canvas = document.createElement('canvas');
   canvas.width = options?.width || 300;
   canvas.height = options?.height || 100;
-  
+
   try {
     JsBarcode(canvas, serialNo, {
       format: 'CODE128',
@@ -155,11 +161,78 @@ export function generateBarcodeDataURL(serialNo: string, options?: {
       background: '#FFFFFF',
       lineColor: '#000000'
     });
-    
+
     return canvas.toDataURL('image/png');
   } catch (error) {
     console.error('Barcode generation failed:', error);
     throw new Error('바코드 생성에 실패했습니다.');
+  }
+}
+
+/**
+ * 바코드 Data URL 생성 (PNG) - 서버용
+ */
+export async function generateBarcodeDataURLServer(serialNo: string, options?: {
+  width?: number;
+  height?: number;
+  displayValue?: boolean;
+}): Promise<string> {
+  try {
+    const png = await bwipjs.toBuffer({
+      bcid: 'code128',
+      text: serialNo,
+      scale: 3,
+      height: options?.height ? options.height / 10 : 10,
+      includetext: options?.displayValue !== false,
+      textxalign: 'center',
+      backgroundcolor: 'ffffff'
+    });
+
+    return `data:image/png;base64,${png.toString('base64')}`;
+  } catch (error) {
+    console.error('Server barcode generation failed:', error);
+    throw new Error('바코드 생성에 실패했습니다.');
+  }
+}
+
+/**
+ * 바코드 SVG 생성 - 서버용 (PNG를 SVG로 래핑)
+ */
+export async function generateBarcodeSVGServer(serialNo: string, options?: {
+  width?: number;
+  height?: number;
+  displayValue?: boolean;
+}): Promise<string> {
+  try {
+    // bwip-js는 toSVG를 지원하지 않으므로 PNG를 생성하여 SVG로 래핑
+    const png = await bwipjs.toBuffer({
+      bcid: 'code128',
+      text: serialNo,
+      scale: 3,
+      height: options?.height ? options.height / 10 : 10,
+      includetext: options?.displayValue !== false,
+      textxalign: 'center',
+      backgroundcolor: 'ffffff'
+    });
+
+    const dataUrl = `data:image/png;base64,${png.toString('base64')}`;
+    const width = options?.width || 300;
+    const height = options?.height || 100;
+
+    return `
+      <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+        <image href="${dataUrl}" width="100%" height="100%"/>
+      </svg>
+    `;
+  } catch (error) {
+    console.error('Server barcode SVG generation failed:', error);
+    // 대체 SVG 반환
+    return `
+      <svg width="${options?.width || 300}" height="${options?.height || 100}" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100%" height="100%" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1"/>
+        <text x="50%" y="50%" text-anchor="middle" font-family="monospace" font-size="14px" fill="#6c757d">${serialNo}</text>
+      </svg>
+    `;
   }
 }
 
@@ -216,20 +289,27 @@ export function parseQRCodeData(qrCodeData: string): {
 export async function generateVoucherCodes(voucherData: VoucherData, format: 'svg' | 'dataurl' = 'svg') {
   const hmac = generateVoucherHMAC(voucherData);
   const dataWithHmac = { ...voucherData, hmac };
-  
+
+  // 서버 환경 감지
+  const isServer = typeof document === 'undefined';
+
   if (format === 'svg') {
     const [qrCode, barcode] = await Promise.all([
       generateQRCodeSVG(dataWithHmac),
-      Promise.resolve(generateBarcodeSVG(voucherData.serial_no))
+      isServer
+        ? generateBarcodeSVGServer(voucherData.serial_no)
+        : Promise.resolve(generateBarcodeSVG(voucherData.serial_no))
     ]);
-    
+
     return { qrCode, barcode, hmac };
   } else {
     const [qrCode, barcode] = await Promise.all([
       generateQRCodeDataURL(dataWithHmac),
-      Promise.resolve(generateBarcodeDataURL(voucherData.serial_no))
+      isServer
+        ? generateBarcodeDataURLServer(voucherData.serial_no)
+        : Promise.resolve(generateBarcodeDataURL(voucherData.serial_no))
     ]);
-    
+
     return { qrCode, barcode, hmac };
   }
 }

@@ -26,9 +26,6 @@ export default function MobilePage() {
   const [loadingVouchers, setLoadingVouchers] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // 디버깅용 로그
-  console.log('MobilePage 렌더링:', { isLoading, hasUser: !!user, userName: user?.name });
-
   // CSS 애니메이션 추가 (클라이언트 사이드에서만)
   useEffect(() => {
     const styleId = 'mobile-page-spin-animation';

@@ -2,6 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { isValidUserMetadata } from '@/lib/types/auth';
 
+// Supabase Admin 클라이언트 싱글톤
+let supabaseAdminInstance: ReturnType<typeof createClient> | null = null;
+
+function getSupabaseAdmin() {
+  if (!supabaseAdminInstance) {
+    supabaseAdminInstance = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+  return supabaseAdminInstance;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { user_id } = await request.json();
@@ -13,11 +26,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // 서비스 롤 키로 Supabase Admin 클라이언트 생성
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabaseAdmin = getSupabaseAdmin();
 
     // auth.users에서 display_name으로 사용자 검색
     const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
@@ -46,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     const metadata = targetAuthUser.user_metadata;
 
-    // 1. user_metadata에서 is_active 확인 (우선)
+    // user_metadata에서 is_active 확인
     if (isValidUserMetadata(metadata) && metadata.is_active === false) {
       return NextResponse.json({
         success: false,
@@ -56,24 +65,7 @@ export async function POST(request: NextRequest) {
       }, { status: 403 });
     }
 
-    // 2. 폴백: user_profiles에서 추가 정보 조회 (이름, 역할 등)
-    const { data: userProfile, error: profileError } = await supabaseAdmin
-      .from('user_profiles')
-      .select('id, name, user_id, role, site_id, is_active')
-      .eq('user_id', user_id)
-      .maybeSingle();
-
-    // user_profiles가 있고 비활성화 상태면 차단 (폴백)
-    if (userProfile && !userProfile.is_active && !isValidUserMetadata(metadata)) {
-      return NextResponse.json({
-        success: false,
-        message: '비활성화된 사용자입니다.',
-        user_exists: true,
-        is_active: false
-      }, { status: 403 });
-    }
-
-    // 사용자 정보 결정 (user_metadata 우선)
+    // 사용자 정보 결정
     let userName: string;
     let userRole: string;
     let isActive: boolean;
@@ -82,10 +74,6 @@ export async function POST(request: NextRequest) {
       userName = metadata.name;
       userRole = metadata.role;
       isActive = metadata.is_active ?? true;
-    } else if (userProfile) {
-      userName = userProfile.name;
-      userRole = userProfile.role;
-      isActive = userProfile.is_active !== false;
     } else {
       userName = targetAuthUser.user_metadata?.display_name || user_id;
       userRole = 'user';
@@ -105,19 +93,15 @@ export async function POST(request: NextRequest) {
         name: userName,
         role: userRole
       },
-      // 인증 방법 정보
       has_email: hasEmail,
       has_phone: hasPhone,
       email: hasEmail ? targetAuthUser.email : null,
       phone: hasPhone ? targetAuthUser.phone : null,
-      // 권장 인증 방법
       recommended_auth: hasEmail ? 'email' : (hasPhone ? 'sms' : null),
-      // 사용 가능한 인증 방법들
       available_auth_methods: [
         ...(hasEmail ? ['email'] : []),
-        ...(hasPhone && !hasEmail ? ['sms'] : []) // 이메일이 있으면 SMS 차단
+        ...(hasPhone && !hasEmail ? ['sms'] : [])
       ],
-      // 이메일 설정 필요 여부
       needs_email_setup: !hasEmail && hasPhone
     });
 

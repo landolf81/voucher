@@ -143,22 +143,35 @@ export async function GET(request: NextRequest) {
     const siteIds = [...new Set(vouchers.map(v => v.site_id).filter(id => id))];
     const issuerIds = [...new Set(vouchers.map(v => v.issued_by).filter(id => id))];
 
-    const [templatesResult, sitesResult, issuersResult] = await Promise.all([
+    // 발행자 정보를 auth.users에서 조회
+    let issuerMap = new Map<string, { id: string; name: string }>();
+    if (issuerIds.length > 0) {
+      const { data: authUsers } = await supabase.auth.admin.listUsers();
+      if (authUsers?.users) {
+        for (const user of authUsers.users) {
+          if (issuerIds.includes(user.id)) {
+            const metadata = user.user_metadata || {};
+            issuerMap.set(user.id, {
+              id: user.id,
+              name: metadata.name || metadata.display_name || 'Unknown'
+            });
+          }
+        }
+      }
+    }
+
+    const [templatesResult, sitesResult] = await Promise.all([
       templateIds.length > 0
         ? supabase.from('voucher_templates').select('id, voucher_name, voucher_type').in('id', templateIds)
         : Promise.resolve({ data: [], error: null }),
       siteIds.length > 0
         ? supabase.from('sites').select('id, site_name').in('id', siteIds)
-        : Promise.resolve({ data: [], error: null }),
-      issuerIds.length > 0
-        ? supabase.from('user_profiles').select('id, name').in('id', issuerIds)
         : Promise.resolve({ data: [], error: null })
     ]);
 
     // Map으로 변환하여 빠른 조회
     const templateMap = new Map(templatesResult.data?.map(t => [t.id, t]) || []);
     const siteMap = new Map(sitesResult.data?.map(s => [s.id, s]) || []);
-    const issuerMap = new Map(issuersResult.data?.map(u => [u.id, u]) || []);
 
     // Excel 데이터 변환
     const excelData = vouchers.map((voucher: any) => {

@@ -16,6 +16,7 @@
     "@types/jszip": "^3.4.0",
     "@zxing/browser": "^0.1.5",
     "@zxing/library": "^0.21.3",
+    "bwip-js": "^4.8.0",
     "date-fns": "^4.1.0",
     "grapesjs": "^0.22.12",
     "grapesjs-blocks-basic": "^1.0.2",
@@ -37,6 +38,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/bwip-js": "^3.2.3",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.5.4",
     "@types/pdfmake": "^0.2.11",

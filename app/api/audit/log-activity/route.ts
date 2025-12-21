@@ -39,20 +39,13 @@ export async function POST(req: NextRequest) {
       }, { status: 401 });
     }
 
-    // 사용자 프로필 조회
-    const { data: userProfile } = await supabase
-      .from('user_profiles')
-      .select('id, name, site_id')
-      .eq('user_id', session.user.id)
-      .single();
-
-    if (!userProfile) {
-      return NextResponse.json({
-        ok: false,
-        error: 'USER_PROFILE_NOT_FOUND',
-        message: '사용자 프로필을 찾을 수 없습니다.'
-      }, { status: 404 });
-    }
+    // 사용자 메타데이터에서 프로필 정보 추출
+    const userMetadata = session.user.user_metadata || {};
+    const userProfile = {
+      id: session.user.id,
+      name: userMetadata.name || userMetadata.display_name || 'Unknown',
+      site_id: userMetadata.site_id || null
+    };
 
     // IP 주소 추출
     const ipAddress = req.headers.get('x-forwarded-for') || 
@@ -185,16 +178,16 @@ export async function GET(req: NextRequest) {
 
     const supabase = supabaseServer();
 
-    // 기본 쿼리
+    // audit_logs 테이블에서 조회 (activity_summary 대신)
     let query = supabase
-      .from('activity_summary')
-      .select('*')
+      .from('audit_logs')
+      .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
     // 필터 적용
     if (actionType) {
-      query = query.eq('action_type', actionType);
+      query = query.eq('action', actionType);
     }
 
     if (startDate) {

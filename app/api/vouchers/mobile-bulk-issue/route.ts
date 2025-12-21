@@ -83,14 +83,10 @@ export async function POST(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // 사용자 권한 확인
-    const { data: userProfile, error: userError } = await supabase
-      .from('user_profiles')
-      .select('id, role, name')
-      .eq('id', user_id)
-      .single();
+    // 사용자 권한 확인 (auth.users에서 조회)
+    const { data: authUser, error: userError } = await supabase.auth.admin.getUserById(user_id);
 
-    if (userError || !userProfile) {
+    if (userError || !authUser.user) {
       console.error('사용자 조회 오류:', userError);
       return NextResponse.json(
         {
@@ -100,6 +96,13 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    const userMetadata = authUser.user.user_metadata || {};
+    const userProfile = {
+      id: authUser.user.id,
+      role: userMetadata.role || 'user',
+      name: userMetadata.name || userMetadata.display_name || 'Unknown'
+    };
 
     // 템플릿 확인
     const { data: template, error: templateError } = await supabase
@@ -471,8 +474,7 @@ export async function GET(request: NextRequest) {
       .from('mobile_voucher_batches')
       .select(`
         *,
-        voucher_templates(voucher_name, voucher_type),
-        user_profiles(name)
+        voucher_templates(voucher_name, voucher_type)
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });

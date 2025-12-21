@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { formatPhoneForDisplay, formatPhoneInput, cleanPhoneInput, getPhoneValidationMessage } from '@/lib/phone-utils';
+import { formatPhoneForDisplay, formatPhoneInput, cleanPhoneInput, getPhoneValidationMessage, formatPhoneForInput } from '@/lib/phone-utils';
 
 interface User {
   id: string;
@@ -11,7 +11,9 @@ interface User {
   phone_masked: string;
   role: string;
   site_id: string;
+  site_name?: string; // API에서 직접 반환
   user_id: string;
+  display_name?: string;
   is_active: boolean;
   sites?: {
     id: string;
@@ -89,14 +91,33 @@ export function UserManagement() {
       console.log('API 응답 상태:', response.status);
       const result = await response.json();
       console.log('API 응답 데이터:', result);
-      
+
       if (result.success) {
+        if (editingUser) {
+          // 수정: 로컬 상태 업데이트
+          const siteName = sites.find(s => s.id === formData.site_id)?.site_name || '';
+          setUsers(prev => prev.map(u =>
+            u.id === editingUser.id ? {
+              ...u,
+              name: formData.name,
+              email: formData.email,
+              role: formData.role,
+              site_id: formData.site_id,
+              site_name: siteName,
+              user_id: formData.user_id,
+              display_name: formData.user_id,
+              is_active: formData.is_active
+            } : u
+          ));
+        } else {
+          // 등록: 목록 새로고침 (새 사용자 ID 필요)
+          fetchUsers();
+        }
         setMessage({
-          type: 'success', 
+          type: 'success',
           text: editingUser ? '사용자 정보가 수정되었습니다.' : '새 사용자가 등록되었습니다.'
         });
         resetForm();
-        fetchUsers();
       } else {
         setMessage({type: 'error', text: result.message || '처리 중 오류가 발생했습니다.'});
       }
@@ -123,13 +144,16 @@ export function UserManagement() {
   };
 
   const editUser = (user: User) => {
+    // 전화번호를 E.164 형식(+8210...)에서 입력 형식(01012345678)으로 변환
+    const phoneForInput = formatPhoneForInput(user.phone);
+
     setFormData({
       email: user.email,
       name: user.name,
-      phone: user.phone,
+      phone: phoneForInput,
       role: user.role as any,
       site_id: user.site_id,
-      user_id: user.user_id,
+      user_id: user.user_id || user.display_name || '',
       is_active: user.is_active
     });
     setEditingUser(user);
@@ -146,11 +170,14 @@ export function UserManagement() {
 
       const result = await response.json();
       if (result.success) {
+        // 로컬 상태 업데이트 (API 재호출 방지)
+        setUsers(prev => prev.map(u =>
+          u.id === userId ? { ...u, is_active: !currentStatus } : u
+        ));
         setMessage({
           type: 'success',
           text: `사용자가 ${!currentStatus ? '활성화' : '비활성화'}되었습니다.`
         });
-        fetchUsers();
       } else {
         setMessage({type: 'error', text: result.message});
       }
@@ -171,8 +198,9 @@ export function UserManagement() {
 
       const result = await response.json();
       if (result.success) {
+        // 로컬 상태 업데이트 (API 재호출 방지)
+        setUsers(prev => prev.filter(u => u.id !== userId));
         setMessage({type: 'success', text: '사용자가 삭제되었습니다.'});
-        fetchUsers();
       } else {
         setMessage({type: 'error', text: result.message});
       }
@@ -540,8 +568,8 @@ export function UserManagement() {
                            user.role === 'viewer' ? '조회만' : '아르바이트'}
                         </span>
                       </td>
-                      <td style={{ padding: '16px', fontSize: '14px', color: '#1a202c' }}>{user.sites?.site_name || '-'}</td>
-                      <td style={{ padding: '16px', fontSize: '14px', color: '#1a202c' }}>{user.user_id}</td>
+                      <td style={{ padding: '16px', fontSize: '14px', color: '#1a202c' }}>{user.site_name || user.sites?.site_name || '-'}</td>
+                      <td style={{ padding: '16px', fontSize: '14px', color: '#1a202c' }}>{user.user_id || user.display_name || '-'}</td>
                       <td style={{ padding: '16px', fontSize: '14px' }}>
                         <span style={{
                           padding: '4px 8px',

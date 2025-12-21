@@ -1,5 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+import { isValidUserMetadata } from '@/lib/types/auth';
+
+// Supabase Admin 클라이언트 싱글톤
+let supabaseAdminInstance: ReturnType<typeof createClient> | null = null;
+
+function getSupabaseAdmin() {
+  if (!supabaseAdminInstance) {
+    supabaseAdminInstance = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+  return supabaseAdminInstance;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,11 +26,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create Supabase client
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = getSupabaseAdmin();
 
     // 1. auth.users에서 사용자 정보 확인
     const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(authUserId);
@@ -29,54 +39,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. 이미 연동된 프로필이 있는지 확인
-    const { data: existingProfile, error: profileError } = await supabase
-      .from('user_profiles')
-      .select(`
-        id,
-        name,
-        email,
-        phone,
-        role,
-        site_id,
-        is_active,
-        oauth_provider,
-        oauth_provider_id,
-        oauth_linked_at,
-        sites (
-          id,
-          site_name
-        )
-      `)
-      .or(`id.eq.${authUserId},oauth_provider_id.eq.${authUserId}`)
-      .eq('is_active', true)
-      .maybeSingle();
+    const metadata = authUser.user.user_metadata || {};
 
-    if (profileError && profileError.code !== 'PGRST116') { // PGRST116은 "not found" 에러
-      console.error('프로필 조회 오류:', profileError);
-      return NextResponse.json(
-        { success: false, message: '프로필 조회 중 오류가 발생했습니다.' },
-        { status: 500 }
-      );
-    }
+    // 2. user_metadata에서 프로필 정보 확인
+    if (isValidUserMetadata(metadata) && metadata.is_active !== false) {
+      // 프로필이 있음
+      const { data: site } = await supabase
+        .from('sites')
+        .select('site_name')
+        .eq('id', metadata.site_id)
+        .single();
 
-    if (existingProfile) {
-      // 이미 연동된 계정이 있음
       return NextResponse.json({
         success: true,
         linking_required: false,
         user_profile: {
-          id: existingProfile.id,
-          name: existingProfile.name,
-          email: existingProfile.email,
-          phone: existingProfile.phone,
-          role: existingProfile.role,
-          site_id: existingProfile.site_id,
-          site_name: existingProfile.sites?.site_name,
-          is_active: existingProfile.is_active,
-          oauth_provider: existingProfile.oauth_provider,
-          oauth_provider_id: existingProfile.oauth_provider_id,
-          oauth_linked_at: existingProfile.oauth_linked_at
+          id: authUser.user.id,
+          name: metadata.name,
+          email: authUser.user.email,
+          phone: authUser.user.phone,
+          role: metadata.role,
+          site_id: metadata.site_id,
+          site_name: (site as { site_name: string } | null)?.site_name,
+          is_active: metadata.is_active ?? true,
+          oauth_provider: metadata.oauth_provider,
+          oauth_provider_id: metadata.oauth_provider_id,
+          oauth_linked_at: metadata.oauth_linked_at
         }
       });
     } else {

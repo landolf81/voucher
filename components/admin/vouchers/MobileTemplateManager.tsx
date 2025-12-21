@@ -177,7 +177,17 @@ export function MobileTemplateManager() {
     try {
       const requestData = {
         template_id: selectedTemplate,
-        ...formData
+        name: formData.name,
+        description: formData.description || null,
+        background_color: formData.background_color,
+        text_color: formData.text_color,
+        accent_color: formData.accent_color,
+        font_family: formData.font_family,
+        width: formData.width,
+        height: formData.height,
+        background_image_url: formData.background_image_url || null,
+        qr_background_image: formData.qr_background_image || null,
+        template_config: formData.template_config
       };
 
       const response = await fetch('/api/mobile-templates', {

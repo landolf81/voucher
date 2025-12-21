@@ -62,23 +62,30 @@ export async function POST(req: NextRequest) {
           .eq('status', 'issued');
         break;
       case 'user_id':
-        // user_id로 검색하는 경우, user_profiles를 통해 해당 사용자의 교환권들을 찾음
-        const { data: userProfile } = await supabase
-          .from('user_profiles')
-          .select('name')
-          .eq('user_id', trimmedTerm)
-          .maybeSingle();
-        
-        if (!userProfile) {
-          return NextResponse.json({ 
-            ok: false, 
+        // user_id로 검색하는 경우, auth.users를 통해 해당 사용자의 교환권들을 찾음
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseAdmin = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+
+        const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
+        const targetUser = authUsers?.users.find(user => {
+          const displayName = user.user_metadata?.display_name || user.user_metadata?.user_id;
+          return displayName === trimmedTerm;
+        });
+
+        if (!targetUser) {
+          return NextResponse.json({
+            ok: false,
             error: "USER_NOT_FOUND",
             message: "해당 사용자 ID를 찾을 수 없습니다."
           }, { status: 404 });
         }
-        
+
+        const userName = targetUser.user_metadata?.name || targetUser.user_metadata?.display_name || trimmedTerm;
         // 사용자 이름으로 교환권 검색
-        query = query.eq('name', userProfile.name);
+        query = query.eq('name', userName);
         break;
     }
 
