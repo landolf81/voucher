@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "mcp__supabase-community-supabase-mcp__get_project",
+      "mcp__supabase-community-supabase-mcp__get_advisors",
+      "mcp__supabase-community-supabase-mcp__get_logs",
+      "Bash(rm:*)",
+      "Bash(curl:*)",
+      "mcp__microsoft-playwright-mcp__browser_navigate",
+      "Bash(psql:*)",
+      "Bash(npm run typecheck:*)",
+      "mcp__wonderwhy-er-desktop-commander__list_processes",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Read(c:\\Users\\lando\\Downloads/**)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :3000)",
+      "Bash(powershell -Command:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm install)",
+      "Bash(npm cache clean:*)",
+      "Bash(npm install:*)",
+      "Bash(yarn install)",
+      "Bash(yarn install:*)",
+      "Bash(yarn build)",
+      "Bash(yarn dev)",
+      "Bash(git rm:*)",
+      "Bash(yarn add:*)",
+      "Bash(taskkill:*)",
+      "Read(//Users/jeongbyeong-geun/Library/**)",
+      "Bash(git pull:*)",
+      "Bash(npm audit fix:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)"
+    ],
+    "defaultMode": "acceptEdits"
+  }
+}

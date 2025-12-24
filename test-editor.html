@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unlayer Editor Test</title>
+    <script src="https://editor.unlayer.com/embed.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        #editor-container {
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="editor-container"></div>
+    
+    <script>
+        unlayer.init({
+            id: 'editor-container',
+            projectId: 1234,
+            displayMode: 'email',
+            locale: 'ko-KR',
+            appearance: {
+                theme: 'light',
+                panels: {
+                    tools: {
+                        dock: 'left'
+                    }
+                }
+            },
+            features: {
+                stockImages: true
+            },
+            tools: {
+                form: {
+                    enabled: false
+                }
+            }
+        });
+
+        // 에디터가 준비되면
+        unlayer.addEventListener('design:loaded', function() {
+            console.log('에디터 로드 완료');
+            
+            // 캔버스 크기 조정
+            setTimeout(() => {
+                const container = document.querySelector('.blockbuilder-canvas-container');
+                if (container) {
+                    container.style.minHeight = '85vh';
+                    container.style.padding = '60px';
+                    console.log('캔버스 크기 조정 완료');
+                }
+            }, 1000);
+        });
+
+        // 기본 템플릿 로드
+        unlayer.loadDesign({
+            body: {
+                rows: [{
+                    cells: [1],
+                    columns: [{
+                        contents: [{
+                            type: 'text',
+                            values: {
+                                text: '<div style="text-align: center; padding: 30px;">교환권 디자인을 시작하세요</div>'
+                            }
+                        }]
+                    }]
+                }]
+            }
+        });
+    </script>
+</body>
+</html>

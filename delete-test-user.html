@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>테스트 사용자 삭제</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        button { margin: 10px; padding: 10px; background: #ef4444; color: white; border: none; cursor: pointer; }
+        .result { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .warning { background-color: #fef2f2; border-color: #fecaca; color: #dc2626; }
+        .success { background-color: #efe; }
+        .info { background-color: #eef; }
+    </style>
+</head>
+<body>
+    <h1>테스트 사용자 삭제 도구</h1>
+    
+    <div class="warning">
+        <h3>⚠️ 경고</h3>
+        <p>이 도구는 Supabase 프로젝트에서 테스트 계정을 완전히 삭제합니다.</p>
+        <p>삭제할 이메일: <strong>landolf@me.com</strong></p>
+        <p>삭제된 계정은 복구할 수 없습니다.</p>
+    </div>
+    
+    <button onclick="deleteTestUser()">landolf@me.com 계정 삭제</button>
+    <button onclick="checkUserExists()">계정 존재 여부 확인</button>
+    
+    <div id="result"></div>
+
+    <script type="module">
+        // Supabase 클라이언트 초기화
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+        
+        // 환경변수는 실제 값으로 교체해야 함 (보안상 여기서는 placeholder)
+        const supabaseUrl = 'YOUR_SUPABASE_URL'
+        const supabaseServiceKey = 'YOUR_SERVICE_ROLE_KEY'  // 서비스 롤 키 필요
+        
+        const supabase = createClient(supabaseUrl, supabaseServiceKey)
+        
+        window.checkUserExists = async function() {
+            try {
+                const { data: { users }, error } = await supabase.auth.admin.listUsers()
+                
+                if (error) {
+                    document.getElementById('result').innerHTML = 
+                        `<div class="warning">오류: ${error.message}</div>`
+                    return
+                }
+                
+                const landolfUser = users.find(user => user.email === 'landolf@me.com')
+                
+                if (landolfUser) {
+                    document.getElementById('result').innerHTML = 
+                        `<div class="info">
+                            <h4>계정 발견:</h4>
+                            <p>ID: ${landolfUser.id}</p>
+                            <p>Email: ${landolfUser.email}</p>
+                            <p>Created: ${landolfUser.created_at}</p>
+                            <p>Email Verified: ${landolfUser.email_confirmed_at ? 'Yes' : 'No'}</p>
+                        </div>`
+                } else {
+                    document.getElementById('result').innerHTML = 
+                        `<div class="success">landolf@me.com 계정이 존재하지 않습니다.</div>`
+                }
+                
+            } catch (error) {
+                document.getElementById('result').innerHTML = 
+                    `<div class="warning">오류: ${error.message}</div>`
+            }
+        }
+        
+        window.deleteTestUser = async function() {
+            if (!confirm('정말로 landolf@me.com 계정을 삭제하시겠습니까?')) {
+                return
+            }
+            
+            try {
+                // 1. 먼저 사용자 찾기
+                const { data: { users }, error: listError } = await supabase.auth.admin.listUsers()
+                
+                if (listError) {
+                    document.getElementById('result').innerHTML = 
+                        `<div class="warning">사용자 목록 조회 오류: ${listError.message}</div>`
+                    return
+                }
+                
+                const landolfUser = users.find(user => user.email === 'landolf@me.com')
+                
+                if (!landolfUser) {
+                    document.getElementById('result').innerHTML = 
+                        `<div class="info">landolf@me.com 계정이 존재하지 않습니다.</div>`
+                    return
+                }
+                
+                // 2. 사용자 삭제
+                const { error: deleteError } = await supabase.auth.admin.deleteUser(landolfUser.id)
+                
+                if (deleteError) {
+                    document.getElementById('result').innerHTML = 
+                        `<div class="warning">삭제 오류: ${deleteError.message}</div>`
+                    return
+                }
+                
+                document.getElementById('result').innerHTML = 
+                    `<div class="success">
+                        <h4>✅ 계정 삭제 완료</h4>
+                        <p>landolf@me.com (ID: ${landolfUser.id}) 계정이 삭제되었습니다.</p>
+                        <p>이제 브라우저 캐시를 정리하고 다시 로그인해보세요.</p>
+                    </div>`
+                
+            } catch (error) {
+                document.getElementById('result').innerHTML = 
+                    `<div class="warning">오류: ${error.message}</div>`
+            }
+        }
+    </script>
+    
+    <div class="info">
+        <h3>💡 사용 방법</h3>
+        <ol>
+            <li>Supabase 프로젝트 설정에서 서비스 롤 키를 복사</li>
+            <li>이 파일의 JavaScript에서 URL과 키를 실제 값으로 교체</li>
+            <li>"계정 존재 여부 확인" 버튼으로 계정 확인</li>
+            <li>"계정 삭제" 버튼으로 완전 삭제</li>
+        </ol>
+        
+        <h3>🔧 대안 방법 (Supabase 대시보드)</h3>
+        <ol>
+            <li>Supabase 대시보드 → Authentication → Users</li>
+            <li>landolf@me.com 계정 찾기</li>
+            <li>삭제 버튼 클릭</li>
+        </ol>
+    </div>
+</body>
+</html>

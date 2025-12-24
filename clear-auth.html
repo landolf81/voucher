@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>인증 정보 초기화</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <h1>인증 정보 초기화 도구</h1>
+    <button onclick="clearAll()">모든 인증 정보 삭제</button>
+    <div id="result"></div>
+
+    <script>
+        async function clearAll() {
+            try {
+                // LocalStorage 삭제 (sb- 패턴도 추가)
+                const localKeys = Object.keys(localStorage);
+                localKeys.forEach(key => {
+                    if (key.includes('supabase') || key.includes('auth') || key.includes('jwt') || key.includes('sb-')) {
+                        localStorage.removeItem(key);
+                        console.log('Removed from localStorage:', key);
+                    }
+                });
+                
+                // SessionStorage 삭제 (sb- 패턴도 추가)
+                const sessionKeys = Object.keys(sessionStorage);
+                sessionKeys.forEach(key => {
+                    if (key.includes('supabase') || key.includes('auth') || key.includes('jwt') || key.includes('sb-')) {
+                        sessionStorage.removeItem(key);
+                        console.log('Removed from sessionStorage:', key);
+                    }
+                });
+                
+                // IndexedDB 삭제
+                if ('indexedDB' in window) {
+                    try {
+                        const dbs = await indexedDB.databases();
+                        for (const db of dbs) {
+                            if (db.name && (db.name.includes('supabase') || db.name.includes('sb-'))) {
+                                indexedDB.deleteDatabase(db.name);
+                                console.log('Removed IndexedDB:', db.name);
+                            }
+                        }
+                    } catch (e) {
+                        console.log('IndexedDB 정리 건너뜀:', e);
+                    }
+                }
+                
+                // 쿠키 삭제
+                document.cookie.split(";").forEach(function(c) { 
+                    const cookie = c.trim();
+                    if (cookie.includes('jwt') || cookie.includes('auth') || cookie.includes('supabase') || cookie.includes('sb-')) {
+                        document.cookie = cookie.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+                        console.log('Removed cookie:', cookie.split('=')[0]);
+                    }
+                });
+                
+                document.getElementById('result').innerHTML = '<p style="color: green;">✅ 모든 인증 정보가 삭제되었습니다 (localStorage, sessionStorage, IndexedDB, 쿠키). 새로고침 후 다시 로그인하세요.</p>';
+                
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 3000);
+                
+            } catch (error) {
+                document.getElementById('result').innerHTML = '<p style="color: red;">❌ 오류: ' + error.message + '</p>';
+            }
+        }
+    </script>
+</body>
+</html>

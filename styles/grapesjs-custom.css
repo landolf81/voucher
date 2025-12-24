@@ -1,0 +1,489 @@
+/* GrapesJS 커스텀 스타일 */
+
+/* 한글 폰트 설정 */
+.gjs-editor {
+  font-family: 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* 로딩 애니메이션 */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 블록 매니저 스타일 */
+.gjs-blocks-c {
+  padding: 0;
+}
+
+.gjs-block {
+  width: 100%;
+  min-height: auto;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: move;
+  transition: all 0.2s ease;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.gjs-block::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #3b82f6, #10b981, #f59e0b, #ef4444);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.gjs-block:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+  border-color: #3b82f6;
+}
+
+.gjs-block:hover::before {
+  opacity: 1;
+}
+
+.gjs-block-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gjs-block-label::before {
+  content: '⋮⋮';
+  color: #9ca3af;
+  font-size: 10px;
+}
+
+/* 카테고리 스타일 */
+.gjs-block-category {
+  font-weight: 700;
+  text-transform: none;
+  padding: 12px 16px;
+  margin: 20px 0 12px 0;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  border-radius: 8px;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.gjs-block-category::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+  pointer-events: none;
+}
+
+.gjs-block-category:first-child {
+  margin-top: 0;
+}
+
+/* 캔버스 스타일 */
+.gjs-cv-canvas {
+  background: 
+    radial-gradient(circle at 25px 25px, #e5e7eb 2px, transparent 2px),
+    radial-gradient(circle at 75px 75px, #e5e7eb 2px, transparent 2px);
+  background-size: 50px 50px;
+  background-color: #f9fafb;
+  box-shadow: 
+    0 0 0 1px rgba(0,0,0,0.05),
+    0 4px 20px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  margin: 16px;
+}
+
+.gjs-frame {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+  border: 1px solid #e5e7eb;
+}
+
+/* 캔버스 가이드 라인 */
+.gjs-cv-canvas::before {
+  content: '✨ 여기에 블록을 드래그하여 디자인을 시작하세요';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #9ca3af;
+  font-size: 16px;
+  font-weight: 500;
+  pointer-events: none;
+  z-index: 1;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* 캔버스 내의 모든 요소들 */
+#gjs .gjs-cv-canvas * {
+  box-sizing: border-box;
+}
+
+/* 드롭 존 스타일 */
+.gjs-dnd-over {
+  border: 2px dashed #3b82f6 !important;
+  background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+/* 툴바 스타일 */
+.gjs-toolbar {
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.gjs-toolbar-item {
+  padding: 5px 8px;
+  margin: 2px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+/* 패널 스타일 */
+.gjs-pn-panel {
+  background-color: transparent;
+}
+
+.gjs-pn-btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  margin: 2px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.gjs-pn-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  transition: left 0.5s ease;
+}
+
+.gjs-pn-btn:hover {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  border-color: #3b82f6;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.gjs-pn-btn:hover::before {
+  left: 100%;
+}
+
+.gjs-pn-btn.gjs-pn-active {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  border-color: #1d4ed8;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+/* 레이어 매니저 스타일 */
+.gjs-layer {
+  font-size: 13px;
+  padding: 5px 10px;
+}
+
+.gjs-layer-title {
+  font-weight: 500;
+}
+
+/* 스타일 매니저 스타일 */
+.gjs-sm-sector {
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 10px;
+}
+
+.gjs-sm-sector-title {
+  background-color: #f9fafb;
+  padding: 8px 10px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.gjs-sm-property {
+  font-size: 12px;
+  padding: 5px 10px;
+}
+
+.gjs-sm-label {
+  font-weight: 500;
+  color: #374151;
+}
+
+/* 트레이트 매니저 스타일 */
+.gjs-trt-trait {
+  margin-bottom: 8px;
+  padding: 5px 10px;
+}
+
+.gjs-trt-trait-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.gjs-trt-trait input,
+.gjs-trt-trait select {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.gjs-trt-trait input:focus,
+.gjs-trt-trait select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+/* 선택된 요소 스타일 */
+.gjs-selected {
+  outline: 2px solid #3b82f6 !important;
+  outline-offset: 2px;
+  box-shadow: 
+    0 0 0 4px rgba(59, 130, 246, 0.1) !important,
+    0 4px 12px rgba(59, 130, 246, 0.3) !important;
+  position: relative;
+}
+
+.gjs-selected::after {
+  content: '✨ 선택됨';
+  position: absolute;
+  top: -28px;
+  left: 0;
+  background: #3b82f6;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.gjs-hovered {
+  outline: 2px dashed #60a5fa !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.1) !important;
+}
+
+/* 드래그 중 스타일 */
+.gjs-draged {
+  opacity: 0.5;
+}
+
+/* 교환권 필드 블록 스타일 */
+[data-field] {
+  position: relative;
+  cursor: move;
+  transition: all 0.2s ease;
+  resize: both;
+  overflow: auto;
+}
+
+[data-field]:hover {
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  transform: translateY(-2px);
+  border-color: #2563eb !important;
+}
+
+/* 인라인 블록 요소들이 크기 조정 가능하도록 */
+.gjs-cv-canvas [data-field] {
+  min-width: 40px;
+  min-height: 20px;
+  resize: both;
+  overflow: hidden;
+}
+
+.gjs-selected[data-field] {
+  outline: 2px solid #3b82f6 !important;
+  outline-offset: 2px;
+}
+
+/* 드래그 가능한 요소 개선 */
+.gjs-draged {
+  opacity: 0.7;
+  transform: rotate(2deg);
+}
+
+/* 인라인 블록 요소들의 크기 조정 핸들 */
+.gjs-resizer {
+  border: 2px solid #3b82f6;
+  background: white;
+  width: 8px;
+  height: 8px;
+}
+
+.gjs-resizer:hover {
+  background: #3b82f6;
+  transform: scale(1.2);
+}
+
+/* 크기 조정 핸들들 개선 */
+.gjs-resizer-tl, .gjs-resizer-tr, .gjs-resizer-bl, .gjs-resizer-br {
+  width: 8px;
+  height: 8px;
+  border: 2px solid #3b82f6;
+  background: white;
+  border-radius: 50%;
+}
+
+/* 드래그 가능한 블록들의 개선된 시각적 피드백 */
+.gjs-dnd-over [data-field] {
+  border-color: #10b981 !important;
+  background-color: rgba(16, 185, 129, 0.1) !important;
+}
+
+/* QR 코드 및 바코드 플레이스홀더 */
+[data-field="qr_code"],
+[data-field="barcode"] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f3f4f6;
+  border: 2px dashed #9ca3af;
+}
+
+/* 모달 스타일 */
+.gjs-mdl-dialog {
+  border-radius: 8px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.gjs-mdl-title {
+  font-size: 16px;
+  font-weight: 600;
+  padding: 12px 16px;
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.gjs-mdl-content {
+  padding: 16px;
+}
+
+/* 버튼 스타일 */
+.gjs-btn-prim {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.gjs-btn-prim:hover {
+  background-color: #2563eb;
+}
+
+/* 입력 필드 스타일 */
+.gjs-field {
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 14px;
+}
+
+.gjs-field:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* 컨텍스트 메뉴 스타일 */
+.gjs-context-menu {
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  padding: 4px 0;
+}
+
+.gjs-context-menu-item {
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.gjs-context-menu-item:hover {
+  background-color: #f3f4f6;
+}
+
+/* 리사이즈 핸들 스타일 */
+.gjs-resizer-h {
+  background-color: #3b82f6;
+  opacity: 0.3;
+}
+
+.gjs-resizer-h:hover {
+  opacity: 0.8;
+}
+
+/* 스크롤바 스타일 */
+.gjs-blocks-c::-webkit-scrollbar,
+.gjs-layers::-webkit-scrollbar,
+.gjs-styles-c::-webkit-scrollbar {
+  width: 6px;
+}
+
+.gjs-blocks-c::-webkit-scrollbar-track,
+.gjs-layers::-webkit-scrollbar-track,
+.gjs-styles-c::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.gjs-blocks-c::-webkit-scrollbar-thumb,
+.gjs-layers::-webkit-scrollbar-thumb,
+.gjs-styles-c::-webkit-scrollbar-thumb {
+  background: #9ca3af;
+  border-radius: 3px;
+}
+
+.gjs-blocks-c::-webkit-scrollbar-thumb:hover,
+.gjs-layers::-webkit-scrollbar-thumb:hover,
+.gjs-styles-c::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}

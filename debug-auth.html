@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>인증 디버그 도구</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        button { margin: 10px; padding: 10px; }
+        .result { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .error { background-color: #fee; }
+        .success { background-color: #efe; }
+        .info { background-color: #eef; }
+    </style>
+</head>
+<body>
+    <h1>인증 디버그 도구</h1>
+    
+    <button onclick="showAllStorage()">모든 저장소 내용 확인</button>
+    <button onclick="clearLandolfSession()">landolf@me.com 세션 제거</button>
+    <button onclick="clearAllAuth()">모든 인증 정보 제거</button>
+    
+    <div id="result"></div>
+
+    <script>
+        function showAllStorage() {
+            let output = '<div class="info"><h3>현재 저장소 상태:</h3>';
+            
+            // localStorage
+            output += '<h4>localStorage:</h4>';
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                if (key.includes('supabase') || key.includes('sb-') || key.includes('auth')) {
+                    output += `<div><strong>${key}:</strong> ${value.substring(0, 100)}...</div>`;
+                }
+            }
+            
+            // sessionStorage
+            output += '<h4>sessionStorage:</h4>';
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                const value = sessionStorage.getItem(key);
+                if (key.includes('supabase') || key.includes('sb-') || key.includes('auth')) {
+                    output += `<div><strong>${key}:</strong> ${value.substring(0, 100)}...</div>`;
+                }
+            }
+            
+            // 쿠키
+            output += '<h4>쿠키:</h4>';
+            document.cookie.split(';').forEach(cookie => {
+                const [name, value] = cookie.trim().split('=');
+                if (name.includes('supabase') || name.includes('sb-') || name.includes('auth')) {
+                    output += `<div><strong>${name}:</strong> ${value}</div>`;
+                }
+            });
+            
+            output += '</div>';
+            document.getElementById('result').innerHTML = output;
+        }
+        
+        async function clearLandolfSession() {
+            let cleared = [];
+            
+            // localStorage에서 landolf 관련 제거
+            const localKeys = Object.keys(localStorage);
+            localKeys.forEach(key => {
+                const value = localStorage.getItem(key);
+                if (value && value.includes('landolf@me.com')) {
+                    localStorage.removeItem(key);
+                    cleared.push(`localStorage: ${key}`);
+                }
+            });
+            
+            // sessionStorage에서 landolf 관련 제거
+            const sessionKeys = Object.keys(sessionStorage);
+            sessionKeys.forEach(key => {
+                const value = sessionStorage.getItem(key);
+                if (value && value.includes('landolf@me.com')) {
+                    sessionStorage.removeItem(key);
+                    cleared.push(`sessionStorage: ${key}`);
+                }
+            });
+            
+            // IndexedDB 체크
+            if ('indexedDB' in window) {
+                try {
+                    const dbs = await indexedDB.databases();
+                    for (const db of dbs) {
+                        if (db.name && (db.name.includes('supabase') || db.name.includes('sb-'))) {
+                            indexedDB.deleteDatabase(db.name);
+                            cleared.push(`IndexedDB: ${db.name}`);
+                        }
+                    }
+                } catch (e) {
+                    cleared.push(`IndexedDB 오류: ${e.message}`);
+                }
+            }
+            
+            const output = cleared.length > 0 ? 
+                `<div class="success">제거된 항목들:<br>${cleared.join('<br>')}</div>` :
+                `<div class="info">landolf@me.com 관련 세션을 찾을 수 없습니다.</div>`;
+                
+            document.getElementById('result').innerHTML = output;
+        }
+        
+        async function clearAllAuth() {
+            let cleared = [];
+            
+            // localStorage 완전 정리
+            const localKeys = Object.keys(localStorage);
+            localKeys.forEach(key => {
+                if (key.includes('supabase') || key.includes('sb-') || key.includes('auth')) {
+                    localStorage.removeItem(key);
+                    cleared.push(`localStorage: ${key}`);
+                }
+            });
+            
+            // sessionStorage 완전 정리
+            const sessionKeys = Object.keys(sessionStorage);
+            sessionKeys.forEach(key => {
+                if (key.includes('supabase') || key.includes('sb-') || key.includes('auth')) {
+                    sessionStorage.removeItem(key);
+                    cleared.push(`sessionStorage: ${key}`);
+                }
+            });
+            
+            // IndexedDB 정리
+            if ('indexedDB' in window) {
+                try {
+                    const dbs = await indexedDB.databases();
+                    for (const db of dbs) {
+                        if (db.name && (db.name.includes('supabase') || db.name.includes('sb-'))) {
+                            indexedDB.deleteDatabase(db.name);
+                            cleared.push(`IndexedDB: ${db.name}`);
+                        }
+                    }
+                } catch (e) {
+                    cleared.push(`IndexedDB 오류: ${e.message}`);
+                }
+            }
+            
+            // 쿠키 정리
+            document.cookie.split(";").forEach(function(c) { 
+                const cookie = c.trim();
+                if (cookie.includes('supabase') || cookie.includes('sb-') || cookie.includes('auth')) {
+                    document.cookie = cookie.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+                    cleared.push(`쿠키: ${cookie.split('=')[0]}`);
+                }
+            });
+            
+            const output = `<div class="success">제거 완료:<br>${cleared.join('<br>')}<br><br>3초 후 로그인 페이지로 이동합니다.</div>`;
+            document.getElementById('result').innerHTML = output;
+            
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 3000);
+        }
+        
+        // 페이지 로드 시 자동으로 저장소 상태 확인
+        window.onload = showAllStorage;
+    </script>
+</body>
+</html>
