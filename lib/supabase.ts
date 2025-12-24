@@ -33,11 +33,17 @@ export const resetSupabaseClient = () => {
   supabaseInstance = null;
 };
 
-// 서버 전용 클라이언트 (기존 함수 유지)
+// 서버 전용 클라이언트 (Service Role Key 사용 - RLS 우회)
 export const supabaseServer = () => {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    }
   );
 };
 
