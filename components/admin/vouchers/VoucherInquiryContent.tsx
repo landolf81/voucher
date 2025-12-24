@@ -106,7 +106,7 @@ export function VoucherInquiryContent() {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '20'
+        limit: '50'
       });
 
       if (searchFilters.serial_no) params.append('serial_no', searchFilters.serial_no);
