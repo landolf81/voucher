@@ -15,8 +15,9 @@ import { SiteManagement } from '@/components/admin/sites/SiteManagement';
 import { UserManagement } from '@/components/admin/users/UserManagement';
 import { MemberManagement } from '@/components/admin/members/MemberManagement';
 import { AssociationManagement } from '@/components/admin/associations/AssociationManagement';
+import { ScheduleCalendar } from '@/components/admin/schedule/ScheduleCalendar';
 
-type MenuType = 'overview' | 'vouchers' | 'usage' | 'inquiry' | 'users' | 'sites' | 'members' | 'associations';
+type MenuType = 'overview' | 'vouchers' | 'usage' | 'inquiry' | 'users' | 'sites' | 'members' | 'associations' | 'schedule';
 
 export default function AdminDashboard() {
   const device = useDevice();
@@ -28,6 +29,7 @@ export default function AdminDashboard() {
   const getMenuItems = () => {
     const allItems = [
       { id: 'overview', label: '대시보드', icon: '📊', roles: ['admin', 'staff', 'viewer'] },
+      { id: 'schedule', label: '일정', icon: '📅', roles: ['admin', 'staff', 'viewer'] },
       { id: 'vouchers', label: '교환권 관리', icon: '🎫', roles: ['admin', 'staff'] },
       { id: 'usage', label: '교환권 사용 등록', icon: '✅', roles: ['admin', 'staff', 'viewer'] },
       { id: 'inquiry', label: '교환권 조회', icon: '🔍', roles: ['admin', 'staff', 'viewer'] },
@@ -48,6 +50,8 @@ export default function AdminDashboard() {
     switch (currentMenu) {
       case 'overview':
         return <OverviewContent />;
+      case 'schedule':
+        return <ScheduleCalendar />;
       case 'vouchers':
         return <VoucherManagement />;
       case 'usage':
