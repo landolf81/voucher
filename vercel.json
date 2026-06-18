@@ -11,9 +11,6 @@
       "memory": 1024
     }
   },
-  "env": {
-    "NODE_ENV": "production"
-  },
   "headers": [
     {
       "source": "/api/(.*)",
@@ -23,6 +20,5 @@
         { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" }
       ]
     }
-  ],
-  "public": true
+  ]
 }
