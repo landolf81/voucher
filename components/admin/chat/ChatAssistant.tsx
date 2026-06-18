@@ -54,9 +54,11 @@ export function ChatAssistant() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
   const messagesRef = useRef<HTMLDivElement>(null);
   const loadOlderRef = useRef<(() => void) | null>(null);
+  const atBottomRef = useRef(true); // 현재 사용자가 맨 아래 근처인지
   // 초기/세션 로드 시 페인트 직전에 맨 아래로 보내 "스크롤 점프"가 안 보이게 하는 플래그
   const pendingScrollBottomRef = useRef(false);
 
@@ -82,10 +84,14 @@ export function ChatAssistant() {
     });
   }, []);
 
-  // 위쪽 근처로 스크롤하면 이전 대화 자동 로드
+  // 위쪽 근처 → 이전 대화 자동 로드, 하단 여부 추적 → "맨 아래로" 버튼 표시
   const handleScroll = useCallback(() => {
     const el = messagesRef.current;
-    if (el && el.scrollTop < 60) loadOlderRef.current?.();
+    if (!el) return;
+    if (el.scrollTop < 60) loadOlderRef.current?.();
+    const atBottom = el.scrollHeight - el.clientHeight - el.scrollTop < 80;
+    atBottomRef.current = atBottom;
+    setShowScrollButton(!atBottom);
   }, []);
 
   // ── 세션 목록 로드 ──────────────────────────────
@@ -265,6 +271,8 @@ export function ChatAssistant() {
     pendingScrollBottomRef.current = false;
     const el = messagesRef.current;
     if (el) el.scrollTop = el.scrollHeight;
+    atBottomRef.current = true;
+    setShowScrollButton(false);
   }, [messages]);
 
   // ── Realtime 구독 ─────────────────────────────
@@ -293,8 +301,13 @@ export function ChatAssistant() {
             }
             return [...prev, row];
           });
-          // 새 메시지 도착 시에만 부드럽게(이미 하단 근처일 때 자연스러움)
-          scrollToBottom(true);
+          // 강제 스크롤 금지: 이미 하단일 때만 따라가고(애니메이션 없이),
+          // 위로 올려둔 상태면 움직이지 않고 "맨 아래로" 버튼만 표시
+          if (atBottomRef.current) {
+            scrollToBottom();
+          } else {
+            setShowScrollButton(true);
+          }
         }
       )
       .subscribe();
@@ -396,6 +409,7 @@ export function ChatAssistant() {
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
+          position: 'relative',
         }}
       >
         {/* 모바일 전용 컨트롤 바 (세션 선택 + 새 대화) */}
@@ -537,6 +551,35 @@ export function ChatAssistant() {
             </p>
           )}
         </div>
+
+        {/* 맨 아래로 이동 버튼 (위로 올려둔 동안만 표시, 강제 스크롤 대신 수동 이동) */}
+        {showScrollButton && (
+          <button
+            onClick={() => {
+              scrollToBottom();
+              atBottomRef.current = true;
+              setShowScrollButton(false);
+            }}
+            aria-label="맨 아래로"
+            style={{
+              position: 'absolute',
+              right: '16px',
+              bottom: '76px',
+              zIndex: 5,
+              width: '40px',
+              height: '40px',
+              borderRadius: '999px',
+              border: '1px solid #e5e7eb',
+              backgroundColor: '#fff',
+              color: '#2563eb',
+              fontSize: '18px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            }}
+          >
+            ↓
+          </button>
+        )}
 
         {/* 입력창 */}
         <div style={{ borderTop: '1px solid #e5e7eb', padding: '12px', display: 'flex', gap: '8px' }}>
