@@ -11,7 +11,7 @@
  * 내부 운영 도구(admin/staff)용. 자세한 백엔드 구성은 docs/hermes-chat-setup.md 참고.
  */
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
 import { getSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useDevice } from '@/lib/hooks/useDevice';
@@ -57,6 +57,8 @@ export function ChatAssistant() {
 
   const messagesRef = useRef<HTMLDivElement>(null);
   const loadOlderRef = useRef<(() => void) | null>(null);
+  // 초기/세션 로드 시 페인트 직전에 맨 아래로 보내 "스크롤 점프"가 안 보이게 하는 플래그
+  const pendingScrollBottomRef = useRef(false);
 
   // 마지막 user 메시지가 아직 답변되지 않았으면 대기 상태
   const waiting = (() => {
@@ -121,10 +123,10 @@ export function ChatAssistant() {
       }
       const rows = ((data as unknown as ChatMessage[]) || []).slice().reverse();
       setHasMore(rows.length === PAGE_SIZE);
+      pendingScrollBottomRef.current = true; // 페인트 직전에 하단 고정 (아래 useLayoutEffect)
       setMessages(rows);
-      scrollToBottom();
     },
-    [supabase, scrollToBottom]
+    [supabase]
   );
 
   // 위로 스크롤 시 이전 대화 더 불러오기 (스크롤 위치 보존)
@@ -256,6 +258,14 @@ export function ChatAssistant() {
   useEffect(() => {
     if (activeSessionId) loadMessages(activeSessionId);
   }, [activeSessionId, loadMessages]);
+
+  // 초기/세션 로드로 메시지가 바뀌면 "페인트 직전"에 하단으로 고정 → 점프가 안 보임
+  useLayoutEffect(() => {
+    if (!pendingScrollBottomRef.current) return;
+    pendingScrollBottomRef.current = false;
+    const el = messagesRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages]);
 
   // ── Realtime 구독 ─────────────────────────────
   useEffect(() => {
