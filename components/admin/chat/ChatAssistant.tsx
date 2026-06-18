@@ -51,7 +51,7 @@ export function ChatAssistant() {
   const [sending, setSending] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
 
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
 
   // 마지막 user 메시지가 아직 답변되지 않았으면 대기 상태
   const waiting = (() => {
@@ -65,8 +65,14 @@ export function ChatAssistant() {
     return last?.role === 'user' && last.status === 'error';
   })();
 
-  const scrollToBottom = useCallback(() => {
-    requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }));
+  // 메시지 컨테이너만 직접 맨 아래로 스크롤. 기본은 즉시(instant) — smooth 는
+  // 페이지 전체를 애니메이션으로 끌어당겨 "확 도는" 현상을 유발하므로 새 메시지에만 옵션 사용.
+  const scrollToBottom = useCallback((smooth = false) => {
+    requestAnimationFrame(() => {
+      const el = messagesRef.current;
+      if (!el) return;
+      el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+    });
   }, []);
 
   // ── 세션 목록 로드 ──────────────────────────────
@@ -223,7 +229,8 @@ export function ChatAssistant() {
             }
             return [...prev, row];
           });
-          scrollToBottom();
+          // 새 메시지 도착 시에만 부드럽게(이미 하단 근처일 때 자연스러움)
+          scrollToBottom(true);
         }
       )
       .subscribe();
@@ -382,7 +389,7 @@ export function ChatAssistant() {
         )}
 
         {/* 메시지 목록 */}
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: isMobile ? '14px' : '20px' }}>
+        <div ref={messagesRef} style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: isMobile ? '14px' : '20px' }}>
           {loadingMessages ? (
             <p style={{ color: '#9ca3af', textAlign: 'center' }}>불러오는 중…</p>
           ) : messages.length === 0 ? (
@@ -440,8 +447,6 @@ export function ChatAssistant() {
               ⚠️ 응답 처리에 실패했습니다. 릴레이/Hermes 서버 상태를 확인하세요.
             </p>
           )}
-
-          <div ref={bottomRef} />
         </div>
 
         {/* 입력창 */}
