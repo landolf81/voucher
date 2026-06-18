@@ -351,7 +351,7 @@ export function ChatAssistant() {
                 padding: '8px 10px',
                 border: '1px solid #d1d5db',
                 borderRadius: '8px',
-                fontSize: '14px',
+                fontSize: '16px',
                 backgroundColor: '#fff',
               }}
             >
@@ -463,7 +463,8 @@ export function ChatAssistant() {
               padding: '10px 12px',
               border: '1px solid #d1d5db',
               borderRadius: '8px',
-              fontSize: '14px',
+              // iOS는 16px 미만 입력 포커스 시 자동 줌인 → 모바일은 16px로 고정해 확대 방지
+              fontSize: isMobile ? '16px' : '14px',
               fontFamily: 'inherit',
               lineHeight: 1.5,
               maxHeight: '120px',
