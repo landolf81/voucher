@@ -22,7 +22,9 @@ export default function ChatHomePage() {
     <AdminRoute>
       <div
         style={{
-          height: '100vh',
+          // 모바일 주소창/하단바를 제외한 실제 보이는 높이(dvh)로 맞춰 입력창이 가려지지 않게 함
+          height: '100dvh',
+          maxHeight: '100dvh',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -33,7 +35,7 @@ export default function ChatHomePage() {
         <header
           style={{
             flexShrink: 0,
-            height: '64px',
+            height: isMobile ? '52px' : '64px',
             backgroundColor: '#fff',
             borderBottom: '1px solid #e2e8f0',
             display: 'flex',
