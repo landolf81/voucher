@@ -2,12 +2,10 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useDevice } from '@/lib/hooks/useDevice';
 import { useAuth } from '@/lib/contexts/AuthContext';
 
 export default function Home() {
   const router = useRouter();
-  const device = useDevice();
   const { user, isLoading } = useAuth();
 
   useEffect(() => {
@@ -16,18 +14,14 @@ export default function Home() {
     
     // 사용자가 로그인된 경우
     if (user) {
-      if (device.isMobile) {
-        // 모바일에서는 모바일 전용 페이지로
-        router.replace('/mobile');
-      } else {
-        // 데스크탑에서는 메인 화면(AI 챗봇)으로 — 관리 기능은 /admin/dashboard
-        router.replace('/chat');
-      }
+      // 데스크탑·모바일 모두 기본 진입은 메인 화면(AI 챗봇)
+      // (모바일 스캔/메뉴는 챗 헤더의 "← 메뉴"로, 데스크탑 관리 기능은 /admin/dashboard)
+      router.replace('/chat');
     } else {
       // 로그인되지 않은 경우 로그인 페이지로
       router.replace('/login');
     }
-  }, [router, device.isMobile, user, isLoading]);
+  }, [router, user, isLoading]);
 
   // 로딩 상태 표시
   if (isLoading) {
