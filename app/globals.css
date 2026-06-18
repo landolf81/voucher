@@ -40,13 +40,12 @@ body {
 }
 
 /* Next.js wrapper elements */
-#__next {
-  min-height: 100%;
-}
-
-body > div {
-  min-height: 100%;
-}
+/*
+ * 제거됨(App Router 잔재): `#__next`는 App Router에 존재하지 않고,
+ * `body > div { min-height: 100% }`는 body 직속 div(포털/빈 래퍼 포함)를
+ * 강제로 화면 높이만큼 늘려 스택시켜 페이지 전체가 스크롤되는 버그를 유발함.
+ * 각 페이지는 필요한 높이를 자체적으로(minHeight: 100vh 등) 지정한다.
+ */
 
 /* Select and option 기본 스타일 */
 select {

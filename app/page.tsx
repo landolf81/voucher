@@ -20,8 +20,8 @@ export default function Home() {
         // 모바일에서는 모바일 전용 페이지로
         router.replace('/mobile');
       } else {
-        // 데스크탑에서는 관리자 대시보드로
-        router.replace('/admin/dashboard');
+        // 데스크탑에서는 메인 화면(AI 챗봇)으로 — 관리 기능은 /admin/dashboard
+        router.replace('/chat');
       }
     } else {
       // 로그인되지 않은 경우 로그인 페이지로

@@ -236,7 +236,7 @@ export function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
 
   // 이미 로그인한 경우 기본 페이지로 리다이렉트
   if (isAuthenticated && user) {
-    window.location.href = user.role === 'admin' ? '/admin/dashboard' : '/scan';
+    window.location.href = user.role === 'admin' ? '/chat' : '/scan';
     return null;
   }
 

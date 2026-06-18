@@ -190,7 +190,7 @@ export default function LoginPage() {
         userAgent: device.userAgent 
       });
       
-      const redirectUrl = device.isMobile ? '/mobile' : '/admin/dashboard';
+      const redirectUrl = device.isMobile ? '/mobile' : '/chat';
       console.log('리다이렉션 URL:', redirectUrl);
       
       // Safari에서는 짧은 지연 후 리다이렉션
@@ -413,7 +413,7 @@ export default function LoginPage() {
             console.log('이메일 설정 페이지로 리다이렉션');
             router.push('/profile/email-setup');
           } else {
-            const redirectUrl = device.isMobile ? '/mobile' : '/admin/dashboard';
+            const redirectUrl = device.isMobile ? '/mobile' : '/chat';
             console.log('SMS 인증 후 리다이렉션:', redirectUrl);
             router.push(redirectUrl);
           }

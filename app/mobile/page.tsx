@@ -251,6 +251,31 @@ export default function MobilePage() {
           </button>
         </div>
 
+        {/* AI 어시스턴트 진입 */}
+        <button
+          onClick={() => window.location.href = '/chat'}
+          style={{
+            width: '100%',
+            backgroundColor: '#6366f1',
+            color: 'white',
+            border: 'none',
+            borderRadius: '16px',
+            padding: '18px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '10px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            marginBottom: '20px',
+          }}
+        >
+          <span style={{ fontSize: '24px' }}>🤖</span>
+          <span>AI 업무 어시스턴트</span>
+        </button>
+
         {/* 오늘 사용된 교환권 목록 */}
         <div style={{
           backgroundColor: 'white',

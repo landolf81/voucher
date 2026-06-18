@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useDevice } from '@/lib/hooks/useDevice';
 import { AdminRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/lib/contexts/AuthContext';
@@ -19,6 +20,7 @@ type MenuType = 'overview' | 'vouchers' | 'usage' | 'inquiry' | 'users' | 'sites
 
 export default function AdminDashboard() {
   const device = useDevice();
+  const router = useRouter();
   const { user, logout } = useAuth();
   const [currentMenu, setCurrentMenu] = useState<MenuType>('overview');
 
@@ -105,6 +107,27 @@ export default function AdminDashboard() {
             }}>
               {user?.name} ({user?.role})
             </p>
+            <button
+              onClick={() => router.push('/chat')}
+              style={{
+                marginTop: '16px',
+                width: '100%',
+                padding: '12px',
+                backgroundColor: '#2563eb',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '15px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              🤖 AI 챗봇으로
+            </button>
           </div>
 
           {/* 메뉴 */}
