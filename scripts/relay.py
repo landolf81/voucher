@@ -81,6 +81,54 @@ def set_status(message_id: str, status: str) -> None:
     supabase.table("chat_messages").update({"status": status}).eq("id", message_id).execute()
 
 
+# 세션→사용자 정보 캐시 (admin 조회 반복 방지)
+_user_cache: dict = {}
+
+
+def get_user_label(session_id: str):
+    """세션 소유자(사용자)의 식별 정보 조회 → (user_id, '이름 / 역할 / 소속') 반환."""
+    if session_id in _user_cache:
+        return _user_cache[session_id]
+    uid = None
+    label = None
+    try:
+        s = (
+            supabase.table("chat_sessions")
+            .select("user_id")
+            .eq("id", session_id)
+            .single()
+            .execute()
+        )
+        uid = (s.data or {}).get("user_id")
+        if uid:
+            # service_role 키라야 admin 조회 가능
+            ures = supabase.auth.admin.get_user_by_id(uid)
+            meta = (ures.user.user_metadata or {}) if ures and ures.user else {}
+            name = meta.get("name") or meta.get("display_name") or "이름미상"
+            role = meta.get("role") or ""
+            site_id = meta.get("site_id")
+            site_name = ""
+            if site_id:
+                site = (
+                    supabase.table("sites")
+                    .select("site_name")
+                    .eq("id", site_id)
+                    .single()
+                    .execute()
+                )
+                site_name = (site.data or {}).get("site_name", "") if site.data else ""
+            parts = [name]
+            if role:
+                parts.append(f"역할:{role}")
+            if site_name:
+                parts.append(f"소속:{site_name}")
+            label = " / ".join(parts)
+    except Exception as e:  # noqa: BLE001
+        print(f"사용자 정보 조회 실패: {e}")
+    _user_cache[session_id] = (uid, label)
+    return uid, label
+
+
 def build_context(session_id: str, current_content: str) -> list:
     """이전 완료 메시지 + 현재 질문으로 OpenAI 형식 messages 구성."""
     history = (
@@ -92,7 +140,18 @@ def build_context(session_id: str, current_content: str) -> list:
         .execute()
     )
 
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    # system 프롬프트에 "누가 대화 중인지" 주입 + user_id 로 사용자별 기억/활용 유도
+    system_prompt = SYSTEM_PROMPT
+    uid, label = get_user_label(session_id)
+    if label:
+        system_prompt += (
+            f"\n\n[현재 대화 사용자] {label} (user_id: {uid}).\n"
+            "이 사용자를 인지하고 호칭/맥락에 반영해 응대하라. "
+            "사용자별로 기억할 정보(선호, 진행 중 업무, 과거 요청 등)가 생기면 "
+            "이 user_id를 키로 메모리/노트에 정리해 다음 대화에서 활용하라."
+        )
+
+    messages = [{"role": "system", "content": system_prompt}]
     for m in history.data or []:
         # 안전장치: 빈 내용 스킵
         if m.get("content"):
