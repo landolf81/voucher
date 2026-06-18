@@ -35,6 +35,8 @@ interface ChatSession {
   updated_at: string;
 }
 
+const PAGE_SIZE = 30;
+
 export function ChatAssistant() {
   const supabase = getSupabaseClient();
   // 이 프로젝트의 Supabase 클라이언트는 Database 타입이 없어 insert/update 페이로드가
@@ -50,8 +52,11 @@ export function ChatAssistant() {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const messagesRef = useRef<HTMLDivElement>(null);
+  const loadOlderRef = useRef<(() => void) | null>(null);
 
   // 마지막 user 메시지가 아직 답변되지 않았으면 대기 상태
   const waiting = (() => {
@@ -75,6 +80,12 @@ export function ChatAssistant() {
     });
   }, []);
 
+  // 위쪽 근처로 스크롤하면 이전 대화 자동 로드
+  const handleScroll = useCallback(() => {
+    const el = messagesRef.current;
+    if (el && el.scrollTop < 60) loadOlderRef.current?.();
+  }, []);
+
   // ── 세션 목록 로드 ──────────────────────────────
   const loadSessions = useCallback(async () => {
     if (!user?.id) return;
@@ -93,6 +104,7 @@ export function ChatAssistant() {
   }, [supabase, user?.id]);
 
   // ── 메시지 로드 ────────────────────────────────
+  // 최근 PAGE_SIZE 개만 로드 (최신순으로 가져와 화면엔 시간순으로 표시)
   const loadMessages = useCallback(
     async (sessionId: string) => {
       setLoadingMessages(true);
@@ -100,17 +112,59 @@ export function ChatAssistant() {
         .from('chat_messages')
         .select('*')
         .eq('session_id', sessionId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false })
+        .limit(PAGE_SIZE);
       setLoadingMessages(false);
       if (error) {
         console.error('메시지 로드 실패:', error);
         return;
       }
-      setMessages((data as unknown as ChatMessage[]) || []);
+      const rows = ((data as unknown as ChatMessage[]) || []).slice().reverse();
+      setHasMore(rows.length === PAGE_SIZE);
+      setMessages(rows);
       scrollToBottom();
     },
     [supabase, scrollToBottom]
   );
+
+  // 위로 스크롤 시 이전 대화 더 불러오기 (스크롤 위치 보존)
+  const loadOlder = useCallback(async () => {
+    if (loadingMore || !hasMore || messages.length === 0) return;
+    const oldest = messages[0];
+    setLoadingMore(true);
+    const el = messagesRef.current;
+    const prevScrollHeight = el?.scrollHeight ?? 0;
+    const { data, error } = await db
+      .from('chat_messages')
+      .select('*')
+      .eq('session_id', oldest.session_id)
+      .lt('created_at', oldest.created_at)
+      .order('created_at', { ascending: false })
+      .limit(PAGE_SIZE);
+    setLoadingMore(false);
+    if (error) {
+      console.error('이전 대화 로드 실패:', error);
+      return;
+    }
+    const older = ((data as unknown as ChatMessage[]) || []).slice().reverse();
+    setHasMore(older.length === PAGE_SIZE);
+    if (older.length === 0) return;
+    setMessages((prev) => {
+      const seen = new Set(prev.map((m) => m.id));
+      const merged = [...older.filter((m) => !seen.has(m.id)), ...prev];
+      return merged;
+    });
+    // prepend 후 스크롤 위치를 유지해 화면이 튀지 않게 함
+    requestAnimationFrame(() => {
+      const cur = messagesRef.current;
+      if (cur) cur.scrollTop = cur.scrollHeight - prevScrollHeight;
+    });
+  }, [supabase, loadingMore, hasMore, messages]);
+
+  // 스크롤 핸들러가 항상 최신 loadOlder 를 호출하도록 ref 유지
+  useEffect(() => {
+    loadOlderRef.current = loadOlder;
+  }, [loadOlder]);
 
   // ── 새 대화 생성 ───────────────────────────────
   const createSession = useCallback(async () => {
@@ -240,9 +294,6 @@ export function ChatAssistant() {
     };
   }, [activeSessionId, supabase, scrollToBottom]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages.length, scrollToBottom]);
 
   return (
     <div style={{ display: 'flex', height: '100%', minHeight: 0, gap: isMobile ? 0 : '16px' }}>
@@ -389,7 +440,35 @@ export function ChatAssistant() {
         )}
 
         {/* 메시지 목록 */}
-        <div ref={messagesRef} style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: isMobile ? '14px' : '20px' }}>
+        <div
+          ref={messagesRef}
+          onScroll={handleScroll}
+          style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: isMobile ? '14px' : '20px' }}
+        >
+          {/* 이전 대화 더보기 (위로 스크롤 시 자동 로드 + 수동 버튼) */}
+          {!loadingMessages && messages.length > 0 && (hasMore || loadingMore) && (
+            <div style={{ textAlign: 'center', padding: '4px 0 12px' }}>
+              {loadingMore ? (
+                <span style={{ color: '#9ca3af', fontSize: '13px' }}>이전 대화 불러오는 중…</span>
+              ) : (
+                <button
+                  onClick={() => loadOlder()}
+                  style={{
+                    padding: '6px 14px',
+                    backgroundColor: '#f3f4f6',
+                    color: '#374151',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '999px',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  이전 대화 더보기
+                </button>
+              )}
+            </div>
+          )}
+
           {loadingMessages ? (
             <p style={{ color: '#9ca3af', textAlign: 'center' }}>불러오는 중…</p>
           ) : messages.length === 0 ? (
