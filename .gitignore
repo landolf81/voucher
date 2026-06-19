@@ -54,3 +54,6 @@ Thumbs.db
 # Python
 __pycache__/
 *.pyc
+
+# Hermes relay 런타임 로그 (환경 배너에 키 노출 가능 — 커밋 금지)
+relay.log

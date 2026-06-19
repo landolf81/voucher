@@ -60,6 +60,10 @@ HERMES_KEY = os.environ.get("HERMES_API_KEY", "change-me-local-dev")
 HERMES_MODEL = os.environ.get("HERMES_MODEL", "hermes-agent")
 POLL_INTERVAL = float(os.environ.get("RELAY_POLL_INTERVAL", "2"))
 HERMES_TIMEOUT = int(os.environ.get("HERMES_TIMEOUT", "120"))
+# Hermes 호출이 일시적으로 실패(타임아웃/non-200/연결 끊김)할 때 재시도 횟수와 backoff(초).
+# 최초 1회 + HERMES_RETRIES 회 추가 시도. 모두 실패해야 비로소 'error' 처리.
+HERMES_RETRIES = int(os.environ.get("HERMES_RETRIES", "2"))
+HERMES_RETRY_BACKOFF = float(os.environ.get("HERMES_RETRY_BACKOFF", "3"))
 
 SYSTEM_PROMPT = os.environ.get(
     "HERMES_SYSTEM_PROMPT",
@@ -186,19 +190,38 @@ def poll() -> None:
     try:
         messages = build_context(session_id, msg["content"])
 
-        resp = requests.post(
-            HERMES_API,
-            headers={"Authorization": f"Bearer {HERMES_KEY}"},
-            json={"model": HERMES_MODEL, "messages": messages, "stream": False},
-            timeout=HERMES_TIMEOUT,
-        )
+        # 일시적 실패(타임아웃/non-200/연결 끊김)는 backoff 재시도로 흡수하고,
+        # 모든 시도가 실패했을 때만 'error' 로 둔다.
+        answer = None
+        last_err = None
+        total_attempts = HERMES_RETRIES + 1
+        for attempt in range(1, total_attempts + 1):
+            try:
+                resp = requests.post(
+                    HERMES_API,
+                    headers={"Authorization": f"Bearer {HERMES_KEY}"},
+                    json={"model": HERMES_MODEL, "messages": messages, "stream": False},
+                    timeout=HERMES_TIMEOUT,
+                )
+                if resp.status_code == 200:
+                    answer = resp.json()["choices"][0]["message"]["content"]
+                    break
+                last_err = f"HTTP {resp.status_code}: {resp.text[:200]}"
+            except Exception as e:  # noqa: BLE001  (타임아웃/연결오류 등)
+                last_err = repr(e)
 
-        if resp.status_code != 200:
-            print(f"✗ Hermes 오류 {resp.status_code}: {resp.text[:200]}")
+            if attempt < total_attempts:
+                wait = HERMES_RETRY_BACKOFF * attempt
+                print(
+                    f"✗ Hermes 실패(시도 {attempt}/{total_attempts}): {last_err} "
+                    f"— {wait:.0f}s 후 재시도"
+                )
+                time.sleep(wait)
+
+        if answer is None:
+            print(f"✗ Hermes 최종 실패({total_attempts}회): {last_err}")
             set_status(msg_id, "error")
             return
-
-        answer = resp.json()["choices"][0]["message"]["content"]
 
         supabase.table("chat_messages").insert(
             {
