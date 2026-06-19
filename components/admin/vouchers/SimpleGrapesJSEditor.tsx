@@ -41,10 +41,10 @@ export function SimpleGrapesJSEditor({
             resizable: {
               maxDim: 350,
               minDim: 200,
-              tc: 0,
-              cl: 1,
-              cr: 0,
-              bc: 0,
+              tc: false,
+              cl: true,
+              cr: false,
+              bc: false,
               keyWidth: 'flex-basis',
             },
           },
@@ -54,10 +54,10 @@ export function SimpleGrapesJSEditor({
             resizable: {
               maxDim: 350,
               minDim: 200,
-              tc: 0,
-              cl: 1,
-              cr: 0,
-              bc: 0,
+              tc: false,
+              cl: true,
+              cr: false,
+              bc: false,
               keyWidth: 'flex-basis',
             },
           },
@@ -67,10 +67,10 @@ export function SimpleGrapesJSEditor({
             resizable: {
               maxDim: 350,
               minDim: 200,
-              tc: 0,
-              cl: 1,
-              cr: 0,
-              bc: 0,
+              tc: false,
+              cl: true,
+              cr: false,
+              bc: false,
               keyWidth: 'flex-basis',
             },
           },
@@ -181,7 +181,7 @@ export function SimpleGrapesJSEditor({
     // 배경 이미지 설정
     if (imageUrl) {
       const wrapper = gjsEditor.getWrapper();
-      wrapper.setStyle({
+      wrapper?.setStyle({
         'background-image': `url(${imageUrl})`,
         'background-size': 'cover',
         'background-position': 'center',

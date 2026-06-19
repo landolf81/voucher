@@ -15,11 +15,10 @@ const nextConfig = {
   },
   trailingSlash: false,
   typescript: {
-    ignoreBuildErrors: true,
+    // 타입 에러를 빌드에서 차단 (typecheck 통과 상태 유지). 끄지 말 것.
+    ignoreBuildErrors: false,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // Next 16부터 next.config의 eslint 키 미지원(빌드 시 lint 실행 안 함). lint는 `npm run lint`로 별도 실행.
   // 이미지 최적화
   images: {
     formats: ['image/avif', 'image/webp'],
@@ -30,7 +29,10 @@ const nextConfig = {
     removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
   },
   // Turbopack 설정 (Next.js 16 기본)
-  turbopack: {},
+  // 상위 폴더의 고아 lockfile로 인한 워크스페이스 루트 오추론 방지 - 루트를 이 프로젝트로 고정
+  turbopack: {
+    root: __dirname,
+  },
   // Webpack 최적화 (프로덕션 빌드용 - Turbopack과 함께 사용 가능)
   webpack: (config, { dev, isServer }) => {
     // 개발 모드에서는 Turbopack 사용, 프로덕션 빌드에서만 webpack 사용

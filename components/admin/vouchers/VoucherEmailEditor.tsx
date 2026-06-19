@@ -3,6 +3,9 @@
 import React, { useRef, useState, useEffect } from 'react';
 import EmailEditor, { EditorRef } from 'react-email-editor';
 
+// react-email-editor의 forwardRef 타입이 React 19 타입과 충돌하여 any로 별칭 처리
+const AnyEmailEditor: any = EmailEditor;
+
 interface VoucherEmailEditorProps {
   templateId?: string;
   onSave?: (data: any) => void;
@@ -31,7 +34,7 @@ export function VoucherEmailEditor({
       
       // 좌측 도구 패널 강제 표시
       try {
-        unlayer.showPanel('tools');
+        (unlayer as any).showPanel('tools');
         console.log('좌측 도구 패널 표시 완료');
       } catch (error) {
         console.log('패널 표시 중 오류:', error);
@@ -55,7 +58,7 @@ export function VoucherEmailEditor({
                 }]
               }]
             }
-          });
+          } as any);
         } catch (error) {
           console.error('❌ 기본 템플릿 로드 실패:', error);
           alert('에디터 초기화에 실패했습니다. 페이지를 새로고침해주세요.');
@@ -89,7 +92,7 @@ export function VoucherEmailEditor({
           console.log('📄 실패한 데이터:', JSON.stringify(initialData, null, 2));
           
           // 사용자에게 오류 상황 알림
-          const errorMessage = `디자인 로드에 실패했습니다.\n\n오류: ${error.message}\n\n새 디자인으로 시작하시겠습니까?`;
+          const errorMessage = `디자인 로드에 실패했습니다.\n\n오류: ${error instanceof Error ? error.message : String(error)}\n\n새 디자인으로 시작하시겠습니까?`;
           
           if (confirm(errorMessage)) {
             // 기본 템플릿으로 대체
@@ -108,7 +111,7 @@ export function VoucherEmailEditor({
                     }]
                   }]
                 }
-              });
+              } as any);
               console.log('✅ 대체 템플릿 로드 성공');
             } catch (fallbackError) {
               console.error('❌ 대체 템플릿도 로드 실패:', fallbackError);
@@ -317,7 +320,7 @@ export function VoucherEmailEditor({
       </div>
 
       <div style={{ flex: 1, overflow: 'hidden', position: 'relative', height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <EmailEditor
+        <AnyEmailEditor
           ref={emailEditorRef}
           onReady={onReady}
           style={{ height: '100%', display: 'block' }}
@@ -337,8 +340,7 @@ export function VoucherEmailEditor({
             },
             safeHtml: true,
             customJS: [
-              {
-                url: `data:text/javascript;charset=utf-8;base64,${Buffer.from(`
+              `data:text/javascript;charset=utf-8;base64,${Buffer.from(`
                   // Force show left panel on load and extend fonts
                   setTimeout(() => {
                     if (typeof unlayer !== 'undefined') {
@@ -429,7 +431,6 @@ export function VoucherEmailEditor({
                     }
                   }, 1000);
                 `).toString('base64')}`
-              }
             ],
             mergeTags: [
               {

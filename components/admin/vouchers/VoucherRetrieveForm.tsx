@@ -140,13 +140,13 @@ export function VoucherRetrieveForm() {
       if (result.success) {
         const voucherData = result.data || [];
         // 미사용 교환권 필터링 (issued 상태)
-        const unusedVouchers = voucherData.filter(v => v.status === 'issued');
+        const unusedVouchers = voucherData.filter((v: { status: string }) => v.status === 'issued');
         setVouchers(unusedVouchers);
         
         // 미사용 통계 계산
         const stats = {
           count: unusedVouchers.length,
-          amount: unusedVouchers.reduce((sum, v) => sum + v.amount, 0)
+          amount: unusedVouchers.reduce((sum: number, v: { amount: number }) => sum + v.amount, 0)
         };
         setUnusedStats(stats);
       }

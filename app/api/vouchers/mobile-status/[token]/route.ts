@@ -54,10 +54,10 @@ function validateSession(token: string, ip: string, userAgent: string, sessionId
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const { token } = params;
+    const { token } = await params;
     
     // Extract client info
     const ip = request.headers.get('x-forwarded-for') || 
@@ -157,7 +157,7 @@ export async function GET(
         headers: {
           'ETag': etag,
           'Cache-Control': 'no-store, no-cache, must-revalidate',
-          'X-Session-ID': validSessionId
+          'X-Session-ID': validSessionId || ''
         }
       });
     }
@@ -186,25 +186,28 @@ export async function GET(
       'Pragma': 'no-cache',
       'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'DENY',
-      'X-Session-ID': validSessionId,
+      'X-Session-ID': validSessionId || '',
       'Content-Security-Policy': "default-src 'self'",
       'Referrer-Policy': 'strict-origin-when-cross-origin'
     });
     
     // Log access for monitoring
-    await supabase
-      .from('mobile_voucher_access_logs')
-      .insert({
-        token,
-        ip_address: ip,
-        user_agent: userAgent,
-        session_id: validSessionId,
-        status_checked: voucher.status,
-        accessed_at: new Date().toISOString()
-      })
-      .select()
-      .single()
-      .catch(err => console.error('Failed to log access:', err));
+    try {
+      await supabase
+        .from('mobile_voucher_access_logs')
+        .insert({
+          token,
+          ip_address: ip,
+          user_agent: userAgent,
+          session_id: validSessionId,
+          status_checked: voucher.status,
+          accessed_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+    } catch (err) {
+      console.error('Failed to log access:', err);
+    }
     
     return NextResponse.json(response, { headers });
     

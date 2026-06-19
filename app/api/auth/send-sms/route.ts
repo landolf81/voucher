@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
         { 
           success: false, 
           message: '유효하지 않은 요청입니다.',
-          errors: validation.error.errors 
+          errors: validation.error.issues 
         },
         { status: 400 }
       );

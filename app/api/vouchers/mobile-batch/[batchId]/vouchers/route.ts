@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase';
 import { getBaseUrl } from '@/lib/url-utils';
 
 interface PageProps {
-  params: { batchId: string }
+  params: Promise<{ batchId: string }>
 }
 
 /**

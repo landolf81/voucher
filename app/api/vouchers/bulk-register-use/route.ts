@@ -26,13 +26,13 @@ export async function POST(request: NextRequest) {
     // 입력 검증
     const validation = bulkRegisterUseSchema.safeParse(body);
     if (!validation.success) {
-      console.error('입력 검증 실패:', validation.error.errors);
+      console.error('입력 검증 실패:', validation.error.issues);
       console.error('받은 데이터:', body);
       return NextResponse.json(
         {
           success: false,
           message: '입력 정보가 올바르지 않습니다.',
-          errors: validation.error.errors,
+          errors: validation.error.issues,
           received_data: body
         },
         { status: 400 }

@@ -24,8 +24,8 @@ const designTemplateUpdateSchema = z.object({
   a4_image_height: z.number().optional(),
   mobile_image_url: z.string().optional(),
   mobile_image_size: z.number().optional(),
-  a4_field_positions: z.record(fieldPositionSchema).optional(),
-  mobile_field_positions: z.record(fieldPositionSchema).optional(),
+  a4_field_positions: z.record(z.string(), fieldPositionSchema).optional(),
+  mobile_field_positions: z.record(z.string(), fieldPositionSchema).optional(),
   default_font_family: z.string().optional(),
   default_font_size: z.number().optional(),
   default_text_color: z.string().optional(),
@@ -105,7 +105,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         {
           success: false,
           message: '입력 정보가 올바르지 않습니다.',
-          errors: validation.error.errors
+          errors: validation.error.issues
         },
         { status: 400 }
       );

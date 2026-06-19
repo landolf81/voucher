@@ -8,7 +8,7 @@ const createUserSchema = z.object({
   email: z.string().email('올바른 이메일 형식을 입력해주세요.').optional(),
   name: z.string().min(2, '이름은 2자 이상이어야 합니다.').max(10, '이름은 10자 이하여야 합니다.'),
   phone: z.string().regex(/^010\d{8}$/, '올바른 휴대폰 번호를 입력해주세요.'),
-  role: z.enum(['admin', 'staff', 'viewer', 'part_time'], { required_error: '권한을 선택해주세요.' }),
+  role: z.enum(['admin', 'staff', 'viewer', 'part_time'], { error: '권한을 선택해주세요.' }),
   site_id: z.string().min(1, '사업장을 선택해주세요.')
 });
 
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           message: '입력 데이터가 올바르지 않습니다.',
-          errors: validation.error.errors
+          errors: validation.error.issues
         },
         { status: 400 }
       );

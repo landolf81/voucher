@@ -61,12 +61,12 @@ export async function POST(request: NextRequest) {
     // 입력 검증
     const validation = mobileBulkIssueSchema.safeParse(body);
     if (!validation.success) {
-      console.error('입력 검증 실패:', validation.error.errors);
+      console.error('입력 검증 실패:', validation.error.issues);
       return NextResponse.json(
         {
           success: false,
           message: '입력 정보가 올바르지 않습니다.',
-          errors: validation.error.errors
+          errors: validation.error.issues
         },
         { status: 400 }
       );

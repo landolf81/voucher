@@ -44,7 +44,7 @@ export default function EmailSetupPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: email.toLowerCase().trim(),
-          user_id: user?.user_id
+          user_id: user?.id
         })
       });
 

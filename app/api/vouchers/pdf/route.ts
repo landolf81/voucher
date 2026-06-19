@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     
     // 페이지 설정
     await page.setContent(fullHtml, {
-      waitUntil: 'networkidle0'
+      waitUntil: 'networkidle0' as any
     });
 
     // PDF 생성 옵션
@@ -243,7 +243,7 @@ export async function PUT(request: NextRequest) {
     const page = await browser.newPage();
     
     await page.setContent(combinedHtml, {
-      waitUntil: 'networkidle0'
+      waitUntil: 'networkidle0' as any
     });
 
     const pdfOptions = {

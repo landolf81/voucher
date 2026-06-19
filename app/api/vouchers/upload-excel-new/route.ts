@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
         const validation = excelRowSchema.safeParse(rowData);
         
         if (!validation.success) {
-          errors.push(`${i+1}행: ${validation.error.errors.map(e => e.message).join(', ')}`);
+          errors.push(`${i+1}행: ${validation.error.issues.map(e => e.message).join(', ')}`);
           continue;
         }
 

@@ -59,7 +59,7 @@ export function withAuth(handler: (req: AuthenticatedRequest) => Promise<NextRes
       const authenticatedReq = req as AuthenticatedRequest;
       authenticatedReq.user = {
         id: payload.sub,
-        phone: payload.phone,
+        phone: payload.phone ?? '',
         name: payload.name,
         role: payload.role as UserRole,
         site_id: payload.site_id,

@@ -24,8 +24,8 @@ const designTemplateCreateSchema = z.object({
   a4_image_height: z.number().optional().default(297),
   mobile_image_url: z.string().optional(),  // URL validation removed, optional
   mobile_image_size: z.number().optional().default(400),
-  a4_field_positions: z.record(fieldPositionSchema).optional().default({}),
-  mobile_field_positions: z.record(fieldPositionSchema).optional().default({}),
+  a4_field_positions: z.record(z.string(), fieldPositionSchema).optional().default({}),
+  mobile_field_positions: z.record(z.string(), fieldPositionSchema).optional().default({}),
   default_font_family: z.string().optional().default('Pretendard'),
   default_font_size: z.number().optional().default(12),
   default_text_color: z.string().optional().default('#000000'),
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           message: '입력 정보가 올바르지 않습니다.',
-          errors: validation.error.errors
+          errors: validation.error.issues
         },
         { status: 400 }
       );

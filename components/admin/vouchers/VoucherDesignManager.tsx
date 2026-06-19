@@ -77,7 +77,21 @@ export function VoucherDesignManager() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    template_type: 'a4' as 'a4' | 'mobile'
+    template_type: 'a4' as 'a4' | 'mobile',
+    a4_image_url: '',
+    mobile_image_url: '',
+    a4_field_positions: {} as Record<string, any>,
+    mobile_field_positions: {} as Record<string, any>,
+    grapesjs_data: null as any,
+    mobile_grapesjs_data: null as any,
+    template_html: '',
+    template_css: '',
+    mobile_template_html: '',
+    mobile_template_css: ''
+  });
+  const [uploadingImages, setUploadingImages] = useState<{ a4: boolean; mobile: boolean }>({
+    a4: false,
+    mobile: false
   });
 
 
@@ -283,11 +297,12 @@ export function VoucherDesignManager() {
         fetchTemplates(); // 목록 새로고침
         
         // 폼 리셋
-        setFormData({
+        setFormData(prev => ({
+          ...prev,
           name: '',
           description: '',
           template_type: 'a4'
-        });
+        }));
         setShowCreateForm(false);
       } else {
         setMessage({ type: 'error', text: result.message || '템플릿 저장에 실패했습니다.' });
@@ -499,6 +514,7 @@ export function VoucherDesignManager() {
         setFormData({
           name: '',
           description: '',
+          template_type: 'a4',
           a4_image_url: '',
           mobile_image_url: '',
           a4_field_positions: {},

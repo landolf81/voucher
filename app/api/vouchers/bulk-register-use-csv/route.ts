@@ -388,7 +388,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (!validation.success) {
-          const fieldErrors = validation.error.errors.map(e => e.message).join(', ');
+          const fieldErrors = validation.error.issues.map(e => e.message).join(', ');
           errors.push(`${rowNumber}행: ${fieldErrors}`);
           continue;
         }

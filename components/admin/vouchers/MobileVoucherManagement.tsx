@@ -1061,7 +1061,7 @@ export function MobileVoucherManagement() {
                 </h4>
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <button
-                    onClick={loadExistingVouchers}
+                    onClick={() => loadExistingVouchers()}
                     disabled={loadingExisting}
                     style={{
                       padding: '8px 16px',

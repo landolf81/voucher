@@ -330,7 +330,7 @@ export class MobileVoucherRenderer {
 
       // Generate and set HTML content
       const html = await this.generateMobileHTML(voucher, template);
-      await page.setContent(html, { waitUntil: 'networkidle0' });
+      await page.setContent(html, { waitUntil: 'networkidle0' as any });
 
       // Wait for fonts and images to load
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -476,7 +476,7 @@ export class MobileVoucherRenderer {
         return {
           id: data.id,
           name: data.voucher_name,
-          mobile_image_url: null,
+          mobile_image_url: undefined,
           mobile_field_positions: {},
           background_color: '#ffffff',
           text_color: '#1f2937',

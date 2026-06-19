@@ -38,7 +38,6 @@ export function GrapesJSDesignEditor({
       
       // 캔버스 강제 새로고침 설정
       forceClass: false,
-      allowScripts: 1,
       
       // 컴포넌트 기본 설정
       domComponents: {
@@ -99,8 +98,7 @@ export function GrapesJSDesignEditor({
           `
         ],
         scripts: [],
-        customBadgeLabel: '',
-        autoscroll: true
+        customBadgeLabel: () => ''
       },
 
 
@@ -276,7 +274,7 @@ export function GrapesJSDesignEditor({
     // 배경 이미지 설정
     if (imageUrl) {
       const wrapper = gjsEditor.getWrapper();
-      wrapper.setStyle({
+      wrapper?.setStyle({
         'background-image': `url(${imageUrl})`,
         'background-size': 'cover',
         'background-position': 'center',
@@ -284,10 +282,10 @@ export function GrapesJSDesignEditor({
         'min-height': '100%'
       });
     }
-    
+
     // 캔버스 기본 설정 - 빈 캔버스 문제 해결
     const wrapper = gjsEditor.getWrapper();
-    wrapper.setStyle({
+    wrapper?.setStyle({
       'min-height': '500px',
       'background-color': '#ffffff',
       'padding': '20px',
@@ -351,9 +349,9 @@ export function GrapesJSDesignEditor({
               label: '텍스트 정렬',
               name: 'text-align',
               options: [
-                { value: 'left', name: '왼쪽' },
-                { value: 'center', name: '가운데' },
-                { value: 'right', name: '오른쪽' }
+                { id: 'left', value: 'left', name: '왼쪽' },
+                { id: 'center', value: 'center', name: '가운데' },
+                { id: 'right', value: 'right', name: '오른쪽' }
               ]
             }
           ]
@@ -382,8 +380,9 @@ export function GrapesJSDesignEditor({
       run(editor: Editor) {
         const selected = editor.getSelected();
         if (selected) {
-          const isVisible = selected.getStyle('visibility') !== 'hidden';
-          selected.setStyle('visibility', isVisible ? 'hidden' : 'visible');
+          const styles = selected.getStyle() as Record<string, any>;
+          const isVisible = styles['visibility'] !== 'hidden';
+          selected.setStyle({ ...styles, visibility: isVisible ? 'hidden' : 'visible' });
         }
       }
     });
@@ -407,10 +406,11 @@ export function GrapesJSDesignEditor({
         const canvas = gjsEditor.Canvas.getDocument();
         if (canvas) {
           const elements = canvas.querySelectorAll('[data-gjs-type], [data-field]');
-          elements.forEach((el: HTMLElement) => {
-            el.style.visibility = 'visible';
-            el.style.display = 'block';
-            el.style.opacity = '1';
+          elements.forEach((el) => {
+            const h = el as HTMLElement;
+            h.style.visibility = 'visible';
+            h.style.display = 'block';
+            h.style.opacity = '1';
           });
         }
       }, 200);

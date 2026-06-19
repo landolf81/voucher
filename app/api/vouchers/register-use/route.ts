@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           message: '입력 정보가 올바르지 않습니다.',
-          errors: validation.error.errors
+          errors: validation.error.issues
         },
         { status: 400 }
       );
@@ -238,7 +238,7 @@ export async function POST(request: NextRequest) {
           console.warn(`SMS 발송 실패 (${serial_no}): ${smsResponse.status} - ${errorText.substring(0, 200) + '...'}`);
         }
       } catch (smsError) {
-        console.error(`SMS 발송 오류 (${serial_no}):`, smsError.message || smsError);
+        console.error(`SMS 발송 오류 (${serial_no}):`, smsError instanceof Error ? smsError.message : smsError);
       }
     }
 

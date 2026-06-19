@@ -224,7 +224,7 @@ export function VoucherUsageContent() {
           name: voucher.name,
           status: statusError ? 'error' : voucher.status,
           scanned_at: new Date().toISOString(),
-          error_message: statusError,
+          error_message: statusError ?? undefined,
           original_status: voucher.status
         };
         

@@ -4,10 +4,10 @@ import { decryptVoucherData } from '@/lib/encryption';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { template_id: string } }
+  { params }: { params: Promise<{ template_id: string }> }
 ) {
   try {
-    const template_id = params.template_id;
+    const template_id = (await params).template_id;
     console.log('템플릿별 발행대상자 조회 API 호출, template_id:', template_id);
 
     // Supabase 사용

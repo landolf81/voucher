@@ -125,6 +125,7 @@ export interface MemberListResponse {
   total: number;
   page: number;
   page_size: number;
+  error?: string;
 }
 
 export interface MemberSearchParams {

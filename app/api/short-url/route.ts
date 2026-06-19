@@ -38,12 +38,12 @@ export async function POST(request: NextRequest) {
     // 입력 검증
     const validation = createShortUrlSchema.safeParse(body);
     if (!validation.success) {
-      console.error('입력 검증 실패:', validation.error.errors);
+      console.error('입력 검증 실패:', validation.error.issues);
       return NextResponse.json(
         {
           success: false,
           message: '입력 정보가 올바르지 않습니다.',
-          errors: validation.error.errors
+          errors: validation.error.issues
         },
         { status: 400 }
       );
@@ -214,7 +214,7 @@ export async function GET(request: NextRequest) {
           {
             success: false,
             message: '올바른 단축 코드를 입력해주세요.',
-            errors: validation.error.errors
+            errors: validation.error.issues
           },
           { status: 400 }
         );

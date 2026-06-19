@@ -25,8 +25,8 @@ const createMobileTemplateSchema = z.object({
   background_image_position: z.string().optional().default('center'),
   background_image_size: z.string().optional().default('cover'),
   qr_background_image: z.string().optional().nullable(),
-  field_positions: z.record(z.any()).optional().default({}),
-  template_config: z.record(z.any()).optional().default({}),
+  field_positions: z.record(z.string(), z.any()).optional().default({}),
+  template_config: z.record(z.string(), z.any()).optional().default({}),
   status: z.enum(['active', 'inactive', 'draft']).optional().default('active'),
   is_default: z.boolean().optional().default(false)
 });
@@ -190,12 +190,12 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error('Validation error details:', error.errors);
+      console.error('Validation error details:', error.issues);
       return NextResponse.json(
         {
           error: 'Validation failed',
           message: '입력 데이터 검증에 실패했습니다.',
-          details: error.errors
+          details: error.issues
         },
         { status: 400 }
       );
@@ -301,7 +301,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json(
         { 
           error: 'Validation failed', 
-          details: error.errors 
+          details: error.issues 
         },
         { status: 400 }
       );
