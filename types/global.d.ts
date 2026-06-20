@@ -1,5 +1,9 @@
 // Global type declarations for the voucher system
 
+// CSS 사이드이펙트 import 타입 선언 (Next 버전차로 `import './globals.css'`가
+// "Cannot find module declarations for side-effect import" 타입에러 나는 것 방지)
+declare module '*.css';
+
 declare module '@zxing/browser' {
   export class BrowserMultiFormatReader {
     static listVideoInputDevices(): Promise<any[]>;
