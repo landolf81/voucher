@@ -129,7 +129,6 @@ VOUCHER_HMAC_SECRET=
   - 모바일 템플릿 관리 API 엔드포인트 (/api/mobile-templates)
   - 모바일 바우처 렌더러 (Puppeteer 기반)
   - 모바일 템플릿 관리자 UI 컴포넌트
-- **서버 관리**: 사용자가 직접 서버 관리 담당
 - **템플릿 아키텍처**:
   - **디자인 템플릿**: 시각적 디자인/스타일링 (mobile_design_templates 테이블)
   - **교환권 템플릿**: 교환권 데이터/비즈니스 로직 관리 (voucher_templates 테이블)
@@ -141,6 +140,4 @@ VOUCHER_HMAC_SECRET=
 - Use atomic transactions for all voucher state changes
 - Maintain comprehensive audit logging for all critical operations
 - Test RLS policies when modifying database access patterns
-- **서버 관리**: 사용자가 직접 담당, 코드 구현에 집중
-  **서버 포트 3000포트 고정. 다른 포트 실행 금지 **
   
