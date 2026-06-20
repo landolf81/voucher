@@ -4,7 +4,8 @@
  * 보호된 라우트 래퍼 컴포넌트
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { UserRole } from '@/lib/auth/permissions';
 
@@ -27,6 +28,14 @@ export function ProtectedRoute({
   fallback 
 }: ProtectedRouteProps) {
   const { isLoading, isAuthenticated, user } = useAuth();
+  const router = useRouter();
+
+  // 미인증 시 로그인 페이지로 이동 (정적 화면에 갇히지 않도록)
+  useEffect(() => {
+    if (!isLoading && requireAuth && !isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [isLoading, requireAuth, isAuthenticated, router]);
 
   // 로딩 중
   if (isLoading) {
@@ -113,6 +122,14 @@ export function ProtectedRoute({
  */
 export function AdminRoute({ children, fallback }: { children: React.ReactNode; fallback?: React.ReactNode }) {
   const { isLoading, isAuthenticated, user } = useAuth();
+  const router = useRouter();
+
+  // 미인증 시 로그인 페이지로 이동 (정적 화면에 갇히지 않도록)
+  useEffect(() => {
+    if (!isLoading && (!isAuthenticated || !user)) {
+      router.replace('/login');
+    }
+  }, [isLoading, isAuthenticated, user, router]);
 
   // 로딩 중
   if (isLoading) {
