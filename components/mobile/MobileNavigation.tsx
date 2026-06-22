@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { getSupabaseClient } from '@/lib/supabase';
 
 interface NavItem {
   id: string;
@@ -11,136 +12,143 @@ interface NavItem {
   path: string;
   roles?: string[];
   excludeRoles?: string[];
+  badgeKey?: 'messages' | 'announcements';
 }
 
 export function MobileNavigation() {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
+  const [unread, setUnread] = useState<{ messages: number; announcements: number }>({ messages: 0, announcements: 0 });
 
+  // 업무관리 셸 네비게이션 (교환권 도구는 '더보기'로 이동)
   const navItems: NavItem[] = [
-    {
-      id: 'home',
-      label: '홈',
-      icon: '🏠',
-      path: '/mobile'
-    },
-    {
-      id: 'scan',
-      label: '스캔',
-      icon: '📱',
-      path: '/mobile/scan',
-      excludeRoles: ['inquiry']
-    },
-    {
-      id: 'search',
-      label: '조회',
-      icon: '🔍',
-      path: '/mobile/search'
-    },
-    {
-      id: 'report',
-      label: '출력',
-      icon: '📄',
-      path: '/mobile/report',
-      roles: ['admin', 'staff']
-    }
+    { id: 'home', label: 'AI', icon: '🤖', path: '/mobile' },
+    { id: 'notices', label: '공지', icon: '📢', path: '/mobile/notices', badgeKey: 'announcements' },
+    { id: 'schedule', label: '일정', icon: '📅', path: '/mobile/schedule' },
+    { id: 'messages', label: '쪽지', icon: '💬', path: '/mobile/messages', badgeKey: 'messages' },
+    { id: 'more', label: '더보기', icon: '☰', path: '/mobile/more' },
   ];
 
-  // 권한에 따른 네비게이션 아이템 필터링
-  const filteredNavItems = navItems.filter(item => {
-    // 필수 역할 확인
+  const refreshUnread = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const { data, error } = await getSupabaseClient().rpc('unread_counts');
+      if (!error && data) {
+        setUnread({ messages: (data as any).messages || 0, announcements: (data as any).announcements || 0 });
+      }
+    } catch {
+      // 무시
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    refreshUnread();
+  }, [refreshUnread, pathname]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const supabase = getSupabaseClient();
+    const channel = supabase
+      .channel('mobile-unread-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => refreshUnread())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, () => refreshUnread())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'announcement_reads' }, () => refreshUnread())
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, refreshUnread]);
+
+  const filteredNavItems = navItems.filter((item) => {
     if (item.roles && !item.roles.includes(user?.role || 'viewer')) return false;
-    // 제외 역할 확인
     if (item.excludeRoles && item.excludeRoles.includes(user?.role || 'viewer')) return false;
     return true;
   });
 
-  const handleNavigation = (path: string) => {
-    router.push(path);
-  };
-
   return (
-    <nav style={{
-      position: 'fixed',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      backgroundColor: 'white',
-      borderTop: '1px solid #e5e7eb',
-      paddingTop: '8px',
-      paddingBottom: 'max(8px, env(safe-area-inset-bottom))', // iOS safe area 고려
-      zIndex: 1000,
-      boxShadow: '0 -2px 10px rgba(0,0,0,0.1)'
-    }}>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        maxWidth: '500px',
-        margin: '0 auto',
-        padding: '0 16px'
-      }}>
+    <nav
+      style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: 'white',
+        borderTop: '1px solid #e5e7eb',
+        paddingTop: '8px',
+        paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
+        zIndex: 1000,
+        boxShadow: '0 -2px 10px rgba(0,0,0,0.1)',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-around',
+          alignItems: 'center',
+          maxWidth: '500px',
+          margin: '0 auto',
+          padding: '0 8px',
+        }}
+      >
         {filteredNavItems.map((item) => {
-          const isActive = pathname === item.path || 
-            (item.path === '/mobile' && pathname === '/mobile') ||
-            (item.path.startsWith('/mobile/') && pathname.startsWith(item.path));
+          const isActive =
+            pathname === item.path ||
+            (item.path !== '/mobile' && pathname.startsWith(item.path));
+          const badge = item.badgeKey ? unread[item.badgeKey] : 0;
 
           return (
             <button
               key={item.id}
-              onClick={() => handleNavigation(item.path)}
+              onClick={() => router.push(item.path)}
               style={{
+                position: 'relative',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 gap: '4px',
-                padding: '8px 12px',
+                padding: '8px 10px',
                 backgroundColor: 'transparent',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
-                minWidth: '60px',
-                color: isActive ? '#3b82f6' : '#6b7280'
-              }}
-              onTouchStart={(e) => {
-                // 터치 피드백
-                e.currentTarget.style.backgroundColor = '#f3f4f6';
-              }}
-              onTouchEnd={(e) => {
-                // 터치 피드백 제거
-                const target = e.currentTarget;
-                setTimeout(() => {
-                  if (target && target.style) {
-                    target.style.backgroundColor = 'transparent';
-                  }
-                }, 150);
+                minWidth: '56px',
+                color: isActive ? '#3b82f6' : '#6b7280',
               }}
             >
-              <span style={{
-                fontSize: '24px',
-                lineHeight: '1',
-                transform: isActive ? 'scale(1.1)' : 'scale(1)',
-                transition: 'transform 0.2s ease'
-              }}>
+              <span
+                style={{
+                  fontSize: '24px',
+                  lineHeight: '1',
+                  transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                  transition: 'transform 0.2s ease',
+                }}
+              >
                 {item.icon}
               </span>
-              <span style={{
-                fontSize: '12px',
-                fontWeight: isActive ? '600' : '500',
-                lineHeight: '1'
-              }}>
-                {item.label}
-              </span>
-              {isActive && (
-                <div style={{
-                  width: '4px',
-                  height: '4px',
-                  backgroundColor: '#3b82f6',
-                  borderRadius: '50%',
-                  marginTop: '2px'
-                }} />
+              <span style={{ fontSize: '12px', fontWeight: isActive ? 600 : 500, lineHeight: '1' }}>{item.label}</span>
+              {badge > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '2px',
+                    right: '8px',
+                    minWidth: '16px',
+                    height: '16px',
+                    padding: '0 4px',
+                    borderRadius: '999px',
+                    backgroundColor: '#ef4444',
+                    color: 'white',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {badge > 99 ? '99+' : badge}
+                </span>
               )}
             </button>
           );
