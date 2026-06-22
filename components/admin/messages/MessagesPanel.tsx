@@ -46,7 +46,8 @@ interface StaffRow {
 interface ThreadView {
   thread: ThreadRow;
   myLastRead: string;
-  others: { user_id: string; user_name: string | null }[];
+  // last_read_at 포함 → 내가 보낸 메시지를 상대가 읽었는지(읽음 확인) 계산에 사용
+  others: { user_id: string; user_name: string | null; last_read_at: string }[];
   label: string;
   unread: boolean;
 }
@@ -116,7 +117,9 @@ export function MessagesPanel() {
     const views: ThreadView[] = [];
     byThread.forEach(({ thread, parts }) => {
       const mine = parts.find((p) => p.user_id === user.id);
-      const others = parts.filter((p) => p.user_id !== user.id).map((p) => ({ user_id: p.user_id, user_name: p.user_name }));
+      const others = parts
+        .filter((p) => p.user_id !== user.id)
+        .map((p) => ({ user_id: p.user_id, user_name: p.user_name, last_read_at: p.last_read_at }));
       const myLastRead = mine?.last_read_at || '1970-01-01T00:00:00Z';
       const label =
         thread.type === 'group'
@@ -187,6 +190,11 @@ export function MessagesPanel() {
           setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
         }
         loadThreads();
+      })
+      // 상대가 스레드를 열어 last_read_at 을 갱신하면(=내 메시지를 읽으면) 읽음 표시를 실시간 반영.
+      // 내 읽음 처리는 로컬에서 이미 반영하므로 타인의 변경만 다시 로드한다.
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'message_participants' }, (payload: any) => {
+        if (payload.new?.user_id !== user.id) loadThreads();
       })
       .subscribe();
     return () => {
@@ -333,6 +341,23 @@ export function MessagesPanel() {
   }, [staff, search]);
 
   const activeThread = threads.find((t) => t.thread.id === activeId);
+
+  // 내가 보낸 메시지의 읽음 상태. 상대의 last_read_at 이 메시지 작성시각 이상이면 읽은 것.
+  // 1:1 → '읽음'/'안읽음', 그룹 → 모두 읽음 또는 'N명 안읽음'.
+  const receiptOf = useCallback(
+    (m: MessageRow): { text: string; read: boolean } | null => {
+      if (m.sender_id !== user?.id || !activeThread) return null;
+      const others = activeThread.others;
+      if (others.length === 0) return null;
+      const created = new Date(m.created_at).getTime();
+      const readCount = others.filter((o) => new Date(o.last_read_at).getTime() >= created).length;
+      const unread = others.length - readCount;
+      if (others.length === 1) return { text: unread === 0 ? '읽음' : '안읽음', read: unread === 0 };
+      return unread === 0 ? { text: '모두 읽음', read: true } : { text: `${unread}명 안읽음`, read: false };
+    },
+    [user?.id, activeThread]
+  );
+
   const showList = !isMobile || !activeId;
   const showChat = !isMobile || !!activeId;
 
@@ -407,7 +432,13 @@ export function MessagesPanel() {
                         <div style={{ maxWidth: '75%', padding: '8px 12px', borderRadius: 12, backgroundColor: mine ? '#2563eb' : '#fff', color: mine ? '#fff' : '#1f2937', border: mine ? 'none' : '1px solid #e5e7eb', fontSize: 14, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                           {m.content}
                         </div>
-                        <span style={{ fontSize: 10, color: '#cbd5e1', marginTop: 2 }}>
+                        <span style={{ fontSize: 10, color: '#cbd5e1', marginTop: 2, display: 'flex', gap: 4, alignItems: 'center' }}>
+                          {mine && (() => {
+                            const r = receiptOf(m);
+                            return r ? (
+                              <span style={{ color: r.read ? '#60a5fa' : '#9ca3af', fontWeight: 600 }}>{r.text}</span>
+                            ) : null;
+                          })()}
                           {new Date(m.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
