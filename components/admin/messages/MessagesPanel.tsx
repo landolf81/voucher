@@ -179,9 +179,10 @@ export function MessagesPanel() {
       .channel('messages-rt')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload: any) => {
         const m = payload.new as MessageRow;
-        if (m.thread_id === activeIdRef.current) {
+        // 자기 메시지는 send()에서 이미 낙관적으로 추가했으므로 Realtime 에서는 무시(중복 방지).
+        if (m.sender_id !== user.id && m.thread_id === activeIdRef.current) {
           setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
-          if (m.sender_id !== user.id) markRead(m.thread_id);
+          markRead(m.thread_id);
           setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
         }
         loadThreads();
@@ -198,13 +199,23 @@ export function MessagesPanel() {
     if (!content || !activeId || !user?.id) return;
     setSending(true);
     try {
-      const { error } = await db.from('messages').insert({
-        thread_id: activeId,
-        sender_id: user.id,
-        sender_name: user.name,
-        content,
-      });
+      // insert 응답으로 받은 행을 즉시 화면에 추가(낙관적). Realtime 은 타인 메시지만 반영하므로 중복 없음.
+      const { data: inserted, error } = await db
+        .from('messages')
+        .insert({
+          thread_id: activeId,
+          sender_id: user.id,
+          sender_name: user.name,
+          content,
+        })
+        .select()
+        .single();
       if (error) throw error;
+      if (inserted) {
+        const row = inserted as MessageRow;
+        setMessages((prev) => (prev.some((x) => x.id === row.id) ? prev : [...prev, row]));
+        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+      }
       setInput('');
       await markRead(activeId);
     } catch (e: any) {
