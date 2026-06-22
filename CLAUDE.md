@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
-Voucher management system built with Next.js 15 and Supabase for voucher issuance, verification, usage tracking, and PDF generation with QR codes. Supports multi-site operations with role-based access control.
+Voucher management system built with Next.js 16 and Supabase for voucher issuance, verification, usage tracking, and PDF generation with QR codes. Supports multi-site operations with role-based access control.
 
 ## Development Commands
 ```bash
@@ -27,10 +27,11 @@ npm run lint
 ```
 
 ## Architecture Overview
-- **Framework**: Next.js 15 with App Router
+- **Framework**: Next.js 16 with App Router
 - **Database**: Supabase (PostgreSQL) with Row Level Security (RLS)
 - **Authentication**: Supabase Auth with email/magic link and SMS OTP (via mock SMS in dev)
 - **Frontend**: React 19 with TypeScript, inline CSS-in-JS
+- **Tooling**: ESLint 9 (flat config, `eslint.config.mjs`), TypeScript 6
 - **PDF Generation**: pdfmake with Pretendard font for Korean support
 - **QR/Barcode**: qrcode for generation, @zxing/browser for scanning
 - **Email Editor**: Unlayer (react-email-editor) for voucher templates
@@ -142,4 +143,10 @@ VOUCHER_HMAC_SECRET=
 - Use atomic transactions for all voucher state changes
 - Maintain comprehensive audit logging for all critical operations
 - Test RLS policies when modifying database access patterns
+
+### Lint 상태에 대한 주의 (중요)
+- `npm run lint`에 React Compiler 권고 경고가 다수 남아 있음(`set-state-in-effect`, `error-boundaries`, `immutability`, `purity`, `preserve-manual-memoization` 등). 이는 **버그가 아니라** Next 16 + `eslint-plugin-react-hooks` v7로 판올림하면서 **새로 추가된 규칙이 기존 정상 코드에 소급 적용**된 것. 빌드/런타임은 정상.
+- **이 경고들을 일괄 자동 수정하지 말 것** — 잘 동작하는 코드를 건드려 무한루프·동작 변경을 유발할 수 있음. 건드릴 땐 파일 단위로 신중히.
+- 이미 정리된 안전 규칙(`no-unescaped-entities`, `static-components`, `no-img-element`, `no-anonymous-default-export`)은 재발 시에만 수정.
+- `react-hooks/exhaustive-deps`는 `eslint.config.mjs`에서 의도적으로 `warn`으로 강등됨.
   
