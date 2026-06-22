@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     // E.164 형식으로 변환하여 비교
     const e164Phone = cleanPhone.startsWith('010') ? `+82${cleanPhone.substring(1)}` : `+82${cleanPhone}`;
     const existingUser = authUsers.users.find(user => {
-      return user.phone === e164Phone && user.user_metadata?.is_active !== false;
+      return user.phone === e164Phone && user.app_metadata?.is_active !== false;
     });
 
     if (!existingUser) {

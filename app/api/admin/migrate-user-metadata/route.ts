@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import type { UserMetadata } from '@/lib/types/auth';
+import { isAdminUser, type UserMetadata } from '@/lib/types/auth';
 
 /**
  * POST: user_profiles 데이터를 auth.users.user_metadata로 마이그레이션
@@ -33,22 +33,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 관리자 권한 확인
-    const currentMetadata = currentUser.user_metadata;
-    if (currentMetadata?.role !== 'admin') {
-      // user_profiles에서도 확인 (폴백)
-      const { data: profile } = await supabaseAdmin
-        .from('user_profiles')
-        .select('role')
-        .eq('id', currentUser.id)
-        .single();
-
-      if (profile?.role !== 'admin') {
-        return NextResponse.json(
-          { success: false, message: '관리자 권한이 필요합니다.' },
-          { status: 403 }
-        );
-      }
+    // 관리자 권한 확인 (app_metadata.role)
+    if (!isAdminUser(currentUser)) {
+      return NextResponse.json(
+        { success: false, message: '관리자 권한이 필요합니다.' },
+        { status: 403 }
+      );
     }
 
     // user_profiles에서 모든 사용자 조회
@@ -94,9 +84,6 @@ export async function POST(request: NextRequest) {
         const userMetadata: UserMetadata = {
           display_name: profile.user_id, // 사원번호
           name: profile.name,
-          role: profile.role,
-          site_id: profile.site_id,
-          is_active: profile.is_active ?? true,
           oauth_provider: profile.oauth_provider || undefined,
           oauth_provider_id: profile.oauth_provider_id || undefined,
           oauth_linked_at: profile.oauth_linked_at || undefined,
@@ -106,7 +93,15 @@ export async function POST(request: NextRequest) {
 
         const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
           profile.id,
-          { user_metadata: userMetadata }
+          {
+            user_metadata: userMetadata,
+            // 권한 정보는 app_metadata (사용자 수정 불가)
+            app_metadata: {
+              role: profile.role,
+              site_id: profile.site_id,
+              is_active: profile.is_active ?? true,
+            }
+          }
         );
 
         if (updateError) {
@@ -163,7 +158,7 @@ export async function GET(request: NextRequest) {
     ).length || 0;
 
     const notMigratedCount = authUsers?.users.filter(
-      u => !u.user_metadata?.migrated_from_user_profiles && !u.user_metadata?.role
+      u => !u.user_metadata?.migrated_from_user_profiles && !u.app_metadata?.role
     ).length || 0;
 
     return NextResponse.json({

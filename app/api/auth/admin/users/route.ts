@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
-import { isValidUserMetadata } from '@/lib/types/auth';
+import { isAdminUser, hasCompleteProfile, getAuthz } from '@/lib/types/auth';
 
 // 사용자 생성 스키마
 const createUserSchema = z.object({
@@ -26,10 +26,10 @@ function getSupabaseAdmin() {
   return supabaseAdminInstance;
 }
 
-// 관리자 권한 확인 함수 (auth.users에서 확인)
+// 관리자 권한 확인 함수 (app_metadata.role 로 판별 — 사용자 위조 불가)
 async function checkAdminAccess(supabase: any, userId: string) {
   const { data: authUser } = await supabase.auth.admin.getUserById(userId);
-  return authUser?.user?.user_metadata?.role === 'admin';
+  return authUser?.user ? isAdminUser(authUser.user) : false;
 }
 
 // GET: 모든 사용자 목록 조회 (관리자만)
@@ -85,19 +85,21 @@ export async function GET(request: NextRequest) {
     const users = authUsersResult.data.users
       .map(authUser => {
         const metadata = authUser.user_metadata || {};
-        const hasCompleteProfile = isValidUserMetadata(authUser.user_metadata);
+        const authz = getAuthz(authUser);
+        const role = authz?.role || 'viewer';
+        const site_id = authz?.site_id || '';
         return {
           id: authUser.id,
           display_name: metadata.display_name || '',
           name: metadata.name || authUser.email?.split('@')[0] || '미설정',
-          role: metadata.role || 'viewer',
-          site_id: metadata.site_id || '',
-          site_name: metadata.site_id ? siteMap.get(metadata.site_id) : null,
-          is_active: metadata.is_active !== false,
+          role,
+          site_id,
+          site_name: site_id ? siteMap.get(site_id) : null,
+          is_active: authz?.is_active !== false,
           email: authUser.email,
           phone: authUser.phone,
           created_at: authUser.created_at,
-          has_complete_profile: hasCompleteProfile
+          has_complete_profile: hasCompleteProfile(authUser)
         };
       })
       .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
@@ -179,9 +181,13 @@ export async function POST(request: NextRequest) {
       phone: formattedPhone,
       email_confirm: true,
       phone_confirm: true,
+      // 프로필(사용자 수정 가능)
       user_metadata: {
         display_name,
-        name,
+        name
+      },
+      // 권한(사용자 수정 불가) — 신뢰 출처
+      app_metadata: {
         role,
         site_id,
         is_active: true

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { formatPhoneForDisplay, formatPhoneForDB, validateKoreanPhoneInput } from '@/lib/phone-utils';
-import { isValidUserMetadata, type UserMetadata } from '@/lib/types/auth';
+import { hasCompleteProfile, getAuthz, type UserMetadata } from '@/lib/types/auth';
 
 // Supabase Admin 클라이언트 싱글톤 (매 요청마다 생성 방지)
 let supabaseAdminInstance: ReturnType<typeof createClient> | null = null;
@@ -52,19 +52,20 @@ export async function GET() {
     const users = authResult.data.users
       .map(authUser => {
         const metadata = authUser.user_metadata || {};
+        const authz = getAuthz(authUser);
+        const site_id = authz?.site_id || '';
         const phone = authUser.phone || '';
         const displayPhone = formatPhoneForDisplay(phone);
-        const hasCompleteProfile = isValidUserMetadata(authUser.user_metadata);
 
         return {
           id: authUser.id,
           display_name: metadata.display_name || '',
           user_id: metadata.display_name || '',
           name: metadata.name || authUser.email?.split('@')[0] || '미설정',
-          role: metadata.role || 'viewer',
-          site_id: metadata.site_id || '',
-          site_name: metadata.site_id ? (sitesMap.get(metadata.site_id) || '') : '',
-          is_active: metadata.is_active ?? true,
+          role: authz?.role || 'viewer',
+          site_id,
+          site_name: site_id ? (sitesMap.get(site_id) || '') : '',
+          is_active: authz?.is_active ?? true,
           email: authUser.email || '',
           phone: phone,
           phone_masked: displayPhone || '***-****-****',
@@ -72,7 +73,7 @@ export async function GET() {
           email_confirmed_at: authUser.email_confirmed_at,
           oauth_provider: metadata.oauth_provider,
           oauth_provider_id: metadata.oauth_provider_id,
-          has_complete_profile: hasCompleteProfile
+          has_complete_profile: hasCompleteProfile(authUser)
         };
       });
 
@@ -143,13 +144,10 @@ export async function POST(request: NextRequest) {
     const tempPassword = Math.random().toString(36).slice(-12) + 'A1!'; // 임시 복잡한 비밀번호
     console.log('Auth 사용자 생성 시도:', { email, phone: formattedPhone });
     
-    // user_metadata에 모든 프로필 정보 저장
+    // 프로필(사용자 수정 가능)은 user_metadata, 권한(수정 불가)은 app_metadata 에 저장
     const userMetadata: UserMetadata = {
       display_name: user_id,  // 사원번호
       name: name,
-      role: role,
-      site_id: site_id,
-      is_active: is_active ?? true,
     };
 
     // 이메일이 있으면 이메일과 전화번호 모두로, 없으면 전화번호만으로 생성
@@ -157,7 +155,12 @@ export async function POST(request: NextRequest) {
       phone: formattedPhone,
       password: tempPassword,
       phone_confirm: true,
-      user_metadata: userMetadata
+      user_metadata: userMetadata,
+      app_metadata: {
+        role: role,
+        site_id: site_id,
+        is_active: is_active ?? true,
+      }
     };
 
     if (email) {

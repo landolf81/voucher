@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { isValidUserMetadata } from '@/lib/types/auth';
+import { isValidUserMetadata, getAuthz } from '@/lib/types/auth';
 
 // Supabase Admin 클라이언트 싱글톤
 let supabaseAdminInstance: ReturnType<typeof createClient> | null = null;
@@ -55,24 +55,25 @@ export async function POST(request: NextRequest) {
     }
 
     const metadata = targetAuthUser.user_metadata;
+    const authz = getAuthz(targetAuthUser);
 
-    // user_metadata에서 is_active 확인
-    if (isValidUserMetadata(metadata) && metadata.is_active === false) {
+    // app_metadata에서 is_active 확인
+    if (authz && authz.is_active === false) {
       return NextResponse.json({
         success: false,
         message: '비활성화된 사용자입니다.'
       }, { status: 403 });
     }
 
-    // 사용자 정보 결정 (user_metadata만 사용)
+    // 사용자 정보 결정 (이름은 user_metadata, 권한은 app_metadata)
     let userName: string;
     let userRole: string;
     let siteId: string | null;
 
-    if (isValidUserMetadata(metadata)) {
+    if (isValidUserMetadata(metadata) && authz) {
       userName = metadata.name;
-      userRole = metadata.role;
-      siteId = metadata.site_id;
+      userRole = authz.role;
+      siteId = authz.site_id;
     } else {
       userName = targetAuthUser.user_metadata?.display_name || user_id;
       userRole = 'user';

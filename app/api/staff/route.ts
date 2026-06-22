@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase';
+import { getAuthz } from '@/lib/types/auth';
 
 /**
  * GET /api/staff
  * 인증된 사용자에게 임직원 목록을 반환한다 (쪽지 수신자 선택 / 공지 미열람자 명단용).
  *
- * - 사용자 마스터는 auth.users + user_metadata 이므로 service_role 의 admin API 로 조회한다.
+ * - 이름/사번은 auth.users.user_metadata, 권한(role/site_id/is_active)은 app_metadata 에서 읽는다.
  * - 비활성(is_active === false) 사용자는 제외한다.
  * - sites 테이블에서 site_name 을 매핑한다.
  */
@@ -63,15 +64,15 @@ export async function GET(request: NextRequest) {
       const users = data?.users || [];
       for (const u of users) {
         const meta = (u.user_metadata || {}) as Record<string, any>;
-        const isActive = meta.is_active ?? true;
-        if (isActive === false) continue;
-        if (!meta.role) continue; // 프로필 미설정(메타데이터 없는) 계정 제외
-        const siteId = meta.site_id ? String(meta.site_id) : null;
+        const authz = getAuthz(u);
+        if (!authz) continue; // 권한 미설정(프로필 미완성) 계정 제외
+        if (authz.is_active === false) continue;
+        const siteId = authz.site_id ? String(authz.site_id) : null;
         staff.push({
           id: u.id,
           name: meta.name || meta.display_name || u.email || '(이름없음)',
           display_name: meta.display_name || '',
-          role: meta.role,
+          role: authz.role,
           site_id: siteId,
           site_name: siteId ? siteMap.get(siteId) ?? null : null,
           is_active: true,

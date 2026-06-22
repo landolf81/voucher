@@ -38,10 +38,9 @@ export async function GET(request: NextRequest) {
       supabase.auth.admin.listUsers()
     ]);
 
-    // 활성 사용자 수 (user_metadata.is_active가 false가 아닌 사용자)
+    // 활성 사용자 수 (프로필 존재 + app_metadata.is_active가 false가 아닌 사용자)
     const totalUsers = authUsersResult.data?.users.filter(u => {
-      const metadata = u.user_metadata;
-      return metadata?.display_name && metadata?.is_active !== false;
+      return u.user_metadata?.display_name && u.app_metadata?.is_active !== false;
     }).length || 0;
 
     const totalVouchers = totalVouchersResult.count || 0;

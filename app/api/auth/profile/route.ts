@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
-import { isValidUserMetadata, type UserMetadata } from '@/lib/types/auth';
+import { isValidUserMetadata, getAuthz, type UserMetadata } from '@/lib/types/auth';
 
 // Supabase Admin 클라이언트 싱글톤
 let supabaseAdminInstance: ReturnType<typeof createClient> | null = null;
@@ -16,12 +16,11 @@ function getSupabaseAdmin() {
   return supabaseAdminInstance;
 }
 
-// 프로필 업데이트 스키마
+// 프로필 업데이트 스키마 (본인 셀프서비스)
+// 주의: role/site_id/is_active 는 권한 정보이므로 여기서 변경 불가.
+//       (관리자가 /api/user-profiles/[id] · /api/auth/admin/users 를 통해서만 변경)
 const updateProfileSchema = z.object({
-  name: z.string().min(2, '이름은 2자 이상이어야 합니다.').max(10, '이름은 10자 이하여야 합니다.').optional(),
-  role: z.enum(['admin', 'staff', 'viewer', 'part_time', 'inquiry']).optional(),
-  site_id: z.string().min(1, '사업장을 선택해주세요.').optional(),
-  is_active: z.boolean().optional()
+  name: z.string().min(2, '이름은 2자 이상이어야 합니다.').max(10, '이름은 10자 이하여야 합니다.').optional()
 });
 
 // GET: 현재 사용자 프로필 조회
@@ -48,8 +47,9 @@ export async function GET(request: NextRequest) {
     }
 
     const metadata = user.user_metadata;
+    const authz = getAuthz(user);
 
-    if (!isValidUserMetadata(metadata)) {
+    if (!isValidUserMetadata(metadata) || !authz) {
       return NextResponse.json(
         { success: false, message: '프로필을 찾을 수 없습니다.' },
         { status: 404 }
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     const { data: site } = await supabaseAdmin
       .from('sites')
       .select('id, site_name, address')
-      .eq('id', metadata.site_id)
+      .eq('id', authz.site_id)
       .single();
 
     return NextResponse.json({
@@ -70,10 +70,10 @@ export async function GET(request: NextRequest) {
         display_name: metadata.display_name,
         user_id: metadata.display_name,
         name: metadata.name,
-        role: metadata.role,
-        site_id: metadata.site_id,
+        role: authz.role,
+        site_id: authz.site_id,
         sites: site,
-        is_active: metadata.is_active ?? true,
+        is_active: authz.is_active,
         email: user.email,
         phone: user.phone,
         auth_id: user.id,
@@ -131,14 +131,11 @@ export async function PUT(request: NextRequest) {
 
     const updates = validation.data;
 
-    // user_metadata 업데이트
+    // user_metadata 업데이트 (name 만 — 권한 필드는 app_metadata 라 여기서 불변)
     const currentMetadata = user.user_metadata || {};
     const updatedMetadata: Partial<UserMetadata> = {
       ...currentMetadata,
       ...(updates.name !== undefined && { name: updates.name }),
-      ...(updates.role !== undefined && { role: updates.role }),
-      ...(updates.site_id !== undefined && { site_id: updates.site_id }),
-      ...(updates.is_active !== undefined && { is_active: updates.is_active }),
     };
 
     const { error: updateAuthError } = await supabaseAdmin.auth.admin.updateUserById(

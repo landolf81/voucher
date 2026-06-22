@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { formatPhoneForDB, validateKoreanPhoneInput } from '@/lib/phone-utils';
-import { isValidUserMetadata, type UserMetadata } from '@/lib/types/auth';
+import { isValidUserMetadata, getAuthz, type UserMetadata } from '@/lib/types/auth';
 
 // Supabase Admin 클라이언트 싱글톤
 let supabaseAdminInstance: ReturnType<typeof createClient> | null = null;
@@ -40,8 +40,9 @@ export async function GET(
     }
 
     const metadata = authUser.user_metadata;
+    const authz = getAuthz(authUser);
 
-    if (!isValidUserMetadata(metadata)) {
+    if (!isValidUserMetadata(metadata) || !authz) {
       return NextResponse.json({
         success: false,
         message: '사용자 프로필 정보가 없습니다.'
@@ -62,11 +63,11 @@ export async function GET(
         display_name: metadata.display_name,
         user_id: metadata.display_name,
         name: metadata.name,
-        role: metadata.role,
-        site_id: metadata.site_id,
-        site_name: sitesMap.get(metadata.site_id) || '',
-        sites: { id: metadata.site_id, site_name: sitesMap.get(metadata.site_id) || '' },
-        is_active: metadata.is_active ?? true,
+        role: authz.role,
+        site_id: authz.site_id,
+        site_name: sitesMap.get(authz.site_id) || '',
+        sites: { id: authz.site_id, site_name: sitesMap.get(authz.site_id) || '' },
+        is_active: authz.is_active,
         email: authUser.email || '',
         phone: authUser.phone || '',
         oauth_provider: metadata.oauth_provider,
@@ -124,14 +125,17 @@ export async function PUT(
       authUpdateData.phone = formatPhoneForDB(cleanedPhone);
     }
 
+    // 프로필(수정 가능)은 user_metadata, 권한(수정 불가)은 app_metadata
     const userMetadata: UserMetadata = {
       display_name: user_id || '',
       name: name,
+    };
+    authUpdateData.user_metadata = userMetadata;
+    authUpdateData.app_metadata = {
       role: role,
       site_id: site_id,
       is_active: is_active ?? true,
     };
-    authUpdateData.user_metadata = userMetadata;
 
     const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
       userId,
@@ -221,15 +225,16 @@ export async function PATCH(
       }, { status: 404 });
     }
 
-    const currentMetadata = authUser.user_metadata || {};
-    const updatedMetadata = {
-      ...currentMetadata,
+    // is_active 는 권한 정보이므로 app_metadata 에 저장 (사용자 수정 불가)
+    const currentAppMetadata = authUser.app_metadata || {};
+    const updatedAppMetadata = {
+      ...currentAppMetadata,
       is_active
     };
 
     const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
       userId,
-      { user_metadata: updatedMetadata }
+      { app_metadata: updatedAppMetadata }
     );
 
     if (authError) {

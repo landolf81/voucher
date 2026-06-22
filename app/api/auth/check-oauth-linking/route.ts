@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { isValidUserMetadata } from '@/lib/types/auth';
+import { isValidUserMetadata, getAuthz } from '@/lib/types/auth';
 
 // Supabase Admin 클라이언트 싱글톤
 let supabaseAdminInstance: ReturnType<typeof createClient> | null = null;
@@ -40,14 +40,15 @@ export async function POST(request: NextRequest) {
     }
 
     const metadata = authUser.user.user_metadata || {};
+    const authz = getAuthz(authUser.user);
 
-    // 2. user_metadata에서 프로필 정보 확인
-    if (isValidUserMetadata(metadata) && metadata.is_active !== false) {
+    // 2. 프로필(user_metadata) + 권한(app_metadata) 정보 확인
+    if (isValidUserMetadata(metadata) && authz && authz.is_active !== false) {
       // 프로필이 있음
       const { data: site } = await supabase
         .from('sites')
         .select('site_name')
-        .eq('id', metadata.site_id)
+        .eq('id', authz.site_id)
         .single();
 
       return NextResponse.json({
@@ -58,10 +59,10 @@ export async function POST(request: NextRequest) {
           name: metadata.name,
           email: authUser.user.email,
           phone: authUser.user.phone,
-          role: metadata.role,
-          site_id: metadata.site_id,
+          role: authz.role,
+          site_id: authz.site_id,
           site_name: (site as { site_name: string } | null)?.site_name,
-          is_active: metadata.is_active ?? true,
+          is_active: authz.is_active,
           oauth_provider: metadata.oauth_provider,
           oauth_provider_id: metadata.oauth_provider_id,
           oauth_linked_at: metadata.oauth_linked_at

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { isValidUserMetadata } from '@/lib/types/auth';
+import { hasCompleteProfile, getAuthz } from '@/lib/types/auth';
 
 // Supabase Admin 클라이언트 싱글톤
 let supabaseAdminInstance: ReturnType<typeof createClient> | null = null;
@@ -39,20 +39,20 @@ export async function GET(request: NextRequest) {
     const accounts = authUsersResult.data.users
       .map(authUser => {
         const metadata = authUser.user_metadata || {};
-        const hasCompleteProfile = isValidUserMetadata(authUser.user_metadata);
+        const authz = getAuthz(authUser);
         return {
           id: authUser.id,
           name: metadata.name || authUser.email?.split('@')[0] || '미설정',
           email: authUser.email,
           phone: authUser.phone,
-          role: metadata.role || 'viewer',
+          role: authz?.role || 'viewer',
           oauth_provider: metadata.oauth_provider,
           oauth_provider_id: metadata.oauth_provider_id,
           oauth_linked_at: metadata.oauth_linked_at,
-          is_active: metadata.is_active !== false,
-          site_name: metadata.site_id ? siteMap.get(metadata.site_id) : null,
+          is_active: authz?.is_active !== false,
+          site_name: authz?.site_id ? siteMap.get(authz.site_id) : null,
           created_at: authUser.created_at,
-          has_complete_profile: hasCompleteProfile
+          has_complete_profile: hasCompleteProfile(authUser)
         };
       })
       .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
 import { z } from 'zod';
+import { isAdminUser } from '@/lib/types/auth';
 
 // 일괄 사용 정보 수정 스키마
 const bulkUpdateUsageSchema = z.object({
@@ -68,8 +69,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const userRole = authUser.user.user_metadata?.role || 'user';
-      if (userRole !== 'admin') {
+      if (!isAdminUser(authUser.user)) {
         return NextResponse.json(
           {
             success: false,
