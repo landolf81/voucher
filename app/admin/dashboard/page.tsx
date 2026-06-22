@@ -16,27 +16,64 @@ import { UserManagement } from '@/components/admin/users/UserManagement';
 import { MemberManagement } from '@/components/admin/members/MemberManagement';
 import { AssociationManagement } from '@/components/admin/associations/AssociationManagement';
 import { ScheduleCalendar } from '@/components/admin/schedule/ScheduleCalendar';
+import { MessagesPanel } from '@/components/admin/messages/MessagesPanel';
+import { AnnouncementsPanel } from '@/components/admin/announcements/AnnouncementsPanel';
+import { getSupabaseClient } from '@/lib/supabase';
 
-type MenuType = 'overview' | 'vouchers' | 'usage' | 'inquiry' | 'users' | 'sites' | 'members' | 'associations' | 'schedule';
+type MenuType = 'overview' | 'vouchers' | 'usage' | 'inquiry' | 'users' | 'sites' | 'members' | 'associations' | 'schedule' | 'messages' | 'notices';
 
 export default function AdminDashboard() {
   const device = useDevice();
   const router = useRouter();
   const { user, logout } = useAuth();
   const [currentMenu, setCurrentMenu] = useState<MenuType>('overview');
+  const [unread, setUnread] = useState<{ messages: number; announcements: number }>({ messages: 0, announcements: 0 });
+
+  // 안읽음 카운트 (헤더/메뉴 뱃지)
+  const refreshUnread = React.useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const { data, error } = await getSupabaseClient().rpc('unread_counts');
+      if (!error && data) {
+        setUnread({ messages: (data as any).messages || 0, announcements: (data as any).announcements || 0 });
+      }
+    } catch {
+      // 무시
+    }
+  }, [user?.id]);
+
+  React.useEffect(() => {
+    refreshUnread();
+  }, [refreshUnread, currentMenu]);
+
+  React.useEffect(() => {
+    if (!user?.id) return;
+    const supabase = getSupabaseClient();
+    const channel = supabase
+      .channel('unread-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => refreshUnread())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, () => refreshUnread())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'announcement_reads' }, () => refreshUnread())
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, refreshUnread]);
 
   // 권한에 따른 메뉴 필터링
   const getMenuItems = () => {
     const allItems = [
-      { id: 'overview', label: '대시보드', icon: '📊', roles: ['admin', 'staff', 'viewer'] },
-      { id: 'schedule', label: '일정', icon: '📅', roles: ['admin', 'staff', 'viewer'] },
-      { id: 'vouchers', label: '교환권 관리', icon: '🎫', roles: ['admin', 'staff'] },
-      { id: 'usage', label: '교환권 사용 등록', icon: '✅', roles: ['admin', 'staff', 'viewer'] },
-      { id: 'inquiry', label: '교환권 조회', icon: '🔍', roles: ['admin', 'staff', 'viewer'] },
-      { id: 'members', label: '조합원 관리', icon: '👤', roles: ['admin'] },
-      { id: 'associations', label: '영농회 관리', icon: '🌾', roles: ['admin'] },
-      { id: 'sites', label: '사업장 관리', icon: '🏢', roles: ['admin', 'staff'] },
-      { id: 'users', label: '사용자 관리', icon: '👥', roles: ['admin'] },
+      { id: 'overview', label: '대시보드', icon: '📊', roles: ['admin', 'staff', 'viewer'], badge: 0 },
+      { id: 'schedule', label: '일정', icon: '📅', roles: ['admin', 'staff', 'viewer'], badge: 0 },
+      { id: 'notices', label: '공지', icon: '📢', roles: ['admin', 'staff', 'viewer', 'part_time', 'inquiry'], badge: unread.announcements },
+      { id: 'messages', label: '쪽지', icon: '💬', roles: ['admin', 'staff', 'viewer', 'part_time', 'inquiry'], badge: unread.messages },
+      { id: 'vouchers', label: '교환권 관리', icon: '🎫', roles: ['admin', 'staff'], badge: 0 },
+      { id: 'usage', label: '교환권 사용 등록', icon: '✅', roles: ['admin', 'staff', 'viewer'], badge: 0 },
+      { id: 'inquiry', label: '교환권 조회', icon: '🔍', roles: ['admin', 'staff', 'viewer'], badge: 0 },
+      { id: 'members', label: '조합원 관리', icon: '👤', roles: ['admin'], badge: 0 },
+      { id: 'associations', label: '영농회 관리', icon: '🌾', roles: ['admin'], badge: 0 },
+      { id: 'sites', label: '사업장 관리', icon: '🏢', roles: ['admin', 'staff'], badge: 0 },
+      { id: 'users', label: '사용자 관리', icon: '👥', roles: ['admin'], badge: 0 },
     ];
     
     return allItems.filter(item => 
@@ -52,6 +89,10 @@ export default function AdminDashboard() {
         return <OverviewContent />;
       case 'schedule':
         return <ScheduleCalendar />;
+      case 'messages':
+        return <MessagesPanel />;
+      case 'notices':
+        return <AnnouncementsPanel />;
       case 'vouchers':
         return <VoucherManagement />;
       case 'usage':
@@ -168,7 +209,24 @@ export default function AdminDashboard() {
                 }}
               >
                 <span style={{ fontSize: '20px' }}>{item.icon}</span>
-                {item.label}
+                <span style={{ flex: 1, textAlign: 'left' }}>{item.label}</span>
+                {item.badge > 0 && (
+                  <span style={{
+                    minWidth: '20px',
+                    height: '20px',
+                    padding: '0 6px',
+                    borderRadius: '999px',
+                    backgroundColor: currentMenu === item.id ? 'white' : '#ef4444',
+                    color: currentMenu === item.id ? '#3b82f6' : 'white',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </span>
+                )}
               </button>
             ))}
           </nav>

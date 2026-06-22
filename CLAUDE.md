@@ -40,8 +40,8 @@ npm run lint
 ### Authentication Flow
 1. Email uses Magic Links (not OTP) - redirects handled via emailRedirectTo
 2. SMS uses OTP codes with mock SMS service in development
-3. User profiles in `user_profiles` table linked to auth.users
-4. Auto-logout when profile not found or query fails
+3. User profile data lives in `auth.users.user_metadata` (name, display_name, role, site_id, is_active). The legacy `user_profiles` table was removed and migrated into metadata (see `/api/admin/migrate-user-metadata`). RLS reads role via `auth.jwt() -> 'user_metadata' ->> 'role'`.
+4. Auto-logout when the user/metadata lookup fails
 5. Duplicate auth state prevention with loadingUserId tracking
 
 ### Phone Number Formatting
@@ -72,7 +72,7 @@ VOUCHER_HMAC_SECRET=
 ```
 
 ## Key Database Tables
-- `user_profiles` - Extended user data (name, role, site_id) linked to auth.users
+- User profile data is stored in `auth.users.user_metadata` (no `user_profiles` table; it was removed). A `users` view/relation exposes auth users for admin listing (see `/api/users`).
 - `sites` - Business locations/branches
 - `vouchers` - Core voucher data with atomic status transitions
 - `voucher_templates` - Configurable voucher templates
@@ -85,7 +85,9 @@ VOUCHER_HMAC_SECRET=
 - `/api/v1/pdf/*` - PDF generation (voucher-a4, statement, usage-report)
 - `/api/vouchers/*` - Extended voucher management (bulk operations, Excel import)
 - `/api/sites/*` - Site management
-- `/api/user-profiles/*` - User management
+- `/api/users/*` - User management (reads/writes auth.users + user_metadata)
+- `/api/v1/messages/*` - Staff-to-staff direct/group messages (쪽지)
+- `/api/v1/announcements/*` - Company/site announcements with read tracking (공지)
 
 ## Common Tasks & Troubleshooting
 
