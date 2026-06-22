@@ -71,22 +71,25 @@ export function AnnouncementsPanel() {
 
   const load = useCallback(async () => {
     if (!user?.id) return;
-    const { data, error } = await db
-      .from('announcements')
-      .select('*')
-      .order('pinned', { ascending: false })
-      .order('created_at', { ascending: false });
+    // 공지 목록과 읽음 기록을 함께 가져와 한 번에 반영해야
+    // 읽음 정보가 도착하기 전 모든 공지가 잠깐 '미확인'(빨간 점)으로 깜빡이는 현상이 없어진다.
+    const [{ data, error }, { data: reads }] = await Promise.all([
+      db
+        .from('announcements')
+        .select('*')
+        .order('pinned', { ascending: false })
+        .order('created_at', { ascending: false }),
+      db
+        .from('announcement_reads')
+        .select('announcement_id')
+        .eq('user_id', user.id),
+    ]);
     if (error) {
       console.error('공지 로드 실패:', error);
       return;
     }
-    setItems((data as Announcement[]) || []);
-
-    const { data: reads } = await db
-      .from('announcement_reads')
-      .select('announcement_id')
-      .eq('user_id', user.id);
     setReadSet(new Set((reads || []).map((r: any) => r.announcement_id)));
+    setItems((data as Announcement[]) || []);
   }, [db, user?.id]);
 
   useEffect(() => {
