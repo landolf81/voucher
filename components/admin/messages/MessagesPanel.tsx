@@ -292,9 +292,12 @@ export function MessagesPanel() {
       if (tErr) throw tErr;
       const threadId = (created as ThreadRow).id;
 
+      // bulk insert 는 행마다 키가 다르면 누락 키를 명시 null 로 채워 NOT NULL 을 위반하므로
+      // 모든 행에 last_read_at 을 명시한다. 생성자는 읽음(now), 수신자는 안읽음(epoch).
+      const epoch = '1970-01-01T00:00:00Z';
       const rows = [
         { thread_id: threadId, user_id: user.id, user_name: user.name, last_read_at: new Date().toISOString() },
-        ...targets.map((t) => ({ thread_id: threadId, user_id: t.id, user_name: t.name })),
+        ...targets.map((t) => ({ thread_id: threadId, user_id: t.id, user_name: t.name, last_read_at: epoch })),
       ];
       const { error: pErr } = await db.from('message_participants').insert(rows);
       if (pErr) throw pErr;
