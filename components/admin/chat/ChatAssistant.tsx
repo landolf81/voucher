@@ -37,6 +37,16 @@ interface ChatSession {
 
 const PAGE_SIZE = 30;
 
+// 같은(로컬) 날짜인지 비교 — 날짜가 바뀌면 이전 대화를 자동으로 이어가지 않기 위함
+function isSameLocalDay(iso: string, ref: Date): boolean {
+  const d = new Date(iso);
+  return (
+    d.getFullYear() === ref.getFullYear() &&
+    d.getMonth() === ref.getMonth() &&
+    d.getDate() === ref.getDate()
+  );
+}
+
 export function ChatAssistant() {
   const supabase = getSupabaseClient();
   // 이 프로젝트의 Supabase 클라이언트는 Database 타입이 없어 insert/update 페이로드가
@@ -108,7 +118,15 @@ export function ChatAssistant() {
     }
     const list = (data as unknown as ChatSession[]) || [];
     setSessions(list);
-    setActiveSessionId((prev) => prev ?? list[0]?.id ?? null);
+    // 날짜가 바뀌면 이전 대화를 자동으로 이어가지 않음.
+    // 가장 최근 세션이 '오늘' 갱신된 경우에만 자동 선택하고,
+    // 그렇지 않으면 빈 상태로 두어 첫 메시지 전송 시 새 대화가 생성되게 함.
+    setActiveSessionId((prev) => {
+      if (prev) return prev;
+      const latest = list[0];
+      if (latest && isSameLocalDay(latest.updated_at, new Date())) return latest.id;
+      return null;
+    });
   }, [supabase, user?.id]);
 
   // ── 메시지 로드 ────────────────────────────────
