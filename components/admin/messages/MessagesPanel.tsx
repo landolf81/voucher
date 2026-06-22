@@ -75,6 +75,7 @@ export function MessagesPanel() {
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const activeIdRef = useRef<string | null>(null);
+  const sendingRef = useRef(false);
   useEffect(() => {
     activeIdRef.current = activeId;
   }, [activeId]);
@@ -197,6 +198,8 @@ export function MessagesPanel() {
   const send = async () => {
     const content = input.trim();
     if (!content || !activeId || !user?.id) return;
+    if (sendingRef.current) return; // 동시 이중 호출(IME Enter 중복 등) 차단
+    sendingRef.current = true;
     setSending(true);
     try {
       // insert 응답으로 받은 행을 즉시 화면에 추가(낙관적). Realtime 은 타인 메시지만 반영하므로 중복 없음.
@@ -222,6 +225,7 @@ export function MessagesPanel() {
       console.error('전송 실패:', e);
       alert('전송에 실패했습니다. ' + (e?.message || ''));
     } finally {
+      sendingRef.current = false;
       setSending(false);
     }
   };
@@ -416,6 +420,8 @@ export function MessagesPanel() {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => {
+                      // 한글 IME 조합 중 Enter(크롬에서 keydown 중복 발생) 는 무시
+                      if (e.nativeEvent.isComposing || e.keyCode === 229) return;
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         send();
