@@ -27,8 +27,12 @@ Hermes Chat Relay (맥북 상시 실행)
 
 import os
 import time
+from datetime import datetime, timedelta, timezone
 
 import requests
+
+# 한국 표준시 (KST, UTC+9)
+KST = timezone(timedelta(hours=9))
 
 try:
     from dotenv import load_dotenv
@@ -146,6 +150,16 @@ def build_context(session_id: str, current_content: str) -> list:
 
     # system 프롬프트에 "누가 대화 중인지" 주입 + user_id 로 사용자별 기억/활용 유도
     system_prompt = SYSTEM_PROMPT
+
+    # 현재 시각(KST)을 매 요청마다 주입 — 모델이 '오늘/지금'을 정확히 인지하도록
+    weekday_kr = ["월", "화", "수", "목", "금", "토", "일"]
+    now_kst = datetime.now(KST)
+    system_prompt += (
+        f"\n\n[현재 시각(KST)] {now_kst.strftime('%Y-%m-%d %H:%M')} "
+        f"({weekday_kr[now_kst.weekday()]}요일). "
+        "날짜·시간 관련 질문은 이 값을 기준으로 답하라."
+    )
+
     uid, label = get_user_label(session_id)
     if label:
         system_prompt += (
