@@ -53,7 +53,10 @@ export function MobileShell({
             minHeight: 0,
             overflow: 'hidden',
             padding: noPadding ? 0 : '12px',
-            paddingBottom: noPadding ? '72px' : '84px',
+            // 하단 고정 네비 높이(약 64px) + iOS safe-area 만큼 본문 여백 확보(입력창·버튼 가림 방지)
+            paddingBottom: noPadding
+              ? 'calc(72px + env(safe-area-inset-bottom))'
+              : 'calc(84px + env(safe-area-inset-bottom))',
           }}
         >
           {children}

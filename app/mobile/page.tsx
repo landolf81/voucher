@@ -24,7 +24,7 @@ export default function MobileHomePage() {
           colorScheme: 'light',
         }}
       >
-        <main style={{ flex: 1, minHeight: 0, padding: '8px', paddingBottom: '84px' }}>
+        <main style={{ flex: 1, minHeight: 0, padding: '8px', paddingBottom: 'calc(84px + env(safe-area-inset-bottom))' }}>
           <ChatAssistant />
         </main>
         <MobileNavigation />
