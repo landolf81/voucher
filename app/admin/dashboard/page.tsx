@@ -22,12 +22,22 @@ import { getSupabaseClient } from '@/lib/supabase';
 
 type MenuType = 'overview' | 'vouchers' | 'usage' | 'inquiry' | 'users' | 'sites' | 'members' | 'associations' | 'schedule' | 'messages' | 'notices';
 
+interface MenuNode {
+  id: string;
+  label: string;
+  icon: string;
+  roles: string[];
+  badge: number;
+  children?: MenuNode[];
+}
+
 export default function AdminDashboard() {
   const device = useDevice();
   const router = useRouter();
   const { user, logout } = useAuth();
   const [currentMenu, setCurrentMenu] = useState<MenuType>('overview');
   const [unread, setUnread] = useState<{ messages: number; announcements: number }>({ messages: 0, announcements: 0 });
+  const [voucherOpen, setVoucherOpen] = useState(true);
 
   // 안읽음 카운트 (헤더/메뉴 뱃지)
   const refreshUnread = React.useCallback(async () => {
@@ -60,28 +70,74 @@ export default function AdminDashboard() {
     };
   }, [user?.id, refreshUnread]);
 
-  // 권한에 따른 메뉴 필터링
-  const getMenuItems = () => {
-    const allItems = [
+  // 권한에 따른 메뉴 필터링 (교환권 업무는 '교환권' 그룹 아래로 묶음)
+  const getMenuItems = (): MenuNode[] => {
+    const role = user?.role || 'viewer';
+    const has = (roles: string[]) => roles.includes(role);
+
+    const voucherChildren: MenuNode[] = [
+      { id: 'vouchers', label: '발행·관리', icon: '🎫', roles: ['admin', 'staff'], badge: 0 },
+      { id: 'usage', label: '사용 등록', icon: '✅', roles: ['admin', 'staff', 'viewer'], badge: 0 },
+      { id: 'inquiry', label: '조회', icon: '🔍', roles: ['admin', 'staff', 'viewer'], badge: 0 },
+    ].filter((c) => has(c.roles));
+
+    const tree: MenuNode[] = [
       { id: 'overview', label: '대시보드', icon: '📊', roles: ['admin', 'staff', 'viewer'], badge: 0 },
       { id: 'schedule', label: '일정', icon: '📅', roles: ['admin', 'staff', 'viewer'], badge: 0 },
       { id: 'notices', label: '공지', icon: '📢', roles: ['admin', 'staff', 'viewer', 'part_time', 'inquiry'], badge: unread.announcements },
       { id: 'messages', label: '쪽지', icon: '💬', roles: ['admin', 'staff', 'viewer', 'part_time', 'inquiry'], badge: unread.messages },
-      { id: 'vouchers', label: '교환권 관리', icon: '🎫', roles: ['admin', 'staff'], badge: 0 },
-      { id: 'usage', label: '교환권 사용 등록', icon: '✅', roles: ['admin', 'staff', 'viewer'], badge: 0 },
-      { id: 'inquiry', label: '교환권 조회', icon: '🔍', roles: ['admin', 'staff', 'viewer'], badge: 0 },
+      { id: 'voucher-group', label: '교환권', icon: '🎟️', roles: ['admin', 'staff', 'viewer'], badge: 0, children: voucherChildren },
       { id: 'members', label: '조합원 관리', icon: '👤', roles: ['admin'], badge: 0 },
       { id: 'associations', label: '영농회 관리', icon: '🌾', roles: ['admin'], badge: 0 },
       { id: 'sites', label: '사업장 관리', icon: '🏢', roles: ['admin', 'staff'], badge: 0 },
       { id: 'users', label: '사용자 관리', icon: '👥', roles: ['admin'], badge: 0 },
     ];
-    
-    return allItems.filter(item => 
-      item.roles.includes(user?.role || 'viewer')
-    );
+
+    return tree.filter((item) => (item.children ? item.children.length > 0 : has(item.roles)));
   };
 
   const menuItems = getMenuItems();
+
+  // 트리 평탄화 (본문 헤더 제목 조회용)
+  const activeNode = menuItems
+    .flatMap((i) => (i.children ? [i, ...i.children] : [i]))
+    .find((n) => n.id === currentMenu);
+
+  // 메뉴 버튼 스타일/렌더 헬퍼
+  const menuBtnStyle = (active: boolean, isChild = false): React.CSSProperties => ({
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: isChild ? '12px 16px 12px 32px' : '16px',
+    marginBottom: '6px',
+    backgroundColor: active ? '#3b82f6' : 'transparent',
+    color: active ? 'white' : '#64748b',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: isChild ? '15px' : '16px',
+    fontWeight: active ? 600 : 500,
+    transition: 'all 0.2s',
+  });
+
+  const renderLeaf = (item: MenuNode, isChild = false) => (
+    <button
+      key={item.id}
+      onClick={() => setCurrentMenu(item.id as MenuType)}
+      style={menuBtnStyle(currentMenu === item.id, isChild)}
+      onMouseEnter={(e) => { if (currentMenu !== item.id) e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
+      onMouseLeave={(e) => { if (currentMenu !== item.id) e.currentTarget.style.backgroundColor = 'transparent'; }}
+    >
+      <span style={{ fontSize: isChild ? '16px' : '20px' }}>{item.icon}</span>
+      <span style={{ flex: 1, textAlign: 'left' }}>{item.label}</span>
+      {item.badge > 0 && (
+        <span style={{ minWidth: '20px', height: '20px', padding: '0 6px', borderRadius: '999px', backgroundColor: currentMenu === item.id ? 'white' : '#ef4444', color: currentMenu === item.id ? '#3b82f6' : 'white', fontSize: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+          {item.badge > 99 ? '99+' : item.badge}
+        </span>
+      )}
+    </button>
+  );
 
   const renderContent = () => {
     switch (currentMenu) {
@@ -177,58 +233,25 @@ export default function AdminDashboard() {
 
           {/* 메뉴 */}
           <nav style={{ padding: '16px' }}>
-            {menuItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setCurrentMenu(item.id as MenuType)}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '16px',
-                  marginBottom: '8px',
-                  backgroundColor: currentMenu === item.id ? '#3b82f6' : 'transparent',
-                  color: currentMenu === item.id ? 'white' : '#64748b',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '16px',
-                  fontWeight: currentMenu === item.id ? '600' : '500',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  if (currentMenu !== item.id) {
-                    e.currentTarget.style.backgroundColor = '#f1f5f9';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (currentMenu !== item.id) {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }
-                }}
-              >
-                <span style={{ fontSize: '20px' }}>{item.icon}</span>
-                <span style={{ flex: 1, textAlign: 'left' }}>{item.label}</span>
-                {item.badge > 0 && (
-                  <span style={{
-                    minWidth: '20px',
-                    height: '20px',
-                    padding: '0 6px',
-                    borderRadius: '999px',
-                    backgroundColor: currentMenu === item.id ? 'white' : '#ef4444',
-                    color: currentMenu === item.id ? '#3b82f6' : 'white',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    {item.badge > 99 ? '99+' : item.badge}
-                  </span>
-                )}
-              </button>
-            ))}
+            {menuItems.map((item) =>
+              item.children ? (
+                <div key={item.id}>
+                  <button
+                    onClick={() => setVoucherOpen((v) => !v)}
+                    style={menuBtnStyle(false)}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  >
+                    <span style={{ fontSize: '20px' }}>{item.icon}</span>
+                    <span style={{ flex: 1, textAlign: 'left' }}>{item.label}</span>
+                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>{voucherOpen ? '▲' : '▼'}</span>
+                  </button>
+                  {voucherOpen && item.children.map((c) => renderLeaf(c, true))}
+                </div>
+              ) : (
+                renderLeaf(item)
+              )
+            )}
           </nav>
 
           {/* 로그아웃 */}
@@ -289,7 +312,7 @@ export default function AdminDashboard() {
               color: '#1a202c',
               margin: 0
             }}>
-              {menuItems.find(item => item.id === currentMenu)?.icon} {menuItems.find(item => item.id === currentMenu)?.label || '대시보드'}
+              {activeNode?.icon} {activeNode?.label || '대시보드'}
             </h2>
           </div>
           
