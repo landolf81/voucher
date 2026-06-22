@@ -1172,7 +1172,7 @@ export function MobileVoucherManagement() {
                     <>
                       <p>선택한 템플릿에 등록된 대상자가 없습니다.</p>
                       <p style={{ fontSize: '14px', marginTop: '8px' }}>
-                        📝 "발행대상 등록" 탭에서 먼저 대상자를 등록해주세요.
+                        📝 &quot;발행대상 등록&quot; 탭에서 먼저 대상자를 등록해주세요.
                       </p>
                     </>
                   )}
@@ -1670,7 +1670,7 @@ export function MobileVoucherManagement() {
               </h6>
               <ul style={{ margin: 0, paddingLeft: '16px' }}>
                 <li>30일 이전에 만료된 배치가 정리 대상입니다</li>
-                <li>정리 시 배치는 삭제되지 않고 'cleaned' 상태로 변경됩니다</li>
+                <li>정리 시 배치는 삭제되지 않고 &apos;cleaned&apos; 상태로 변경됩니다</li>
                 <li>교환권의 모바일 링크 토큰만 제거되어 더 이상 접근할 수 없게 됩니다</li>
                 <li>시뮬레이션으로 먼저 확인한 후 실제 정리를 수행하세요</li>
               </ul>

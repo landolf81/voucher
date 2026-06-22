@@ -298,7 +298,7 @@ export function MobileScanPage() {
             color: '#9ca3af',
             marginTop: '16px'
           }}>
-            교환권 조회는 '조회' 메뉴를 이용해주세요.
+            교환권 조회는 &apos;조회&apos; 메뉴를 이용해주세요.
           </p>
         </div>
       </div>
@@ -645,7 +645,7 @@ export function MobileScanPage() {
               }}>
                 <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>📱 카메라 권한 허용 방법:</div>
                 <div>1. 주소창 옆 🔒 또는 ⓘ 아이콘 클릭</div>
-                <div>2. "카메라" 또는 "Camera" 허용으로 변경</div>
+                <div>2. &quot;카메라&quot; 또는 &quot;Camera&quot; 허용으로 변경</div>
                 <div>3. 페이지 새로고침</div>
               </div>
             )}

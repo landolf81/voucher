@@ -36,6 +36,23 @@ interface Props {
   onReissue?: (voucher: VoucherData) => void;
 }
 
+// 정렬 아이콘 — 렌더 안에서 정의하면 매 렌더마다 새 컴포넌트 타입이 되므로 모듈 스코프로 분리.
+// 현재 정렬 상태(sortBy/sortOrder)는 prop 으로 전달.
+function SortIcon({
+  field,
+  sortBy,
+  sortOrder,
+}: {
+  field: Props['sortBy'];
+  sortBy: Props['sortBy'];
+  sortOrder: Props['sortOrder'];
+}) {
+  if (sortBy !== field) {
+    return <span style={{ opacity: 0.3 }}>↕️</span>;
+  }
+  return <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>;
+}
+
 export function VoucherInquiryTable({
   vouchers,
   loading,
@@ -86,13 +103,6 @@ export function VoucherInquiryTable({
 
   const formatAmount = (amount: number) => {
     return amount.toLocaleString('ko-KR') + '원';
-  };
-
-  const SortIcon = ({ field }: { field: typeof sortBy }) => {
-    if (sortBy !== field) {
-      return <span style={{ opacity: 0.3 }}>↕️</span>;
-    }
-    return <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>;
   };
 
   if (loading) {
@@ -201,7 +211,7 @@ export function VoucherInquiryTable({
                   }}
                   onClick={() => onSort('amount')}
                   >
-                    금액 <SortIcon field="amount" />
+                    금액 <SortIcon field="amount" sortBy={sortBy} sortOrder={sortOrder} />
                   </th>
                   <th style={{
                     padding: '12px 16px',
@@ -214,7 +224,7 @@ export function VoucherInquiryTable({
                   }}
                   onClick={() => onSort('status')}
                   >
-                    상태 <SortIcon field="status" />
+                    상태 <SortIcon field="status" sortBy={sortBy} sortOrder={sortOrder} />
                   </th>
                   <th style={{
                     padding: '12px 16px',
@@ -227,7 +237,7 @@ export function VoucherInquiryTable({
                   }}
                   onClick={() => onSort('issued_at')}
                   >
-                    발행일 <SortIcon field="issued_at" />
+                    발행일 <SortIcon field="issued_at" sortBy={sortBy} sortOrder={sortOrder} />
                   </th>
                   <th style={{
                     padding: '12px 16px',
@@ -240,7 +250,7 @@ export function VoucherInquiryTable({
                   }}
                   onClick={() => onSort('used_at')}
                   >
-                    사용일 <SortIcon field="used_at" />
+                    사용일 <SortIcon field="used_at" sortBy={sortBy} sortOrder={sortOrder} />
                   </th>
                   <th style={{
                     padding: '12px 16px',

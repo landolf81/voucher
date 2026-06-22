@@ -295,7 +295,7 @@ export function VoucherEmailEditor({
         }}>
           <span>💡</span>
           <span>
-            텍스트 블록을 추가한 후, 우측 패널에서 "Merge Tags" 탭을 클릭하여 교환권 변수를 삽입하세요.
+            텍스트 블록을 추가한 후, 우측 패널에서 &quot;Merge Tags&quot; 탭을 클릭하여 교환권 변수를 삽입하세요.
             (예: <code style={{backgroundColor: 'rgba(255,255,255,0.2)', padding: '2px 4px', borderRadius: '3px'}}>&#123;&#123;name&#125;&#125;</code>, 
             <code style={{backgroundColor: 'rgba(255,255,255,0.2)', padding: '2px 4px', borderRadius: '3px'}}>&#123;&#123;qr_code:200&#125;&#125;</code>)
           </span>
@@ -313,7 +313,7 @@ export function VoucherEmailEditor({
         }}>
           <span>🎨</span>
           <span>
-            레이어 겹치기: 요소를 선택하고 우측 패널의 "Advanced" → "Custom CSS"에서 클래스를 추가하세요.
+            레이어 겹치기: 요소를 선택하고 우측 패널의 &quot;Advanced&quot; → &quot;Custom CSS&quot;에서 클래스를 추가하세요.
             (overlay-text, floating-element, layered-element, background-layer)
           </span>
         </div>

@@ -759,7 +759,7 @@ export function VoucherIssueForm() {
             fontSize: '14px',
             color: '#0369a1'
           }}>
-            💡 "전체" 체크박스를 클릭하면 선택된 템플릿의 모든 교환권({pagination.total.toLocaleString()}개)을 선택합니다.
+            💡 &quot;전체&quot; 체크박스를 클릭하면 선택된 템플릿의 모든 교환권({pagination.total.toLocaleString()}개)을 선택합니다.
           </div>
         )}
 

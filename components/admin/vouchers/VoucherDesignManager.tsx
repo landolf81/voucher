@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import dynamic from 'next/dynamic';
 
 // 이메일 에디터는 클라이언트 사이드에서만 로드
@@ -874,15 +875,21 @@ export function VoucherDesignManager() {
                     <td style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', textAlign: 'center' }}>
                       {/* 단일 미리보기 */}
                       {template.a4_image_url ? (
-                        <img
+                        <Image
                           src={template.a4_image_url}
                           alt="미리보기"
+                          width={50}
+                          height={65}
+                          unoptimized
                           style={{ width: '50px', height: '65px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #e5e7eb' }}
                         />
                       ) : template.mobile_image_url ? (
-                        <img
+                        <Image
                           src={template.mobile_image_url}
                           alt="미리보기"
+                          width={45}
+                          height={65}
+                          unoptimized
                           style={{ width: '45px', height: '65px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #e5e7eb' }}
                         />
                       ) : template.template_html || template.mobile_template_html ? (

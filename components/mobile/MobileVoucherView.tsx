@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import QRCode from 'qrcode';
 import { useState, useEffect } from 'react';
 
@@ -131,9 +132,12 @@ export function MobileVoucherView({ voucher, template }: MobileVoucherViewProps)
               borderRadius: '16px',
               boxShadow: '0 4px 16px rgba(37, 99, 235, 0.2)'
             }}>
-              <img
+              <Image
                 src={qrCodeUrl}
                 alt="QR Code"
+                width={260}
+                height={260}
+                unoptimized
                 style={{
                   width: '260px',
                   height: '260px'

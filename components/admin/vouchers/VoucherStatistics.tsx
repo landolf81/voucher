@@ -21,33 +21,31 @@ interface Props {
   statistics: Statistics;
 }
 
-export function VoucherStatistics({ statistics }: Props) {
-  const formatAmount = (amount: number) => {
-    return amount.toLocaleString('ko-KR') + '원';
-  };
+// 순수 포맷 헬퍼 — 컴포넌트 밖(모듈 스코프)에 두어 매 렌더마다 재생성되지 않게 함
+const formatAmount = (amount: number) => amount.toLocaleString('ko-KR') + '원';
+const formatCount = (count: number) => count.toLocaleString('ko-KR') + '건';
+const calculatePercentage = (count: number, total: number) => {
+  if (total === 0) return '0';
+  return ((count / total) * 100).toFixed(1);
+};
 
-  const formatCount = (count: number) => {
-    return count.toLocaleString('ko-KR') + '건';
-  };
-
-  const calculatePercentage = (count: number, total: number) => {
-    if (total === 0) return '0';
-    return ((count / total) * 100).toFixed(1);
-  };
-
-  const StatCard = ({ 
-    title, 
-    count, 
-    amount, 
-    color, 
-    bgColor 
-  }: { 
-    title: string; 
-    count: number; 
-    amount: number; 
-    color: string; 
-    bgColor: string;
-  }) => (
+// 상태별 통계 카드 — 렌더 안에서 정의하면 매 렌더마다 새 컴포넌트 타입이 되어
+// 불필요한 언마운트/리마운트가 생기므로 모듈 스코프로 분리. total 은 prop 으로 전달.
+function StatCard({
+  title,
+  count,
+  amount,
+  color,
+  total,
+}: {
+  title: string;
+  count: number;
+  amount: number;
+  color: string;
+  bgColor: string;
+  total: number;
+}) {
+  return (
     <div style={{
       backgroundColor: 'white',
       borderRadius: '8px',
@@ -83,11 +81,13 @@ export function VoucherStatistics({ statistics }: Props) {
         fontSize: '12px',
         color: '#9ca3af'
       }}>
-        전체 대비 {calculatePercentage(count, statistics.total_count)}%
+        전체 대비 {calculatePercentage(count, total)}%
       </div>
     </div>
   );
+}
 
+export function VoucherStatistics({ statistics }: Props) {
   return (
     <div style={{ marginBottom: '24px' }}>
       {/* 전체 요약 */}
@@ -188,6 +188,7 @@ export function VoucherStatistics({ statistics }: Props) {
           amount={statistics.registered_amount}
           color="#6b7280"
           bgColor="#f3f4f6"
+          total={statistics.total_count}
         />
         <StatCard
           title="발행됨"
@@ -195,6 +196,7 @@ export function VoucherStatistics({ statistics }: Props) {
           amount={statistics.issued_amount}
           color="#16a34a"
           bgColor="#dcfce7"
+          total={statistics.total_count}
         />
         <StatCard
           title="사용됨"
@@ -202,6 +204,7 @@ export function VoucherStatistics({ statistics }: Props) {
           amount={statistics.used_amount}
           color="#d97706"
           bgColor="#fef3c7"
+          total={statistics.total_count}
         />
         <StatCard
           title="회수됨"
@@ -209,6 +212,7 @@ export function VoucherStatistics({ statistics }: Props) {
           amount={statistics.recalled_amount}
           color="#2563eb"
           bgColor="#dbeafe"
+          total={statistics.total_count}
         />
         <StatCard
           title="폐기됨"
@@ -216,6 +220,7 @@ export function VoucherStatistics({ statistics }: Props) {
           amount={statistics.disposed_amount}
           color="#dc2626"
           bgColor="#fee2e2"
+          total={statistics.total_count}
         />
       </div>
     </div>

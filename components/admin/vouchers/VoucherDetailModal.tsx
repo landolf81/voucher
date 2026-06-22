@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import * as QRCode from 'qrcode';
 import { useEffect, useState } from 'react';
 
@@ -160,7 +161,7 @@ export function VoucherDetailModal({ voucher, onClose }: Props) {
               flexDirection: 'column',
               alignItems: 'center'
             }}>
-              <img src={qrCodeUrl} alt="QR Code" style={{ width: '150px', height: '150px' }} />
+              <Image src={qrCodeUrl} alt="QR Code" width={150} height={150} unoptimized style={{ width: '150px', height: '150px' }} />
               <p style={{
                 marginTop: '8px',
                 fontSize: '12px',

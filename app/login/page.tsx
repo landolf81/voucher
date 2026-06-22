@@ -750,7 +750,7 @@ export default function LoginPage() {
                     color: '#6b7280',
                     margin: 0
                   }}>
-                    사번을 입력하고 "사용자 확인"을 클릭하세요.
+                    사번을 입력하고 &quot;사용자 확인&quot;을 클릭하세요.
                   </p>
                 </div>
               )}
@@ -974,7 +974,7 @@ export default function LoginPage() {
                   color: '#6b7280',
                   margin: '4px 0 0 0'
                 }}>
-                  현재 테스트 환경에서는 '1234'를 입력하세요.
+                  현재 테스트 환경에서는 &apos;1234&apos;를 입력하세요.
                 </p>
               </div>
 

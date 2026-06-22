@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+// 이 파일은 canvas 렌더링에 브라우저 전역 `new Image()` 를 사용하므로 별칭으로 충돌 회피
+import NextImage from 'next/image';
 import { useParams } from 'next/navigation';
 import { MobileVoucherRenderer } from '@/components/voucher/VoucherRenderer';
 
@@ -366,9 +368,13 @@ export default function MobileVoucherPage() {
           border: '1px solid #e5e7eb'
         }}>
           {voucher.mobile_image ? (
-            <img
+            <NextImage
               src={voucher.mobile_image}
               alt="모바일 교환권"
+              width={0}
+              height={0}
+              sizes="100vw"
+              unoptimized
               style={{
                 width: '100%',
                 height: 'auto',
