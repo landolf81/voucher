@@ -37,6 +37,13 @@ interface ChatSession {
 
 const PAGE_SIZE = 30;
 
+// 메시지 송수신 시각 표시 (예: "오후 3:07")
+function formatMessageTime(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
+}
+
 // 같은(로컬) 날짜인지 비교 — 날짜가 바뀌면 이전 대화를 자동으로 이어가지 않기 위함
 function isSameLocalDay(iso: string, ref: Date): boolean {
   const d = new Date(iso);
@@ -297,41 +304,58 @@ export function ChatAssistant() {
   useEffect(() => {
     if (!activeSessionId) return;
 
-    const channel = supabase
-      .channel(`chat-${activeSessionId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'chat_messages',
-          filter: `session_id=eq.${activeSessionId}`,
-        },
-        (payload: any) => {
-          const row = payload.new as ChatMessage;
-          if (!row?.id) return;
-          setMessages((prev) => {
-            const idx = prev.findIndex((m) => m.id === row.id);
-            if (idx >= 0) {
-              const next = [...prev];
-              next[idx] = row;
-              return next;
-            }
-            return [...prev, row];
-          });
-          // 강제 스크롤 금지: 이미 하단일 때만 따라가고(애니메이션 없이),
-          // 위로 올려둔 상태면 움직이지 않고 "맨 아래로" 버튼만 표시
-          if (atBottomRef.current) {
-            scrollToBottom();
-          } else {
-            setShowScrollButton(true);
-          }
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let cancelled = false;
+
+    const handleRow = (payload: any) => {
+      const row = payload.new as ChatMessage;
+      if (!row?.id) return;
+      setMessages((prev) => {
+        const idx = prev.findIndex((m) => m.id === row.id);
+        if (idx >= 0) {
+          const next = [...prev];
+          next[idx] = row;
+          return next;
         }
-      )
-      .subscribe();
+        return [...prev, row];
+      });
+      // 강제 스크롤 금지: 이미 하단일 때만 따라가고(애니메이션 없이),
+      // 위로 올려둔 상태면 움직이지 않고 "맨 아래로" 버튼만 표시
+      if (atBottomRef.current) {
+        scrollToBottom();
+      } else {
+        setShowScrollButton(true);
+      }
+    };
+
+    (async () => {
+      // ⚠️ chat_messages RLS 가 owner-only(session.user_id = auth.uid())라
+      // Realtime postgres_changes 는 소켓에 실린 JWT 로 RLS 를 재평가함.
+      // 소켓이 anon 토큰 상태로 구독되면 auth.uid() = NULL → 이벤트 0건 →
+      // 새로고침 전까지 답변 미수신. 구독 직전에 사용자 토큰을 명시 주입한다.
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (token) await supabase.realtime.setAuth(token);
+      if (cancelled) return;
+
+      channel = supabase
+        .channel(`chat-${activeSessionId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'chat_messages',
+            filter: `session_id=eq.${activeSessionId}`,
+          },
+          handleRow
+        )
+        .subscribe();
+    })();
 
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
     };
   }, [activeSessionId, supabase, scrollToBottom]);
 
@@ -530,18 +554,29 @@ export function ChatAssistant() {
               >
                 <div
                   style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: m.role === 'user' ? 'flex-end' : 'flex-start',
                     maxWidth: '75%',
-                    padding: '10px 14px',
-                    borderRadius: '12px',
-                    backgroundColor: m.role === 'user' ? '#2563eb' : '#f3f4f6',
-                    color: m.role === 'user' ? '#fff' : '#111827',
-                    fontSize: '14px',
-                    lineHeight: 1.6,
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
                   }}
                 >
-                  {m.content}
+                  <div
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: '12px',
+                      backgroundColor: m.role === 'user' ? '#2563eb' : '#f3f4f6',
+                      color: m.role === 'user' ? '#fff' : '#111827',
+                      fontSize: '14px',
+                      lineHeight: 1.6,
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    {m.content}
+                  </div>
+                  <span style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 4px 0' }}>
+                    {formatMessageTime(m.created_at)}
+                  </span>
                 </div>
               </div>
             ))
