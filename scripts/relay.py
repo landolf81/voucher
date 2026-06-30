@@ -26,7 +26,9 @@ Hermes Chat Relay (맥북 상시 실행)
 """
 
 import os
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
 import requests
@@ -63,9 +65,15 @@ HERMES_API = os.environ.get("HERMES_API_URL", "http://localhost:8642/v1/chat/com
 HERMES_KEY = os.environ.get("HERMES_API_KEY", "change-me-local-dev")
 HERMES_MODEL = os.environ.get("HERMES_MODEL", "hermes-agent")
 POLL_INTERVAL = float(os.environ.get("RELAY_POLL_INTERVAL", "2"))
-HERMES_TIMEOUT = int(os.environ.get("HERMES_TIMEOUT", "120"))
-# Hermes 호출이 일시적으로 실패(타임아웃/non-200/연결 끊김)할 때 재시도 횟수와 backoff(초).
-# 최초 1회 + HERMES_RETRIES 회 추가 시도. 모두 실패해야 비로소 'error' 처리.
+# 감정평가 등 도구로 토지/실거래 정보를 수집하는 작업은 응답까지 수 분 걸릴 수 있어
+# 기본값을 넉넉히(600초=10분) 둔다. 더 길게 필요하면 env HERMES_TIMEOUT 으로 덮어쓴다.
+HERMES_TIMEOUT = int(os.environ.get("HERMES_TIMEOUT", "600"))
+# 동시 처리 워커 수. 모델이 클라우드(DeepSeek 등)라 맥북 추론 부하가 없으므로 여유 있게 5.
+# 긴 작업 1건이 도는 동안에도 짧은 질문이 추월해 처리된다. env RELAY_CONCURRENCY 로 조절.
+RELAY_CONCURRENCY = int(os.environ.get("RELAY_CONCURRENCY", "5"))
+# Hermes 호출이 일시적으로 실패(연결 끊김/5xx 등)할 때만 재시도. backoff(초)는 선형.
+# ⚠️ 타임아웃(=오래 걸린 정상 작업일 가능성)은 재시도하지 않는다 — 무거운 작업을 처음부터
+#    재실행하면 워커를 오래 점유하고 도구 호출이 중복될 뿐이다.
 HERMES_RETRIES = int(os.environ.get("HERMES_RETRIES", "2"))
 HERMES_RETRY_BACKOFF = float(os.environ.get("HERMES_RETRY_BACKOFF", "3"))
 
@@ -87,6 +95,22 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def set_status(message_id: str, status: str) -> None:
     supabase.table("chat_messages").update({"status": status}).eq("id", message_id).execute()
+
+
+def claim(message_id: str) -> bool:
+    """pending → processing 원자적 claim. 실제로 내가 잡았으면 True.
+
+    `status='pending'` 조건부 UPDATE 라, 동시에 여러 워커(또는 폴)가 같은 행을 노려도
+    UPDATE 가 성공해 행을 돌려받은 쪽만 True 가 된다(compare-and-swap). 중복 처리 방지.
+    """
+    res = (
+        supabase.table("chat_messages")
+        .update({"status": "processing"})
+        .eq("id", message_id)
+        .eq("status", "pending")
+        .execute()
+    )
+    return bool(res.data)
 
 
 # 세션→사용자 정보 캐시 (admin 조회 반복 방지)
@@ -151,6 +175,15 @@ def build_context(session_id: str, current_content: str) -> list:
     # system 프롬프트에 "누가 대화 중인지" 주입 + user_id 로 사용자별 기억/활용 유도
     system_prompt = SYSTEM_PROMPT
 
+    # 채널 표시 — 이 대화는 외부 API(웹 채팅) 채널임을 명시.
+    # 봇 기억(SOUL/USER/MEMORY)의 "API 응답 규칙"(시스템 용어 금지·개인정보 차단·호칭은
+    # 발신자 값에 따름 등)이 데스크탑 GUI(마스터)와 구분되어 적용되도록 한다.
+    system_prompt += (
+        "\n\n[채널] 이 대화는 외부 API(웹 채팅) 채널이다 — 데스크탑 GUI(마스터)가 아니다. "
+        "API 응답 규칙을 적용하라: 시스템/기술 용어 노출 금지, 개인정보 차단, "
+        "인프라·접속 정보 노출 금지, 호칭은 '[현재 대화 사용자]' 값을 따른다."
+    )
+
     # 현재 시각(KST)을 매 요청마다 주입 — 모델이 '오늘/지금'을 정확히 인지하도록
     weekday_kr = ["월", "화", "수", "목", "금", "토", "일"]
     now_kst = datetime.now(KST)
@@ -164,9 +197,11 @@ def build_context(session_id: str, current_content: str) -> list:
     if label:
         system_prompt += (
             f"\n\n[현재 대화 사용자] {label} (user_id: {uid}).\n"
-            "이 사용자를 인지하고 호칭/맥락에 반영해 응대하라. "
-            "사용자별로 기억할 정보(선호, 진행 중 업무, 과거 요청 등)가 생기면 "
-            "이 user_id를 키로 메모리/노트에 정리해 다음 대화에서 활용하라."
+            "이 정보는 오직 지금 이 대화의 맥락 파악용 배경일 뿐이다. "
+            "매 답변마다 이름이나 호칭을 붙이지 말 것 — 특히 단답·사실 안내에는 호칭 없이 본론만 말한다. "
+            "⚠️ 이 사용자의 이름·호칭·소속을 기억(메모리/노트)에 저장하지 말고, "
+            "다른 대화에서 이전 사용자의 이름이나 호칭을 절대 사용하지 마라. "
+            "각 대화의 상대는 매번 다를 수 있으니, 반드시 지금 이 [현재 대화 사용자] 값만 신뢰하라."
         )
 
     messages = [{"role": "system", "content": system_prompt}]
@@ -181,31 +216,17 @@ def build_context(session_id: str, current_content: str) -> list:
     return messages
 
 
-def poll() -> None:
-    result = (
-        supabase.table("chat_messages")
-        .select("*")
-        .eq("role", "user")
-        .eq("status", "pending")
-        .order("created_at")
-        .limit(1)
-        .execute()
-    )
-    if not result.data:
-        return
-
-    msg = result.data[0]
+def process_message(msg: dict) -> None:
+    """이미 claim 된(processing) 메시지 1건을 Hermes 로 처리. 워커 스레드에서 실행됨."""
     msg_id = msg["id"]
     session_id = msg["session_id"]
-
-    set_status(msg_id, "processing")
     print(f"→ 처리 중: session={session_id[:8]} msg={msg_id[:8]}")
 
     try:
         messages = build_context(session_id, msg["content"])
 
-        # 일시적 실패(타임아웃/non-200/연결 끊김)는 backoff 재시도로 흡수하고,
-        # 모든 시도가 실패했을 때만 'error' 로 둔다.
+        # 연결 끊김/5xx 등 일시적 실패만 backoff 재시도로 흡수한다.
+        # 타임아웃은 '오래 걸린 정상 작업'일 가능성이 커서 재시도하지 않고 바로 error.
         answer = None
         last_err = None
         total_attempts = HERMES_RETRIES + 1
@@ -221,7 +242,12 @@ def poll() -> None:
                     answer = resp.json()["choices"][0]["message"]["content"]
                     break
                 last_err = f"HTTP {resp.status_code}: {resp.text[:200]}"
-            except Exception as e:  # noqa: BLE001  (타임아웃/연결오류 등)
+            except requests.exceptions.Timeout:
+                # 재시도 금지: 무거운 작업을 처음부터 재실행하면 워커 점유·도구 중복만 늘어난다.
+                print(f"✗ Hermes 타임아웃({HERMES_TIMEOUT}s) msg={msg_id[:8]} — 재시도 안 함")
+                set_status(msg_id, "error")
+                return
+            except Exception as e:  # noqa: BLE001  (연결오류 등)
                 last_err = repr(e)
 
             if attempt < total_attempts:
@@ -254,6 +280,41 @@ def poll() -> None:
         set_status(msg_id, "error")
 
 
+def poll(executor: ThreadPoolExecutor, inflight: set, lock: threading.Lock) -> None:
+    """여유 슬롯만큼 pending 을 가져와 claim 후 워커에 던진다(동시 처리).
+
+    - 여유 슬롯 = RELAY_CONCURRENCY - 현재 진행 중(inflight) 수
+    - claim 에 실패한 행(다른 워커가 이미 가져감)은 건너뛴다
+    - 긴 작업이 워커를 물고 있어도, 짧은 질문은 남은 슬롯으로 추월 처리된다
+    """
+    with lock:
+        free = RELAY_CONCURRENCY - len(inflight)
+    if free <= 0:
+        return
+
+    result = (
+        supabase.table("chat_messages")
+        .select("*")
+        .eq("role", "user")
+        .eq("status", "pending")
+        .order("created_at")
+        .limit(free)
+        .execute()
+    )
+    for msg in result.data or []:
+        if not claim(msg["id"]):
+            continue  # 다른 워커/폴이 이미 가져감
+        fut = executor.submit(process_message, msg)
+        with lock:
+            inflight.add(fut)
+        fut.add_done_callback(lambda f: _retire(f, inflight, lock))
+
+
+def _retire(fut, inflight: set, lock: threading.Lock) -> None:
+    with lock:
+        inflight.discard(fut)
+
+
 def recover_orphaned() -> None:
     """시작 시 'processing' 에 갇힌 메시지를 'pending' 으로 되돌린다.
 
@@ -279,11 +340,14 @@ def recover_orphaned() -> None:
 
 if __name__ == "__main__":
     print(f"Relay started. Supabase={SUPABASE_URL}  Hermes={HERMES_API}  model={HERMES_MODEL}")
-    print(f"Polling every {POLL_INTERVAL}s...")
+    print(f"Polling every {POLL_INTERVAL}s... (동시 처리 {RELAY_CONCURRENCY}건, 타임아웃 {HERMES_TIMEOUT}s)")
     recover_orphaned()
+    inflight: set = set()
+    lock = threading.Lock()
+    executor = ThreadPoolExecutor(max_workers=RELAY_CONCURRENCY)
     while True:
         try:
-            poll()
+            poll(executor, inflight, lock)
         except Exception as e:  # noqa: BLE001
             print(f"Polling error: {e}")
         time.sleep(POLL_INTERVAL)
