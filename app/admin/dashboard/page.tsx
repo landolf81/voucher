@@ -18,9 +18,10 @@ import { AssociationManagement } from '@/components/admin/associations/Associati
 import { ScheduleCalendar } from '@/components/admin/schedule/ScheduleCalendar';
 import { MessagesPanel } from '@/components/admin/messages/MessagesPanel';
 import { AnnouncementsPanel } from '@/components/admin/announcements/AnnouncementsPanel';
+import { AppraisalsPanel } from '@/components/admin/appraisals/AppraisalsPanel';
 import { getSupabaseClient } from '@/lib/supabase';
 
-type MenuType = 'overview' | 'vouchers' | 'usage' | 'inquiry' | 'users' | 'sites' | 'members' | 'associations' | 'schedule' | 'messages' | 'notices';
+type MenuType = 'overview' | 'vouchers' | 'usage' | 'inquiry' | 'users' | 'sites' | 'members' | 'associations' | 'schedule' | 'messages' | 'notices' | 'appraisals';
 
 interface MenuNode {
   id: string;
@@ -36,7 +37,7 @@ export default function AdminDashboard() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const [currentMenu, setCurrentMenu] = useState<MenuType>('overview');
-  const [unread, setUnread] = useState<{ messages: number; announcements: number }>({ messages: 0, announcements: 0 });
+  const [unread, setUnread] = useState<{ messages: number; announcements: number; appraisals: number }>({ messages: 0, announcements: 0, appraisals: 0 });
   const [voucherOpen, setVoucherOpen] = useState(true);
 
   // 안읽음 카운트 (헤더/메뉴 뱃지)
@@ -45,7 +46,7 @@ export default function AdminDashboard() {
     try {
       const { data, error } = await getSupabaseClient().rpc('unread_counts');
       if (!error && data) {
-        setUnread({ messages: (data as any).messages || 0, announcements: (data as any).announcements || 0 });
+        setUnread({ messages: (data as any).messages || 0, announcements: (data as any).announcements || 0, appraisals: (data as any).appraisals || 0 });
       }
     } catch {
       // 무시
@@ -64,6 +65,8 @@ export default function AdminDashboard() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => refreshUnread())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, () => refreshUnread())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'announcement_reads' }, () => refreshUnread())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'appraisals' }, () => refreshUnread())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'appraisal_reads' }, () => refreshUnread())
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -86,6 +89,7 @@ export default function AdminDashboard() {
       { id: 'schedule', label: '일정', icon: '📅', roles: ['admin', 'staff', 'viewer'], badge: 0 },
       { id: 'notices', label: '공지', icon: '📢', roles: ['admin', 'staff', 'viewer', 'part_time', 'inquiry'], badge: unread.announcements },
       { id: 'messages', label: '쪽지', icon: '💬', roles: ['admin', 'staff', 'viewer', 'part_time', 'inquiry'], badge: unread.messages },
+      { id: 'appraisals', label: '감정평가', icon: '🏷️', roles: ['admin', 'staff', 'viewer', 'part_time', 'inquiry'], badge: unread.appraisals },
       { id: 'voucher-group', label: '교환권', icon: '🎟️', roles: ['admin', 'staff', 'viewer'], badge: 0, children: voucherChildren },
       { id: 'members', label: '조합원 관리', icon: '👤', roles: ['admin'], badge: 0 },
       { id: 'associations', label: '영농회 관리', icon: '🌾', roles: ['admin'], badge: 0 },
@@ -149,6 +153,8 @@ export default function AdminDashboard() {
         return <MessagesPanel />;
       case 'notices':
         return <AnnouncementsPanel />;
+      case 'appraisals':
+        return <AppraisalsPanel />;
       case 'vouchers':
         return <VoucherManagement />;
       case 'usage':
