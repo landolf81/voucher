@@ -4,7 +4,11 @@
  * 감정평가 게시판 — 평가서(요청·기록) + 직원 댓글 + 안읽음 추적
  *
  * - 조회: 전 직원(RLS authenticated 전체). 작성: 누구나(본인 명의). 수정/삭제: 작성자 또는 admin.
- * - 평가서 1건 = 글 1개. 대상물/물품·평가금액·평가자·평가일 + 본문(LLM 작성 가능) + 첨부(사진/파일).
+ * - 평가서 1건 = 글 1개. 구분(부동산/공장물건/기타)에 따라 입력 필드가 달라짐:
+ *   · 부동산(기본): 소재지·물건종류·토지/건물면적
+ *   · 공장물건: 부동산 필드 + 기계·기구 정보(item_info)
+ *   · 기타: 대상 물품 정보(item_info)
+ * - 공통: 감정평가액·평가자·평가일 + 본문(LLM 작성 가능) + 첨부(사진/파일).
  * - 글을 펼치면 읽음 처리(appraisal_reads upsert) → 헤더 뱃지 갱신.
  * - 댓글로 직원 간 소통. Realtime(appraisals / appraisal_comments) 구독.
  * - 첨부는 storage 버킷 'appraisals' 에 업로드 후 공개 URL 저장.
@@ -19,9 +23,16 @@ interface Attachment {
   name: string;
   type: string;
 }
+type Category = 'real_estate' | 'factory' | 'other';
+
 interface Appraisal {
   id: string;
   title: string;
+  category: Category;
+  location: string | null;
+  property_type: string | null;
+  land_area: string | null;
+  building_area: string | null;
   item_info: string | null;
   amount: number | null;
   appraiser_name: string | null;
@@ -46,6 +57,11 @@ interface Comment {
 interface FormState {
   id: string | null;
   title: string;
+  category: Category;
+  location: string;
+  property_type: string;
+  land_area: string;
+  building_area: string;
   item_info: string;
   amount: string;
   appraiser_name: string;
@@ -64,6 +80,11 @@ const todayStr = () => {
 const emptyForm = (name?: string): FormState => ({
   id: null,
   title: '',
+  category: 'real_estate',
+  location: '',
+  property_type: '',
+  land_area: '',
+  building_area: '',
   item_info: '',
   amount: '',
   appraiser_name: name || '',
@@ -78,6 +99,15 @@ const STATUS_META: Record<Appraisal['status'], { label: string; bg: string; fg: 
   in_progress: { label: '진행중', bg: '#dbeafe', fg: '#1d4ed8' },
   done: { label: '완료', bg: '#dcfce7', fg: '#15803d' },
 };
+
+const CATEGORY_META: Record<Category, { label: string; bg: string; fg: string; titlePlaceholder: string }> = {
+  real_estate: { label: '부동산', bg: '#e0e7ff', fg: '#4338ca', titlePlaceholder: '예: 남양주시 ○○동 토지·건물 감정' },
+  factory: { label: '공장물건', bg: '#ffedd5', fg: '#c2410c', titlePlaceholder: '예: ○○공장 (토지·건물·기계기구) 감정' },
+  other: { label: '기타', bg: '#f1f5f9', fg: '#475569', titlePlaceholder: '예: ○○ 중고 굴착기 감정' },
+};
+
+// 물건 종류 자주 쓰는 값 (datalist 제안용 — 자유 입력 가능)
+const PROPERTY_TYPE_SUGGESTIONS = ['토지', '토지·건물', '아파트', '다세대·연립', '단독주택', '상가', '임야', '전·답', '공장', '창고'];
 
 const isImage = (a: Attachment) => a.type?.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(a.name);
 
@@ -175,6 +205,11 @@ export function AppraisalsPanel() {
     setForm({
       id: a.id,
       title: a.title,
+      category: a.category || 'real_estate',
+      location: a.location || '',
+      property_type: a.property_type || '',
+      land_area: a.land_area || '',
+      building_area: a.building_area || '',
       item_info: a.item_info || '',
       amount: a.amount != null ? String(a.amount) : '',
       appraiser_name: a.appraiser_name || '',
@@ -225,8 +260,14 @@ export function AppraisalsPanel() {
     if (!user?.id) return;
     setSaving(true);
     try {
+      // 숨겨진 카테고리의 필드도 폼 상태를 그대로 저장 — 카테고리를 오가도 기존 값이 유실되지 않게
       const payload = {
         title: form.title.trim(),
+        category: form.category,
+        location: form.location.trim() || null,
+        property_type: form.property_type.trim() || null,
+        land_area: form.land_area.trim() || null,
+        building_area: form.building_area.trim() || null,
         item_info: form.item_info.trim() || null,
         amount: form.amount ? Number(form.amount) : null,
         appraiser_name: form.appraiser_name.trim() || null,
@@ -313,12 +354,14 @@ export function AppraisalsPanel() {
             const isRead = readSet.has(a.id);
             const open = expanded === a.id;
             const sm = STATUS_META[a.status];
+            const cm = CATEGORY_META[a.category] || CATEGORY_META.real_estate;
             return (
               <div key={a.id} style={{ border: '1px solid #e5e7eb', borderRadius: 12, backgroundColor: '#fff', marginBottom: 10, overflow: 'hidden' }}>
                 <div onClick={() => toggleExpand(a)} style={{ padding: '14px 16px', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                   {!isRead && <span style={{ marginTop: 6, width: 8, height: 8, borderRadius: 999, backgroundColor: '#ef4444', flexShrink: 0 }} />}
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 999, backgroundColor: cm.bg, color: cm.fg, fontWeight: 600 }}>{cm.label}</span>
                       <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 999, backgroundColor: sm.bg, color: sm.fg }}>{sm.label}</span>
                       <span style={{ fontWeight: isRead ? 600 : 700, color: '#1f2937', fontSize: 15 }}>{a.title}</span>
                       {a.amount != null && (
@@ -326,6 +369,7 @@ export function AppraisalsPanel() {
                       )}
                     </div>
                     <div style={{ color: '#9ca3af', fontSize: 12, marginTop: 4 }}>
+                      {a.location && <span style={{ color: '#6b7280' }}>📍 {a.location}{a.property_type ? ` · ${a.property_type}` : ''} &nbsp;</span>}
                       {a.created_by_name} · {new Date(a.created_at).toLocaleString('ko-KR', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
@@ -335,8 +379,12 @@ export function AppraisalsPanel() {
                   <div style={{ padding: '0 16px 16px', borderTop: '1px solid #f8fafc' }}>
                     {/* 메타 그리드 */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 8, margin: '12px 0' }}>
-                      {a.item_info && <Field label="대상물/물품" value={a.item_info} />}
-                      {a.amount != null && <Field label="평가 금액" value={fmtAmount(a.amount)!} strong />}
+                      {a.location && <Field label="소재지" value={a.location} />}
+                      {a.property_type && <Field label="물건 종류" value={a.property_type} />}
+                      {a.land_area && <Field label="토지 면적" value={a.land_area} />}
+                      {a.building_area && <Field label="건물 면적" value={a.building_area} />}
+                      {a.item_info && <Field label={a.category === 'factory' ? '기계·기구' : '대상물/물품'} value={a.item_info} />}
+                      {a.amount != null && <Field label="감정평가액" value={fmtAmount(a.amount)!} strong />}
                       {a.appraiser_name && <Field label="평가자" value={a.appraiser_name} />}
                       {a.appraised_at && <Field label="평가일" value={a.appraised_at} />}
                     </div>
@@ -418,15 +466,64 @@ export function AppraisalsPanel() {
           <div onClick={(e) => e.stopPropagation()} style={{ ...modalBox, maxWidth: 560 }}>
             <h3 style={{ margin: '0 0 14px', fontSize: 17, fontWeight: 700 }}>{form.id ? '평가서 수정' : '평가서 작성'}</h3>
 
-            <Label>제목 *</Label>
-            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="예: ○○ 중고 굴착기 감정" style={{ ...inputStyle, marginBottom: 10 }} />
+            <Label>구분</Label>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+              {(Object.keys(CATEGORY_META) as Category[]).map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setForm({ ...form, category: c })}
+                  style={{
+                    ...ghostBtn,
+                    flex: 1,
+                    backgroundColor: form.category === c ? CATEGORY_META[c].bg : '#fff',
+                    color: form.category === c ? CATEGORY_META[c].fg : '#6b7280',
+                    borderColor: form.category === c ? CATEGORY_META[c].fg : '#e5e7eb',
+                    fontWeight: 700,
+                  }}
+                >
+                  {CATEGORY_META[c].label}
+                </button>
+              ))}
+            </div>
 
-            <Label>대상물/물품 정보</Label>
-            <input value={form.item_info} onChange={(e) => setForm({ ...form, item_info: e.target.value })} placeholder="종류·모델·상태 등" style={{ ...inputStyle, marginBottom: 10 }} />
+            <Label>제목 *</Label>
+            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder={CATEGORY_META[form.category].titlePlaceholder} style={{ ...inputStyle, marginBottom: 10 }} />
+
+            {form.category !== 'other' && (
+              <>
+                <Label>소재지</Label>
+                <input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="예: 경기도 남양주시 ○○읍 ○○리 123-4" style={{ ...inputStyle, marginBottom: 10 }} />
+
+                <div style={{ display: 'flex', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
+                  <div style={{ flex: '1 1 140px' }}>
+                    <Label>물건 종류</Label>
+                    <input list="appraisal-property-types" value={form.property_type} onChange={(e) => setForm({ ...form, property_type: e.target.value })} placeholder="예: 토지·건물" style={inputStyle} />
+                    <datalist id="appraisal-property-types">
+                      {PROPERTY_TYPE_SUGGESTIONS.map((t) => <option key={t} value={t} />)}
+                    </datalist>
+                  </div>
+                  <div style={{ flex: '1 1 130px' }}>
+                    <Label>토지 면적</Label>
+                    <input value={form.land_area} onChange={(e) => setForm({ ...form, land_area: e.target.value })} placeholder="예: 1,234㎡" style={inputStyle} />
+                  </div>
+                  <div style={{ flex: '1 1 130px' }}>
+                    <Label>건물 면적</Label>
+                    <input value={form.building_area} onChange={(e) => setForm({ ...form, building_area: e.target.value })} placeholder="예: 456.7㎡" style={inputStyle} />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {form.category !== 'real_estate' && (
+              <>
+                <Label>{form.category === 'factory' ? '기계·기구 정보' : '대상물/물품 정보'}</Label>
+                <input value={form.item_info} onChange={(e) => setForm({ ...form, item_info: e.target.value })} placeholder={form.category === 'factory' ? '예: 프레스 3대, CNC 선반 2대 등' : '종류·모델·상태 등'} style={{ ...inputStyle, marginBottom: 10 }} />
+              </>
+            )}
 
             <div style={{ display: 'flex', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
               <div style={{ flex: '1 1 160px' }}>
-                <Label>평가 금액(원)</Label>
+                <Label>감정평가액(원)</Label>
                 <input value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value.replace(/[^\d]/g, '') })} inputMode="numeric" placeholder="숫자만" style={inputStyle} />
               </div>
               <div style={{ flex: '1 1 120px' }}>

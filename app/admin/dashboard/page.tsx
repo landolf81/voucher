@@ -89,7 +89,7 @@ export default function AdminDashboard() {
       { id: 'schedule', label: '일정', icon: '📅', roles: ['admin', 'staff', 'viewer'], badge: 0 },
       { id: 'notices', label: '공지', icon: '📢', roles: ['admin', 'staff', 'viewer', 'part_time', 'inquiry'], badge: unread.announcements },
       { id: 'messages', label: '쪽지', icon: '💬', roles: ['admin', 'staff', 'viewer', 'part_time', 'inquiry'], badge: unread.messages },
-      { id: 'appraisals', label: '감정평가', icon: '🏷️', roles: ['admin', 'staff', 'viewer', 'part_time', 'inquiry'], badge: unread.appraisals },
+      { id: 'appraisals', label: '감정평가', icon: '🏠', roles: ['admin', 'staff', 'viewer', 'part_time', 'inquiry'], badge: unread.appraisals },
       { id: 'voucher-group', label: '교환권', icon: '🎟️', roles: ['admin', 'staff', 'viewer'], badge: 0, children: voucherChildren },
       { id: 'members', label: '조합원 관리', icon: '👤', roles: ['admin'], badge: 0 },
       { id: 'associations', label: '영농회 관리', icon: '🌾', roles: ['admin'], badge: 0 },
