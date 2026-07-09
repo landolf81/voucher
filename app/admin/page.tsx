@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { RefreshCw } from 'lucide-react';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -24,10 +25,11 @@ export default function AdminPage() {
         padding: '24px'
       }}>
         <div style={{
-          fontSize: '48px',
+          display: 'flex',
+          justifyContent: 'center',
           marginBottom: '16px'
         }}>
-          🔄
+          <RefreshCw size={48} />
         </div>
         <h1 style={{
           fontSize: '24px',

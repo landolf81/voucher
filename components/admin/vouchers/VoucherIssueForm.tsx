@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { FileText, CheckCircle, Printer, Lightbulb, ClipboardList, XCircle } from 'lucide-react';
 
 interface DesignTemplate {
   id: string;
@@ -571,10 +572,14 @@ export function VoucherIssueForm() {
                 fontSize: '14px',
                 fontWeight: '500',
                 opacity: (isGenerating || !selectedTemplate || selectedVouchers.length === 0) ? 0.6 : 1,
-                width: '100%'
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
               }}
             >
-{isGenerating ? 'PDF 생성 중...' : `📄 ${selectedVouchers.length}개 일괄 발행`}
+              {isGenerating ? 'PDF 생성 중...' : <><FileText size={16} /> {selectedVouchers.length}개 일괄 발행</>}
             </button>
           </div>
         </div>
@@ -744,7 +749,7 @@ export function VoucherIssueForm() {
                   gap: '6px'
                 }}
               >
-                {isGenerating ? '생성 중...' : '🖨️ 일괄 인쇄'}
+                {isGenerating ? '생성 중...' : <><Printer size={16} /> 일괄 인쇄</>}
               </button>
             )}
           </div>
@@ -753,13 +758,16 @@ export function VoucherIssueForm() {
         {/* 전체 선택 안내 */}
         {vouchers.length > 0 && (
           <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
             padding: '12px 16px',
             backgroundColor: '#f0f9ff',
             borderBottom: '1px solid #e5e7eb',
             fontSize: '14px',
             color: '#0369a1'
           }}>
-            💡 &quot;전체&quot; 체크박스를 클릭하면 선택된 템플릿의 모든 교환권({pagination.total.toLocaleString()}개)을 선택합니다.
+            <Lightbulb size={16} /> &quot;전체&quot; 체크박스를 클릭하면 선택된 템플릿의 모든 교환권({pagination.total.toLocaleString()}개)을 선택합니다.
           </div>
         )}
 
@@ -835,29 +843,31 @@ export function VoucherIssueForm() {
                     </td>
                     <td style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', textAlign: 'center' }}>
                       <span style={{
-                        display: 'inline-block',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
                         padding: '4px 8px',
                         borderRadius: '12px',
                         fontSize: '12px',
                         fontWeight: '500',
-                        backgroundColor: 
+                        backgroundColor:
                           voucher.status === 'registered' ? '#dbeafe' :
-                          voucher.status === 'issued' ? '#dcfce7' : 
-                          voucher.status === 'used' ? '#fef3c7' : 
+                          voucher.status === 'issued' ? '#dcfce7' :
+                          voucher.status === 'used' ? '#fef3c7' :
                           voucher.status === 'recalled' ? '#fee2e2' :
                           voucher.status === 'disposed' ? '#fecaca' : '#f3f4f6',
-                        color: 
+                        color:
                           voucher.status === 'registered' ? '#2563eb' :
-                          voucher.status === 'issued' ? '#16a34a' : 
-                          voucher.status === 'used' ? '#d97706' : 
+                          voucher.status === 'issued' ? '#16a34a' :
+                          voucher.status === 'used' ? '#d97706' :
                           voucher.status === 'recalled' ? '#dc2626' :
                           voucher.status === 'disposed' ? '#991b1b' : '#6b7280'
                       }}>
-                        {voucher.status === 'registered' ? '📋 등록됨 (신규 발행)' :
-                         voucher.status === 'issued' ? '✅ 발행됨 (재발행 가능)' : 
-                         voucher.status === 'used' ? '❌ 사용됨' : 
-                         voucher.status === 'recalled' ? '❌ 회수됨' :
-                         voucher.status === 'disposed' ? '❌ 폐기됨' : '알 수 없음'}
+                        {voucher.status === 'registered' ? <><ClipboardList size={12} /> 등록됨 (신규 발행)</> :
+                         voucher.status === 'issued' ? <><CheckCircle size={12} /> 발행됨 (재발행 가능)</> :
+                         voucher.status === 'used' ? <><XCircle size={12} /> 사용됨</> :
+                         voucher.status === 'recalled' ? <><XCircle size={12} /> 회수됨</> :
+                         voucher.status === 'disposed' ? <><XCircle size={12} /> 폐기됨</> : '알 수 없음'}
                       </span>
                     </td>
                   </tr>

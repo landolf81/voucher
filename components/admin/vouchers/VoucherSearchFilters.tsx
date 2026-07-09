@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Search } from 'lucide-react';
 
 interface SearchFilters {
   serial_no: string;
@@ -360,10 +361,13 @@ export function VoucherSearchFilters({ filters, templates, onFilterChange, onSea
             padding: '8px 16px',
             cursor: 'pointer',
             fontSize: '14px',
-            fontWeight: '500'
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
           }}
         >
-          🔍 검색
+          <Search size={16} /> 검색
         </button>
       </div>
     </div>

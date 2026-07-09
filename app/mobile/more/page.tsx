@@ -9,11 +9,13 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { MobileShell } from '@/components/mobile/MobileShell';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { Smartphone, Search, FileText, LogOut, Menu } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 interface MoreItem {
   label: string;
   desc: string;
-  icon: string;
+  icon: LucideIcon;
   path: string;
   show: boolean;
 }
@@ -24,13 +26,13 @@ export default function MobileMorePage() {
   const role = user?.role || 'viewer';
 
   const items: MoreItem[] = [
-    { label: 'QR 스캔', desc: '교환권 사용등록', icon: '📱', path: '/mobile/scan', show: role !== 'inquiry' },
-    { label: '교환권 조회', desc: '상태 확인', icon: '🔍', path: '/mobile/search', show: true },
-    { label: '사용 내역 출력', desc: '보고서', icon: '📄', path: '/mobile/report', show: ['admin', 'staff'].includes(role) },
+    { label: 'QR 스캔', desc: '교환권 사용등록', icon: Smartphone, path: '/mobile/scan', show: role !== 'inquiry' },
+    { label: '교환권 조회', desc: '상태 확인', icon: Search, path: '/mobile/search', show: true },
+    { label: '사용 내역 출력', desc: '보고서', icon: FileText, path: '/mobile/report', show: ['admin', 'staff'].includes(role) },
   ].filter((i) => i.show);
 
   return (
-    <MobileShell title="☰ 더보기">
+    <MobileShell title={<><Menu size={18} /> 더보기</>}>
       <div style={{ height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {/* 사용자 카드 */}
         <div style={{ backgroundColor: 'white', borderRadius: '14px', padding: '18px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
@@ -59,7 +61,7 @@ export default function MobileMorePage() {
               textAlign: 'left',
             }}
           >
-            <span style={{ fontSize: '26px' }}>{item.icon}</span>
+            <item.icon size={24} />
             <span style={{ flex: 1 }}>
               <span style={{ display: 'block', fontSize: '16px', fontWeight: 600, color: '#1f2937' }}>{item.label}</span>
               <span style={{ display: 'block', fontSize: '13px', color: '#9ca3af' }}>{item.desc}</span>
@@ -81,9 +83,13 @@ export default function MobileMorePage() {
             fontSize: '15px',
             fontWeight: 600,
             cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
           }}
         >
-          🚪 로그아웃
+          <LogOut size={16} /> 로그아웃
         </button>
       </div>
     </MobileShell>

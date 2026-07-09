@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { MessageCircle, Smartphone, Mail } from 'lucide-react';
 
 interface OAuthAccount {
   id: string;
@@ -87,7 +88,11 @@ export function OAuthAccountManager() {
   const getProviderDisplay = (provider?: string) => {
     switch (provider) {
       case 'kakao':
-        return '💬 카카오';
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <MessageCircle size={12} /> 카카오
+          </span>
+        );
       default:
         return provider || '-';
     }
@@ -278,8 +283,8 @@ export function OAuthAccountManager() {
                       color: '#6b7280'
                     }}>
                       <div>
-                        {account.phone && <div>📱 {account.phone}</div>}
-                        {account.email && <div>✉️ {account.email}</div>}
+                        {account.phone && <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Smartphone size={13} /> {account.phone}</div>}
+                        {account.email && <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Mail size={13} /> {account.email}</div>}
                       </div>
                     </td>
                     <td style={{

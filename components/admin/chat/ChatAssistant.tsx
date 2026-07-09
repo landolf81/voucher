@@ -15,6 +15,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from
 import { getSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useDevice } from '@/lib/hooks/useDevice';
+import { X, Bot, AlertTriangle, ChevronDown } from 'lucide-react';
 
 type Role = 'user' | 'assistant';
 type Status = 'pending' | 'processing' | 'completed' | 'error';
@@ -423,10 +424,10 @@ export function ChatAssistant() {
               </span>
               <span
                 onClick={(e) => deleteSession(s.id, e)}
-                style={{ color: '#9ca3af', fontSize: '12px', padding: '0 4px' }}
+                style={{ color: '#9ca3af', padding: '0 4px', display: 'inline-flex', alignItems: 'center' }}
                 title="삭제"
               >
-                ✕
+                <X size={12} />
               </span>
             </div>
           ))}
@@ -539,7 +540,7 @@ export function ChatAssistant() {
             <p style={{ color: '#9ca3af', textAlign: 'center' }}>불러오는 중…</p>
           ) : messages.length === 0 ? (
             <div style={{ textAlign: 'center', color: '#9ca3af', marginTop: '60px' }}>
-              <div style={{ fontSize: '40px', marginBottom: '12px' }}>🤖</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}><Bot size={40} /></div>
               <p style={{ fontSize: '15px' }}>업무 규정, 기안문 작성, 데이터 조회 등 무엇이든 물어보세요.</p>
             </div>
           ) : (
@@ -599,8 +600,8 @@ export function ChatAssistant() {
           )}
 
           {lastError && (
-            <p style={{ color: '#dc2626', fontSize: '13px', textAlign: 'center' }}>
-              ⚠️ 응답 처리에 실패했습니다. 릴레이/Hermes 서버 상태를 확인하세요.
+            <p style={{ color: '#dc2626', fontSize: '13px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <AlertTriangle size={14} /> 응답 처리에 실패했습니다. 릴레이/Hermes 서버 상태를 확인하세요.
             </p>
           )}
         </div>
@@ -625,12 +626,14 @@ export function ChatAssistant() {
               border: '1px solid #e5e7eb',
               backgroundColor: '#fff',
               color: '#2563eb',
-              fontSize: '18px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               cursor: 'pointer',
               boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             }}
           >
-            ↓
+            <ChevronDown size={20} />
           </button>
         )}
 

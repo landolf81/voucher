@@ -5,6 +5,26 @@ import { useRouter } from 'next/navigation';
 import { useDevice } from '@/lib/hooks/useDevice';
 import { AdminRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import {
+  Ticket,
+  Tickets,
+  CheckCircle,
+  Search,
+  BarChart3,
+  Calendar,
+  Megaphone,
+  MessageCircle,
+  Home,
+  User,
+  Wheat,
+  Building2,
+  Users,
+  LogOut,
+  Bot,
+  ChevronUp,
+  ChevronDown,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 // Import organized components
 import { OverviewContent } from '@/components/admin/dashboard/OverviewComponents';
@@ -26,7 +46,7 @@ type MenuType = 'overview' | 'vouchers' | 'usage' | 'inquiry' | 'users' | 'sites
 interface MenuNode {
   id: string;
   label: string;
-  icon: string;
+  icon: LucideIcon;
   roles: string[];
   badge: number;
   children?: MenuNode[];
@@ -79,22 +99,22 @@ export default function AdminDashboard() {
     const has = (roles: string[]) => roles.includes(role);
 
     const voucherChildren: MenuNode[] = [
-      { id: 'vouchers', label: '발행·관리', icon: '🎫', roles: ['admin', 'staff'], badge: 0 },
-      { id: 'usage', label: '사용 등록', icon: '✅', roles: ['admin', 'staff', 'viewer'], badge: 0 },
-      { id: 'inquiry', label: '조회', icon: '🔍', roles: ['admin', 'staff', 'viewer'], badge: 0 },
+      { id: 'vouchers', label: '발행·관리', icon: Ticket, roles: ['admin', 'staff'], badge: 0 },
+      { id: 'usage', label: '사용 등록', icon: CheckCircle, roles: ['admin', 'staff', 'viewer'], badge: 0 },
+      { id: 'inquiry', label: '조회', icon: Search, roles: ['admin', 'staff', 'viewer'], badge: 0 },
     ].filter((c) => has(c.roles));
 
     const tree: MenuNode[] = [
-      { id: 'overview', label: '대시보드', icon: '📊', roles: ['admin', 'staff', 'viewer'], badge: 0 },
-      { id: 'schedule', label: '일정', icon: '📅', roles: ['admin', 'staff', 'viewer'], badge: 0 },
-      { id: 'notices', label: '공지', icon: '📢', roles: ['admin', 'staff', 'viewer', 'part_time', 'inquiry'], badge: unread.announcements },
-      { id: 'messages', label: '쪽지', icon: '💬', roles: ['admin', 'staff', 'viewer', 'part_time', 'inquiry'], badge: unread.messages },
-      { id: 'appraisals', label: '감정평가', icon: '🏠', roles: ['admin', 'staff', 'viewer', 'part_time', 'inquiry'], badge: unread.appraisals },
-      { id: 'voucher-group', label: '교환권', icon: '🎟️', roles: ['admin', 'staff', 'viewer'], badge: 0, children: voucherChildren },
-      { id: 'members', label: '조합원 관리', icon: '👤', roles: ['admin'], badge: 0 },
-      { id: 'associations', label: '영농회 관리', icon: '🌾', roles: ['admin'], badge: 0 },
-      { id: 'sites', label: '사업장 관리', icon: '🏢', roles: ['admin', 'staff'], badge: 0 },
-      { id: 'users', label: '사용자 관리', icon: '👥', roles: ['admin'], badge: 0 },
+      { id: 'overview', label: '대시보드', icon: BarChart3, roles: ['admin', 'staff', 'viewer'], badge: 0 },
+      { id: 'schedule', label: '일정', icon: Calendar, roles: ['admin', 'staff', 'viewer'], badge: 0 },
+      { id: 'notices', label: '공지', icon: Megaphone, roles: ['admin', 'staff', 'viewer', 'part_time', 'inquiry'], badge: unread.announcements },
+      { id: 'messages', label: '쪽지', icon: MessageCircle, roles: ['admin', 'staff', 'viewer', 'part_time', 'inquiry'], badge: unread.messages },
+      { id: 'appraisals', label: '감정평가', icon: Home, roles: ['admin', 'staff', 'viewer', 'part_time', 'inquiry'], badge: unread.appraisals },
+      { id: 'voucher-group', label: '교환권', icon: Tickets, roles: ['admin', 'staff', 'viewer'], badge: 0, children: voucherChildren },
+      { id: 'members', label: '조합원 관리', icon: User, roles: ['admin'], badge: 0 },
+      { id: 'associations', label: '영농회 관리', icon: Wheat, roles: ['admin'], badge: 0 },
+      { id: 'sites', label: '사업장 관리', icon: Building2, roles: ['admin', 'staff'], badge: 0 },
+      { id: 'users', label: '사용자 관리', icon: Users, roles: ['admin'], badge: 0 },
     ];
 
     return tree.filter((item) => (item.children ? item.children.length > 0 : has(item.roles)));
@@ -106,6 +126,7 @@ export default function AdminDashboard() {
   const activeNode = menuItems
     .flatMap((i) => (i.children ? [i, ...i.children] : [i]))
     .find((n) => n.id === currentMenu);
+  const ActiveIcon = activeNode?.icon;
 
   // 메뉴 버튼 스타일/렌더 헬퍼
   const menuBtnStyle = (active: boolean, isChild = false): React.CSSProperties => ({
@@ -133,7 +154,7 @@ export default function AdminDashboard() {
       onMouseEnter={(e) => { if (currentMenu !== item.id) e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
       onMouseLeave={(e) => { if (currentMenu !== item.id) e.currentTarget.style.backgroundColor = 'transparent'; }}
     >
-      <span style={{ fontSize: isChild ? '16px' : '20px' }}>{item.icon}</span>
+      <item.icon size={isChild ? 16 : 20} />
       <span style={{ flex: 1, textAlign: 'left' }}>{item.label}</span>
       {item.badge > 0 && (
         <span style={{ minWidth: '20px', height: '20px', padding: '0 6px', borderRadius: '999px', backgroundColor: currentMenu === item.id ? 'white' : '#ef4444', color: currentMenu === item.id ? '#3b82f6' : 'white', fontSize: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -233,7 +254,8 @@ export default function AdminDashboard() {
                 gap: '8px'
               }}
             >
-              🤖 AI 챗봇으로
+              <Bot size={18} />
+              AI 챗봇으로
             </button>
           </div>
 
@@ -248,9 +270,11 @@ export default function AdminDashboard() {
                     onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                   >
-                    <span style={{ fontSize: '20px' }}>{item.icon}</span>
+                    <item.icon size={20} />
                     <span style={{ flex: 1, textAlign: 'left' }}>{item.label}</span>
-                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>{voucherOpen ? '▲' : '▼'}</span>
+                    <span style={{ fontSize: '12px', color: '#94a3b8', display: 'inline-flex', alignItems: 'center' }}>
+                      {voucherOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </span>
                   </button>
                   {voucherOpen && item.children.map((c) => renderLeaf(c, true))}
                 </div>
@@ -285,7 +309,7 @@ export default function AdminDashboard() {
                 gap: '8px'
               }}
             >
-              <span>🚪</span>
+              <LogOut size={18} />
               로그아웃
             </button>
           </div>
@@ -316,9 +340,12 @@ export default function AdminDashboard() {
               fontSize: '24px',
               fontWeight: 'bold',
               color: '#1a202c',
-              margin: 0
+              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
             }}>
-              {activeNode?.icon} {activeNode?.label || '대시보드'}
+              {ActiveIcon && <ActiveIcon size={22} />} {activeNode?.label || '대시보드'}
             </h2>
           </div>
           

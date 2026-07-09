@@ -13,6 +13,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useDevice } from '@/lib/hooks/useDevice';
+import { Users, ArrowLeft } from 'lucide-react';
 
 interface ThreadRow {
   id: string;
@@ -387,8 +388,8 @@ export function MessagesPanel() {
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: t.unread ? 700 : 600, color: '#1f2937', fontSize: 14 }}>
-                      {t.thread.type === 'group' ? '👥 ' : ''}
+                    <span style={{ fontWeight: t.unread ? 700 : 600, color: '#1f2937', fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      {t.thread.type === 'group' && <Users size={13} />}
                       {t.label}
                     </span>
                     {t.unread && <span style={{ width: 8, height: 8, borderRadius: 999, backgroundColor: '#ef4444' }} />}
@@ -413,7 +414,7 @@ export function MessagesPanel() {
               <>
                 <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: 8 }}>
                   {isMobile && (
-                    <button onClick={() => setActiveId(null)} style={{ ...ghostBtn, padding: '4px 10px' }}>← 목록</button>
+                    <button onClick={() => setActiveId(null)} style={{ ...ghostBtn, padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: 4 }}><ArrowLeft size={14} /> 목록</button>
                   )}
                   <span style={{ fontWeight: 700, color: '#1f2937' }}>{activeThread?.label}</span>
                   {activeThread?.thread.type === 'group' && (

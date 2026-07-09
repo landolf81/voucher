@@ -12,6 +12,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { getSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { Pin, ChevronUp, ChevronDown, CheckCircle } from 'lucide-react';
 
 interface Announcement {
   id: string;
@@ -243,7 +244,7 @@ export function AnnouncementsPanel() {
                   {!isRead && <span style={{ marginTop: 6, width: 8, height: 8, borderRadius: 999, backgroundColor: '#ef4444', flexShrink: 0 }} />}
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      {a.pinned && <span style={{ fontSize: 11, color: '#dc2626' }}>📌 고정</span>}
+                      {a.pinned && <span style={{ fontSize: 11, color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Pin size={11} /> 고정</span>}
                       <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 999, backgroundColor: a.scope === 'all' ? '#dbeafe' : '#dcfce7', color: a.scope === 'all' ? '#1d4ed8' : '#15803d' }}>
                         {a.scope === 'all' ? '전체' : siteName(a.site_id)}
                       </span>
@@ -253,7 +254,7 @@ export function AnnouncementsPanel() {
                       {a.created_by_name} · {new Date(a.created_at).toLocaleString('ko-KR', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
-                  <span style={{ color: '#cbd5e1' }}>{open ? '▲' : '▼'}</span>
+                  <span style={{ color: '#cbd5e1', display: 'inline-flex', alignItems: 'center' }}>{open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>
                 </div>
                 {open && (
                   <div style={{ padding: '0 16px 16px', borderTop: '1px solid #f8fafc' }}>
@@ -322,7 +323,7 @@ export function AnnouncementsPanel() {
               {unreadLoading ? (
                 <p style={{ color: '#9ca3af', fontSize: 13, padding: 16, textAlign: 'center' }}>불러오는 중…</p>
               ) : unreadList.length === 0 ? (
-                <p style={{ color: '#15803d', fontSize: 13, padding: 16, textAlign: 'center' }}>전원이 확인했습니다 ✅</p>
+                <p style={{ color: '#15803d', fontSize: 13, padding: 16, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>전원이 확인했습니다 <CheckCircle size={14} /></p>
               ) : (
                 unreadList.map((s) => (
                   <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px', borderBottom: '1px solid #f8fafc', fontSize: 14 }}>

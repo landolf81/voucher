@@ -3,13 +3,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
+import { Mail, FileText, Smartphone, Rocket, Pencil, Trash2 } from 'lucide-react';
 
 // 이메일 에디터는 클라이언트 사이드에서만 로드
 const VoucherEmailEditor = dynamic(
   () => import('./VoucherEmailEditor').then(mod => mod.VoucherEmailEditor),
-  { 
+  {
     ssr: false,
-    loading: () => <div style={{ padding: '40px', textAlign: 'center' }}>📧 이메일 에디터 로딩 중...</div>
+    loading: () => (
+      <div style={{ padding: '40px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+        <Mail size={16} /> 이메일 에디터 로딩 중...
+      </div>
+    )
   }
 );
 
@@ -677,7 +682,7 @@ export function VoucherDesignManager() {
                       onChange={(e) => setFormData(prev => ({ ...prev, template_type: e.target.value as 'a4' | 'mobile' }))}
                       style={{ marginRight: '8px' }}
                     />
-                    <span style={{ fontSize: '14px', color: '#374151' }}>📄 A4 (210×297mm)</span>
+                    <span style={{ fontSize: '14px', color: '#374151', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><FileText size={14} /> A4 (210×297mm)</span>
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
                     <input
@@ -688,7 +693,7 @@ export function VoucherDesignManager() {
                       onChange={(e) => setFormData(prev => ({ ...prev, template_type: e.target.value as 'a4' | 'mobile' }))}
                       style={{ marginRight: '8px' }}
                     />
-                    <span style={{ fontSize: '14px', color: '#374151' }}>📱 모바일 (400×600px)</span>
+                    <span style={{ fontSize: '14px', color: '#374151', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Smartphone size={14} /> 모바일 (400×600px)</span>
                   </label>
                 </div>
               </div>
@@ -697,8 +702,8 @@ export function VoucherDesignManager() {
             {/* 디자인 에디터 */}
             <div style={{ marginBottom: '24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h5 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', margin: 0 }}>
-                  {formData.template_type === 'a4' ? '📄 A4' : '📱 모바일'} 디자인 에디터
+                <h5 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {formData.template_type === 'a4' ? (<><FileText size={16} /> A4</>) : (<><Smartphone size={16} /> 모바일</>)} 디자인 에디터
                 </h5>
                 
                 {/* 에디터 열기 버튼 */}
@@ -719,7 +724,7 @@ export function VoucherDesignManager() {
                     gap: '6px'
                   }}
                 >
-                  🚀 에디터 열기
+                  <Rocket size={16} /> 에디터 열기
                 </button>
               </div>
 
@@ -846,7 +851,9 @@ export function VoucherDesignManager() {
                         <span style={{ fontSize: '12px', color: '#6b7280' }}>둘 다</span>
                       ) : template.template_html ? (
                         <span style={{
-                          display: 'inline-block',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
                           padding: '2px 8px',
                           borderRadius: '12px',
                           fontSize: '11px',
@@ -854,11 +861,13 @@ export function VoucherDesignManager() {
                           backgroundColor: '#dbeafe',
                           color: '#1d4ed8'
                         }}>
-                          📄 A4
+                          <FileText size={12} /> A4
                         </span>
                       ) : template.mobile_template_html ? (
                         <span style={{
-                          display: 'inline-block',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
                           padding: '2px 8px',
                           borderRadius: '12px',
                           fontSize: '11px',
@@ -866,7 +875,7 @@ export function VoucherDesignManager() {
                           backgroundColor: '#dcfce7',
                           color: '#16a34a'
                         }}>
-                          📱 모바일
+                          <Smartphone size={12} /> 모바일
                         </span>
                       ) : (
                         <span style={{ fontSize: '12px', color: '#9ca3af' }}>-</span>
@@ -894,7 +903,7 @@ export function VoucherDesignManager() {
                         />
                       ) : template.template_html || template.mobile_template_html ? (
                         <div style={{ width: '50px', height: '65px', backgroundColor: '#f3f4f6', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#6b7280', border: '1px solid #e5e7eb' }}>
-                          {template.template_html ? '📄' : '📱'}
+                          {template.template_html ? <FileText size={16} /> : <Smartphone size={16} />}
                         </div>
                       ) : (
                         <div style={{ width: '50px', height: '65px', backgroundColor: '#f9fafb', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#9ca3af' }}>
@@ -929,11 +938,14 @@ export function VoucherDesignManager() {
                             borderRadius: '4px',
                             padding: '4px 8px',
                             cursor: 'pointer',
-                            fontSize: '11px'
+                            fontSize: '11px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
                           }}
                           title="디자인 편집"
                         >
-                          ✏️ 편집
+                          <Pencil size={12} /> 편집
                         </button>
                         <button
                           onClick={() => handleDeleteTemplate(template.id)}
@@ -946,11 +958,14 @@ export function VoucherDesignManager() {
                             padding: '4px 8px',
                             cursor: loading ? 'not-allowed' : 'pointer',
                             fontSize: '11px',
-                            opacity: loading ? 0.6 : 1
+                            opacity: loading ? 0.6 : 1,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
                           }}
                           title="템플릿 삭제"
                         >
-                          🗑️ 삭제
+                          <Trash2 size={12} /> 삭제
                         </button>
                       </div>
                     </td>

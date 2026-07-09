@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { XCircle, Smartphone, Printer, FileText } from 'lucide-react';
 
 interface VoucherData {
   serial_no: string;
@@ -160,8 +161,8 @@ export function VoucherRenderer({
         borderRadius: '8px',
         color: '#dc2626'
       }}>
-        <h3 style={{ margin: '0 0 10px 0', fontSize: '16px', fontWeight: 'bold' }}>
-          ❌ 렌더링 오류
+        <h3 style={{ margin: '0 0 10px 0', fontSize: '16px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <XCircle size={16} /> 렌더링 오류
         </h3>
         <p style={{ margin: 0, fontSize: '14px' }}>
           {error}
@@ -201,8 +202,8 @@ export function VoucherRenderer({
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <div style={{ fontSize: '14px', color: '#374151' }}>
-            {renderMode === 'mobile' ? '📱 모바일 보기' : '🖨️ 인쇄 보기'} - {voucherData.serial_no}
+          <div style={{ fontSize: '14px', color: '#374151', display: 'flex', alignItems: 'center', gap: 6 }}>
+            {renderMode === 'mobile' ? <><Smartphone size={14} /> 모바일 보기</> : <><Printer size={14} /> 인쇄 보기</>} - {voucherData.serial_no}
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             {renderMode === 'print' && (
@@ -216,10 +217,13 @@ export function VoucherRenderer({
                     border: 'none',
                     borderRadius: '4px',
                     fontSize: '12px',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6
                   }}
                 >
-                  🖨️ 인쇄
+                  <Printer size={12} /> 인쇄
                 </button>
                 <button
                   onClick={handleDownloadPDF}
@@ -230,10 +234,13 @@ export function VoucherRenderer({
                     border: 'none',
                     borderRadius: '4px',
                     fontSize: '12px',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6
                   }}
                 >
-                  📄 PDF
+                  <FileText size={12} /> PDF
                 </button>
               </>
             )}

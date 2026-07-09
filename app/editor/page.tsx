@@ -2,13 +2,18 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import { Mail } from 'lucide-react';
 
 // VoucherEmailEditor 사용
 const VoucherEmailEditor = dynamic(
   () => import('@/components/admin/vouchers/VoucherEmailEditor').then(mod => mod.VoucherEmailEditor),
-  { 
+  {
     ssr: false,
-    loading: () => <div style={{ padding: '40px', textAlign: 'center' }}>📧 이메일 에디터 로딩 중...</div>
+    loading: () => (
+      <div style={{ padding: '40px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+        <Mail size={18} /> 이메일 에디터 로딩 중...
+      </div>
+    )
   }
 );
 

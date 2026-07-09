@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { Ticket, CheckCircle, XCircle, SquarePen } from 'lucide-react';
 
 interface ActivityLog {
   id: string;
@@ -71,15 +72,15 @@ export function ActivityFeed() {
     switch (actionType) {
       case 'issue':
       case 'bulk_issue':
-        return { icon: '🎫', color: '#10b981', bgColor: '#d1fae5' };
+        return { icon: Ticket, color: '#10b981', bgColor: '#d1fae5' };
       case 'use':
       case 'bulk_use':
-        return { icon: '✅', color: '#3b82f6', bgColor: '#dbeafe' };
+        return { icon: CheckCircle, color: '#3b82f6', bgColor: '#dbeafe' };
       case 'cancel':
       case 'recall':
-        return { icon: '❌', color: '#ef4444', bgColor: '#fee2e2' };
+        return { icon: XCircle, color: '#ef4444', bgColor: '#fee2e2' };
       default:
-        return { icon: '📝', color: '#6b7280', bgColor: '#f3f4f6' };
+        return { icon: SquarePen, color: '#6b7280', bgColor: '#f3f4f6' };
     }
   };
 
@@ -228,10 +229,10 @@ export function ActivityFeed() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '18px',
+                    color: style.color,
                     flexShrink: 0
                   }}>
-                    {style.icon}
+                    <style.icon size={18} />
                   </div>
 
                   {/* 내용 */}

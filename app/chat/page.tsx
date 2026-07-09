@@ -11,6 +11,7 @@ import { AdminRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useDevice } from '@/lib/hooks/useDevice';
 import { ChatAssistant } from '@/components/admin/chat/ChatAssistant';
+import { Bot, ArrowLeft, FolderOpen } from 'lucide-react';
 
 export default function ChatHomePage() {
   const router = useRouter();
@@ -45,7 +46,7 @@ export default function ChatHomePage() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '22px' }}>🤖</span>
+            <Bot size={22} />
             <div>
               <h1 style={{ fontSize: '17px', fontWeight: 700, color: '#1a202c', margin: 0 }}>
                 AI 업무 어시스턴트
@@ -73,7 +74,7 @@ export default function ChatHomePage() {
                 gap: '6px',
               }}
             >
-              {isMobile ? '← 메뉴' : '🗂️ 관리자 화면'}
+              {isMobile ? (<><ArrowLeft size={14} /> 메뉴</>) : (<><FolderOpen size={14} /> 관리자 화면</>)}
             </button>
             <button
               onClick={logout}

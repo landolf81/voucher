@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { formatPhoneForDisplay, formatPhoneInput, cleanPhoneInput, getPhoneValidationMessage, formatPhoneForInput } from '@/lib/phone-utils';
+import { ClipboardList, Plus } from 'lucide-react';
 
 interface User {
   id: string;
@@ -245,7 +246,7 @@ export function UserManagement() {
             gap: '8px'
           }}
         >
-          {showForm ? '📋 사용자 목록' : '➕ 새 사용자 등록'}
+          {showForm ? <><ClipboardList size={16} /> 사용자 목록</> : <><Plus size={16} /> 새 사용자 등록</>}
         </button>
       </div>
 

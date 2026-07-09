@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
+import { Ticket, Send, CheckCircle, Download, ClipboardList } from 'lucide-react';
 
 interface BatchData {
   id: string;
@@ -330,8 +331,8 @@ export default function MobileVoucherBatchClient({ batch, vouchers, token }: Pro
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-md mx-auto px-4 py-4">
           <div className="text-center">
-            <h1 className="text-xl font-bold text-gray-900 mb-1">
-              🎫 {batch.batch_name}
+            <h1 className="text-xl font-bold text-gray-900 mb-1 flex items-center justify-center gap-2">
+              <Ticket size={20} /> {batch.batch_name}
             </h1>
             <p className="text-sm text-gray-600">
               {batch.voucher_templates.voucher_name}
@@ -390,7 +391,7 @@ export default function MobileVoucherBatchClient({ batch, vouchers, token }: Pro
                 className="p-2 text-gray-600 hover:text-blue-600"
                 title="공유하기"
               >
-                📤
+                <Send size={18} />
               </button>
               {selectedVouchers.size > 0 && (
                 <button
@@ -516,7 +517,9 @@ export default function MobileVoucherBatchClient({ batch, vouchers, token }: Pro
               }}>
                 {voucher.status === 'issued' ? (
                   <span style={{
-                    display: 'inline-block',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
                     padding: '8px 16px',
                     backgroundColor: '#10b981',
                     color: 'white',
@@ -524,7 +527,7 @@ export default function MobileVoucherBatchClient({ batch, vouchers, token }: Pro
                     fontSize: '14px',
                     fontWeight: '600'
                   }}>
-                    ✅ 사용 가능
+                    <CheckCircle size={16} /> 사용 가능
                   </span>
                 ) : voucher.status === 'used' ? (
                   <span style={{
@@ -577,10 +580,14 @@ export default function MobileVoucherBatchClient({ batch, vouchers, token }: Pro
                   fontSize: '16px',
                   fontWeight: '600',
                   cursor: isGeneratingImages ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
                 }}
               >
-                {isGeneratingImages ? '생성 중...' : '📥 다운로드'}
+                {isGeneratingImages ? '생성 중...' : (<><Download size={16} /> 다운로드</>)}
               </button>
             </div>
           ))}
@@ -588,7 +595,7 @@ export default function MobileVoucherBatchClient({ batch, vouchers, token }: Pro
         
         {vouchers.length === 0 && (
           <div className="text-center py-8">
-            <div className="text-gray-400 text-4xl mb-2">📋</div>
+            <div className="text-gray-400 mb-2 flex justify-center"><ClipboardList size={36} /></div>
             <p className="text-gray-500">교환권이 없습니다.</p>
           </div>
         )}
@@ -636,7 +643,7 @@ export default function MobileVoucherBatchClient({ batch, vouchers, token }: Pro
             }}
           >
             <div className="text-center">
-              <div className="text-6xl mb-4">✅</div>
+              <div className="mb-4 flex justify-center" style={{ color: '#16a34a' }}><CheckCircle size={56} /></div>
               <h2 className="text-2xl font-bold text-gray-800 mb-4">
                 교환권이 사용되었습니다
               </h2>

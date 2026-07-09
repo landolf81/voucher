@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { Camera, Search } from 'lucide-react';
 
 // QR 코드 페이로드 파싱 함수
 function parseQRPayload(payload: string) {
@@ -497,7 +498,7 @@ export function MobileSearchPage() {
               textAlign: 'center',
               padding: '20px'
             }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>📷</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}><Camera size={48} /></div>
               <p>{cameraError}</p>
               <button
                 onClick={() => setSearchMethod('manual')}
@@ -1032,7 +1033,7 @@ export function MobileSearchPage() {
             textAlign: 'center',
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
           }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔍</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}><Search size={48} /></div>
             <h3 style={{
               fontSize: '18px',
               fontWeight: '600',

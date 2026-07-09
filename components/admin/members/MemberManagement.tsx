@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import type { MemberOverview, MemberListResponse, Crop } from '@/types/member';
 import { MemberFormModal } from './MemberFormModal';
+import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Association {
   id: string;
@@ -284,10 +285,13 @@ export function MemberManagement() {
             border: 'none',
             borderRadius: '6px',
             fontSize: '14px',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6
           }}
         >
-          🔍 검색
+          <Search size={14} /> 검색
         </button>
       </form>
 
@@ -412,10 +416,12 @@ export function MemberManagement() {
                     border: '1px solid #d1d5db',
                     borderRadius: '6px',
                     backgroundColor: page === 1 ? '#f3f4f6' : 'white',
-                    cursor: page === 1 ? 'not-allowed' : 'pointer'
+                    cursor: page === 1 ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center'
                   }}
                 >
-                  ◀
+                  <ChevronLeft size={16} />
                 </button>
                 <button
                   onClick={() => setPage(Math.min(totalPages, page + 1))}
@@ -425,10 +431,12 @@ export function MemberManagement() {
                     border: '1px solid #d1d5db',
                     borderRadius: '6px',
                     backgroundColor: page === totalPages ? '#f3f4f6' : 'white',
-                    cursor: page === totalPages ? 'not-allowed' : 'pointer'
+                    cursor: page === totalPages ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center'
                   }}
                 >
-                  ▶
+                  <ChevronRight size={16} />
                 </button>
               </div>
             </div>

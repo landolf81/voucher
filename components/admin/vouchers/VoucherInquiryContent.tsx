@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { BrowserQRCodeReader } from '@zxing/browser';
+import { Calendar, Bookmark, Store, Smartphone, Search, BarChart3, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/lib/contexts/AuthContext';
 
 interface VoucherData {
@@ -960,7 +961,7 @@ export function VoucherInquiryContent() {
               color: '#374151',
               marginBottom: '4px'
             }}>
-              📅 발행일 (시작)
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Calendar size={14} /> 발행일 (시작)</span>
             </label>
             <input
               type="date"
@@ -987,7 +988,7 @@ export function VoucherInquiryContent() {
               color: '#374151',
               marginBottom: '4px'
             }}>
-              📅 발행일 (종료)
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Calendar size={14} /> 발행일 (종료)</span>
             </label>
             <input
               type="date"
@@ -1014,7 +1015,7 @@ export function VoucherInquiryContent() {
               color: '#374151',
               marginBottom: '4px'
             }}>
-              🔖 사용일 (시작)
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Bookmark size={14} /> 사용일 (시작)</span>
             </label>
             <input
               type="date"
@@ -1041,7 +1042,7 @@ export function VoucherInquiryContent() {
               color: '#374151',
               marginBottom: '4px'
             }}>
-              🔖 사용일 (종료)
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Bookmark size={14} /> 사용일 (종료)</span>
             </label>
             <input
               type="date"
@@ -1068,7 +1069,7 @@ export function VoucherInquiryContent() {
               color: '#374151',
               marginBottom: '4px'
             }}>
-              🏪 사용처
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Store size={14} /> 사용처</span>
             </label>
             <select
               value={searchFilters.usage_location}
@@ -1117,7 +1118,7 @@ export function VoucherInquiryContent() {
                 gap: '6px'
               }}
             >
-              📱 QR 스캔
+              <Smartphone size={16} /> QR 스캔
             </button>
           )}
           <button
@@ -1145,10 +1146,13 @@ export function VoucherInquiryContent() {
               padding: '8px 16px',
               cursor: 'pointer',
               fontSize: '14px',
-              fontWeight: '500'
+              fontWeight: '500',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
             }}
           >
-            🔍 검색
+            <Search size={16} /> 검색
           </button>
           <button
             onClick={handleGenerateReport}
@@ -1161,10 +1165,13 @@ export function VoucherInquiryContent() {
               padding: '8px 16px',
               cursor: vouchers.length === 0 ? 'not-allowed' : 'pointer',
               fontSize: '14px',
-              fontWeight: '500'
+              fontWeight: '500',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
             }}
           >
-            📊 보고서 출력
+            <BarChart3 size={16} /> 보고서 출력
           </button>
         </div>
       </div>
@@ -1302,11 +1309,14 @@ export function VoucherInquiryContent() {
           </div>
 
           <p style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
             fontSize: '12px',
             color: '#92400e',
             margin: 0
           }}>
-            ⚠️ 선택한 교환권의 사용처와 사용일이 일괄 변경됩니다. 변경 사항은 감사 로그에 기록됩니다.
+            <AlertTriangle size={14} color="#d97706" /> 선택한 교환권의 사용처와 사용일이 일괄 변경됩니다. 변경 사항은 감사 로그에 기록됩니다.
           </p>
         </div>
       )}

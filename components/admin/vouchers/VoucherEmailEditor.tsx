@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 import EmailEditor, { EditorRef } from 'react-email-editor';
+import { Mail, FileText, Smartphone, Eye, Save, Lightbulb, Palette } from 'lucide-react';
 
 // react-email-editor의 forwardRef 타입이 React 19 타입과 충돌하여 any로 별칭 처리
 const AnyEmailEditor: any = EmailEditor;
@@ -228,8 +229,8 @@ export function VoucherEmailEditor({
             animation: 'spin 1s linear infinite',
             marginBottom: '16px'
           }}></div>
-          <p style={{ margin: 0, fontSize: '16px', fontWeight: '500', color: '#374151' }}>
-            📧 이메일 에디터 로딩 중...
+          <p style={{ margin: 0, fontSize: '16px', fontWeight: '500', color: '#374151', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Mail size={18} /> 이메일 에디터 로딩 중...
           </p>
         </div>
       )}
@@ -246,8 +247,8 @@ export function VoucherEmailEditor({
           justifyContent: 'space-between',
           padding: '0 20px',
         }}>
-          <h2 style={{ color: 'white', margin: 0, fontSize: '18px' }}>
-            {mode === 'a4' ? '📄 A4 교환권 디자인 에디터' : '📱 모바일 교환권 디자인 에디터'}
+          <h2 style={{ color: 'white', margin: 0, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {mode === 'a4' ? (<><FileText size={18} /> A4 교환권 디자인 에디터</>) : (<><Smartphone size={18} /> 모바일 교환권 디자인 에디터</>)}
           </h2>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button
@@ -260,10 +261,13 @@ export function VoucherEmailEditor({
               padding: '8px 16px',
               cursor: 'pointer',
               fontSize: '14px',
-              fontWeight: '500'
+              fontWeight: '500',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
             }}
           >
-            👁️ 미리보기
+            <Eye size={16} /> 미리보기
           </button>
           <button
             onClick={handleSaveTemplate}
@@ -275,14 +279,17 @@ export function VoucherEmailEditor({
               padding: '8px 16px',
               cursor: 'pointer',
               fontSize: '14px',
-              fontWeight: '500'
+              fontWeight: '500',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
             }}
           >
-            💾 저장
+            <Save size={16} /> 저장
           </button>
         </div>
         </div>
-        
+
         {/* 변수 사용법 안내 */}
         <div style={{
           backgroundColor: '#065f46',
@@ -293,14 +300,14 @@ export function VoucherEmailEditor({
           alignItems: 'center',
           gap: '8px'
         }}>
-          <span>💡</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center' }}><Lightbulb size={14} /></span>
           <span>
             텍스트 블록을 추가한 후, 우측 패널에서 &quot;Merge Tags&quot; 탭을 클릭하여 교환권 변수를 삽입하세요.
-            (예: <code style={{backgroundColor: 'rgba(255,255,255,0.2)', padding: '2px 4px', borderRadius: '3px'}}>&#123;&#123;name&#125;&#125;</code>, 
+            (예: <code style={{backgroundColor: 'rgba(255,255,255,0.2)', padding: '2px 4px', borderRadius: '3px'}}>&#123;&#123;name&#125;&#125;</code>,
             <code style={{backgroundColor: 'rgba(255,255,255,0.2)', padding: '2px 4px', borderRadius: '3px'}}>&#123;&#123;qr_code:200&#125;&#125;</code>)
           </span>
         </div>
-        
+
         {/* 레이어 기능 안내 */}
         <div style={{
           backgroundColor: '#7c2d12',
@@ -311,7 +318,7 @@ export function VoucherEmailEditor({
           alignItems: 'center',
           gap: '8px'
         }}>
-          <span>🎨</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center' }}><Palette size={14} /></span>
           <span>
             레이어 겹치기: 요소를 선택하고 우측 패널의 &quot;Advanced&quot; → &quot;Custom CSS&quot;에서 클래스를 추가하세요.
             (overlay-text, floating-element, layered-element, background-layer)

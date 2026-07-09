@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { Ban, Camera, Smartphone, Lock, RefreshCw, CheckCircle, XCircle, Calendar } from 'lucide-react';
 
 // QR 코드 페이로드 파싱 함수
 function parseQRPayload(payload: string) {
@@ -271,10 +272,11 @@ export function MobileScanPage() {
           maxWidth: '400px'
         }}>
           <div style={{
-            fontSize: '48px',
+            display: 'flex',
+            justifyContent: 'center',
             marginBottom: '20px'
           }}>
-            🚫
+            <Ban size={48} color="#dc2626" />
           </div>
           <h2 style={{
             fontSize: '20px',
@@ -629,7 +631,7 @@ export function MobileScanPage() {
             padding: '20px',
             textAlign: 'center'
           }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📷</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}><Camera size={48} /></div>
             <p style={{ marginBottom: '16px', fontSize: '16px', lineHeight: '1.5' }}>{cameraError}</p>
             
             {/* 카메라 권한 가이드 */}
@@ -643,8 +645,8 @@ export function MobileScanPage() {
                 textAlign: 'left',
                 fontSize: '14px'
               }}>
-                <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>📱 카메라 권한 허용 방법:</div>
-                <div>1. 주소창 옆 🔒 또는 ⓘ 아이콘 클릭</div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 'bold', marginBottom: '8px' }}><Smartphone size={16} /> 카메라 권한 허용 방법:</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>1. 주소창 옆 <Lock size={14} /> 또는 ⓘ 아이콘 클릭</div>
                 <div>2. &quot;카메라&quot; 또는 &quot;Camera&quot; 허용으로 변경</div>
                 <div>3. 페이지 새로고침</div>
               </div>
@@ -660,7 +662,7 @@ export function MobileScanPage() {
                 textAlign: 'left',
                 fontSize: '14px'
               }}>
-                <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>🔒 보안 연결 필요</div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 'bold', marginBottom: '8px' }}><Lock size={16} /> 보안 연결 필요</div>
                 <div>카메라 접근을 위해 HTTPS 연결이 필요합니다.</div>
                 <div>안전한 연결로 접속해주세요.</div>
               </div>
@@ -676,10 +678,13 @@ export function MobileScanPage() {
                 padding: '12px 24px',
                 fontSize: '16px',
                 marginBottom: '20px',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6
               }}
             >
-              🔄 다시 시도
+              <RefreshCw size={16} /> 다시 시도
             </button>
 
             {/* 수동 입력 폴백 */}
@@ -865,8 +870,8 @@ export function MobileScanPage() {
                   <span style={{ fontFamily: 'monospace', fontWeight: '600' }}>
                     {voucher.serial_no.length > 15 ? `${voucher.serial_no.substring(0, 15)}...` : voucher.serial_no}
                   </span>
-                  <span style={{ color: voucher.status === 'error' ? '#f87171' : '#10b981', fontWeight: '600' }}>
-                    {voucher.status === 'error' ? '❌' : '✅'}
+                  <span style={{ color: voucher.status === 'error' ? '#f87171' : '#10b981', fontWeight: '600', display: 'inline-flex', alignItems: 'center' }}>
+                    {voucher.status === 'error' ? <XCircle size={14} /> : <CheckCircle size={14} />}
                   </span>
                 </div>
                 <div style={{ marginTop: '4px', color: '#e5e7eb' }}>
@@ -885,9 +890,12 @@ export function MobileScanPage() {
                     borderRadius: '4px',
                     backgroundColor: voucher.date_comparison.is_match === false ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)',
                     fontSize: '11px',
-                    color: voucher.date_comparison.is_match === false ? '#fca5a5' : '#a7f3d0'
+                    color: voucher.date_comparison.is_match === false ? '#fca5a5' : '#a7f3d0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4
                   }}>
-                    📅 {voucher.date_comparison.message}
+                    <Calendar size={12} /> {voucher.date_comparison.message}
                   </div>
                 )}
               </div>
@@ -990,8 +998,8 @@ export function MobileScanPage() {
                     }}>
                       {result.serial_no}
                     </span>
-                    <span style={{ fontSize: '20px' }}>
-                      {result.success ? '✅' : '❌'}
+                    <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                      {result.success ? <CheckCircle size={20} color="#16a34a" /> : <XCircle size={20} color="#dc2626" />}
                     </span>
                   </div>
                   <div style={{ 

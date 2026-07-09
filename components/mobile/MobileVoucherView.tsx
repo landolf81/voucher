@@ -4,6 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import QRCode from 'qrcode';
 import { useState, useEffect } from 'react';
+import { CheckCircle, SquarePen } from 'lucide-react';
 
 interface VoucherTemplate {
   voucher_name: string;
@@ -164,7 +165,9 @@ export function MobileVoucherView({ voucher, template }: MobileVoucherViewProps)
         }}>
           {voucher.status === 'issued' ? (
             <div style={{
-              display: 'inline-block',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
               padding: '12px 24px',
               backgroundColor: '#10b981',
               color: 'white',
@@ -172,7 +175,7 @@ export function MobileVoucherView({ voucher, template }: MobileVoucherViewProps)
               fontSize: '18px',
               fontWeight: '700'
             }}>
-              ✅ 사용 가능
+              <CheckCircle size={18} /> 사용 가능
             </div>
           ) : voucher.status === 'used' ? (
             <div style={{
@@ -232,9 +235,12 @@ export function MobileVoucherView({ voucher, template }: MobileVoucherViewProps)
             backgroundColor: '#fef3c7',
             borderRadius: '8px',
             fontSize: '13px',
-            color: '#92400e'
+            color: '#92400e',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 6
           }}>
-            📝 {voucher.notes}
+            <SquarePen size={14} style={{ flexShrink: 0, marginTop: 2 }} /> {voucher.notes}
           </div>
         )}
       </div>

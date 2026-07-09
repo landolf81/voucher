@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useDevice } from '@/lib/hooks/useDevice';
+import { Mail, Smartphone, Link as LinkIcon } from 'lucide-react';
 
 export default function LoginPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -662,7 +663,7 @@ export default function LoginPage() {
                       gap: '8px',
                       marginBottom: '4px'
                     }}>
-                      <span style={{ fontSize: '18px' }}>📧</span>
+                      <Mail size={18} />
                       <span style={{ 
                         fontSize: '14px', 
                         fontWeight: '500',
@@ -697,7 +698,7 @@ export default function LoginPage() {
                         gap: '8px',
                         marginBottom: '4px'
                       }}>
-                        <span style={{ fontSize: '18px' }}>📱</span>
+                        <Smartphone size={18} />
                         <span style={{ 
                           fontSize: '14px', 
                           fontWeight: '500',
@@ -898,9 +899,12 @@ export default function LoginPage() {
                 fontSize: '16px',
                 fontWeight: '600',
                 color: '#92400e',
-                margin: '0 0 8px 0'
+                margin: '0 0 8px 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
               }}>
-                🔗 카카오 계정 연동
+                <LinkIcon size={16} /> 카카오 계정 연동
               </h3>
               <p style={{
                 fontSize: '14px',

@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { ActivityFeed } from './ActivityFeed';
+import { AlertTriangle, Ticket, CheckCircle, Building2, Users } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 // Shared UI Components
-export function StatCard({ title, value, icon, color }: {
+export function StatCard({ title, value, icon: Icon, color }: {
   title: string;
   value: string | number;
-  icon: string;
+  icon: LucideIcon;
   color: string;
 }) {
   return (
@@ -40,9 +42,9 @@ export function StatCard({ title, value, icon, color }: {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '20px'
+          color: 'white'
         }}>
-          {icon}
+          <Icon size={20} />
         </div>
       </div>
       <p style={{
@@ -161,7 +163,7 @@ export function OverviewContent() {
             borderRadius: '12px',
             color: '#991b1b'
           }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}><AlertTriangle size={48} color="#d97706" /></div>
             <p>{error}</p>
           </div>
         ) : stats ? (
@@ -170,25 +172,25 @@ export function OverviewContent() {
             <StatCard
               title="발급된 교환권"
               value={formatNumber(stats.totalVouchers)}
-              icon="🎫"
+              icon={Ticket}
               color="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
             />
             <StatCard
               title="사용된 교환권"
               value={formatNumber(stats.usedVouchers)}
-              icon="✅"
+              icon={CheckCircle}
               color="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
             />
             <StatCard
               title="등록된 사업장"
               value={formatNumber(stats.totalSites)}
-              icon="🏢"
+              icon={Building2}
               color="linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
             />
             <StatCard
               title="활성 사용자"
               value={formatNumber(stats.totalUsers)}
-              icon="👥"
+              icon={Users}
               color="linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)"
             />
           </>

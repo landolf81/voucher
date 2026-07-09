@@ -7,6 +7,21 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import {
+  Smartphone,
+  ClipboardList,
+  BarChart3,
+  Search,
+  RefreshCw,
+  SquarePen,
+  CheckCircle,
+  Link as LinkIcon,
+  Eye,
+  AlertTriangle,
+  Trash2,
+  Shield,
+  X,
+} from 'lucide-react';
 
 interface Template {
   id: string;
@@ -705,9 +720,12 @@ export function MobileVoucherManagement() {
         fontSize: '24px',
         fontWeight: 'bold',
         color: '#1a202c',
-        marginBottom: '24px'
+        marginBottom: '24px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px'
       }}>
-        📱 모바일 교환권 관리
+        <Smartphone size={22} /> 모바일 교환권 관리
       </h3>
 
       {/* Tab Navigation */}
@@ -727,10 +745,13 @@ export function MobileVoucherManagement() {
             borderRadius: '8px 8px 0 0',
             cursor: 'pointer',
             fontSize: '14px',
-            fontWeight: '500'
+            fontWeight: '500',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px'
           }}
         >
-          📱 새 배치 생성
+          <Smartphone size={16} /> 새 배치 생성
         </button>
         <button
           onClick={() => setCurrentTab('history')}
@@ -742,10 +763,13 @@ export function MobileVoucherManagement() {
             borderRadius: '8px 8px 0 0',
             cursor: 'pointer',
             fontSize: '14px',
-            fontWeight: '500'
+            fontWeight: '500',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px'
           }}
         >
-          📋 배치 히스토리
+          <ClipboardList size={16} /> 배치 히스토리
         </button>
         <button
           onClick={() => setCurrentTab('analytics')}
@@ -757,10 +781,13 @@ export function MobileVoucherManagement() {
             borderRadius: '8px 8px 0 0',
             cursor: 'pointer',
             fontSize: '14px',
-            fontWeight: '500'
+            fontWeight: '500',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px'
           }}
         >
-          📊 사용 분석
+          <BarChart3 size={16} /> 사용 분석
         </button>
       </div>
 
@@ -865,10 +892,13 @@ export function MobileVoucherManagement() {
                           border: '1px solid #d1d5db',
                           borderRadius: '4px',
                           color: '#374151',
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
                         }}
                       >
-                        📱 디자인 미리보기
+                        <Smartphone size={14} /> 디자인 미리보기
                       </button>
                     </div>
                   )}
@@ -1031,10 +1061,13 @@ export function MobileVoucherManagement() {
                       borderRadius: '6px',
                       cursor: loadingExisting ? 'not-allowed' : 'pointer',
                       fontSize: '14px',
-                      fontWeight: '500'
+                      fontWeight: '500',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
                     }}
                   >
-                    🔍 검색
+                    <Search size={16} /> 검색
                   </button>
                   <button
                     onClick={handleResetFilters}
@@ -1047,10 +1080,13 @@ export function MobileVoucherManagement() {
                       borderRadius: '6px',
                       cursor: loadingExisting ? 'not-allowed' : 'pointer',
                       fontSize: '14px',
-                      fontWeight: '500'
+                      fontWeight: '500',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
                     }}
                   >
-                    🔄 초기화
+                    <RefreshCw size={16} /> 초기화
                   </button>
                 </div>
               </div>
@@ -1071,10 +1107,13 @@ export function MobileVoucherManagement() {
                       borderRadius: '8px',
                       cursor: loadingExisting ? 'not-allowed' : 'pointer',
                       fontSize: '14px',
-                      fontWeight: '500'
+                      fontWeight: '500',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
                     }}
                   >
-                    {loadingExisting ? '로딩 중...' : '🔄 새로고침'}
+                    {loadingExisting ? '로딩 중...' : (<><RefreshCw size={16} /> 새로고침</>)}
                   </button>
                   {existingVouchers.length > 0 && (
                     <button
@@ -1171,8 +1210,8 @@ export function MobileVoucherManagement() {
                   ) : (
                     <>
                       <p>선택한 템플릿에 등록된 대상자가 없습니다.</p>
-                      <p style={{ fontSize: '14px', marginTop: '8px' }}>
-                        📝 &quot;발행대상 등록&quot; 탭에서 먼저 대상자를 등록해주세요.
+                      <p style={{ fontSize: '14px', marginTop: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                        <SquarePen size={14} /> &quot;발행대상 등록&quot; 탭에서 먼저 대상자를 등록해주세요.
                       </p>
                     </>
                   )}
@@ -1187,9 +1226,12 @@ export function MobileVoucherManagement() {
                   border: '1px solid #3b82f6',
                   borderRadius: '8px',
                   fontSize: '14px',
-                  color: '#1e40af'
+                  color: '#1e40af',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}>
-                  ✅ {selectedExistingVouchers.size}개의 대상자가 선택되었습니다.
+                  <CheckCircle size={16} color="#16a34a" /> {selectedExistingVouchers.size}개의 대상자가 선택되었습니다.
                 </div>
               )}
             </div>
@@ -1233,9 +1275,13 @@ export function MobileVoucherManagement() {
               }}
             >
               {isSubmitting ? (
-                '📱 모바일 교환권 생성 중...'
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <Smartphone size={18} /> 모바일 교환권 생성 중...
+                </span>
               ) : (
-                `📱 모바일 교환권 발행 (선택: ${selectedExistingVouchers.size}개)`
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <Smartphone size={18} /> {`모바일 교환권 발행 (선택: ${selectedExistingVouchers.size}개)`}
+                </span>
               )}
             </button>
           </div>
@@ -1258,10 +1304,13 @@ export function MobileVoucherManagement() {
                 border: 'none',
                 borderRadius: '6px',
                 cursor: 'pointer',
-                fontSize: '14px'
+                fontSize: '14px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
               }}
             >
-              🔄 새로고침
+              <RefreshCw size={16} /> 새로고침
             </button>
           </div>
 
@@ -1336,11 +1385,13 @@ export function MobileVoucherManagement() {
                               border: 'none',
                               borderRadius: '4px',
                               cursor: 'pointer',
-                              fontSize: '12px'
+                              fontSize: '12px',
+                              display: 'inline-flex',
+                              alignItems: 'center'
                             }}
                             title="원본 링크 복사"
                           >
-                            📋
+                            <ClipboardList size={14} />
                           </button>
                           <button
                             onClick={() => copyShortLink(batch.link_token)}
@@ -1351,11 +1402,13 @@ export function MobileVoucherManagement() {
                               border: 'none',
                               borderRadius: '4px',
                               cursor: 'pointer',
-                              fontSize: '12px'
+                              fontSize: '12px',
+                              display: 'inline-flex',
+                              alignItems: 'center'
                             }}
                             title="단축 링크 복사"
                           >
-                            🔗
+                            <LinkIcon size={14} />
                           </button>
                           <button
                             onClick={() => handleShowBatchDetail(batch)}
@@ -1366,10 +1419,12 @@ export function MobileVoucherManagement() {
                               border: 'none',
                               borderRadius: '4px',
                               cursor: 'pointer',
-                              fontSize: '12px'
+                              fontSize: '12px',
+                              display: 'inline-flex',
+                              alignItems: 'center'
                             }}
                           >
-                            👁️
+                            <Eye size={14} />
                           </button>
                         </div>
                       </td>
@@ -1394,8 +1449,8 @@ export function MobileVoucherManagement() {
       {currentTab === 'analytics' && (
         <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-            <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#374151' }}>
-              📊 사용 패턴 분석 및 관리
+            <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#374151', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <BarChart3 size={18} /> 사용 패턴 분석 및 관리
             </h4>
             <button
               onClick={() => {
@@ -1411,10 +1466,13 @@ export function MobileVoucherManagement() {
                 border: 'none',
                 borderRadius: '6px',
                 cursor: loadingAnalytics || loadingCleanup ? 'not-allowed' : 'pointer',
-                fontSize: '14px'
+                fontSize: '14px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
               }}
             >
-              {loadingAnalytics || loadingCleanup ? '로딩 중...' : '🔄 새로고침'}
+              {loadingAnalytics || loadingCleanup ? '로딩 중...' : (<><RefreshCw size={16} /> 새로고침</>)}
             </button>
           </div>
 
@@ -1597,8 +1655,8 @@ export function MobileVoucherManagement() {
                 marginBottom: '16px'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <h6 style={{ fontSize: '14px', fontWeight: '600', color: '#92400e', margin: 0 }}>
-                    ⚠️ 정리 대상 (30일 이전 만료)
+                  <h6 style={{ fontSize: '14px', fontWeight: '600', color: '#92400e', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <AlertTriangle size={16} /> 정리 대상 (30일 이전 만료)
                   </h6>
                   <div style={{ fontSize: '12px', color: '#6b7280' }}>
                     기준일: {cleanupStats.cleanup_date ? new Date(cleanupStats.cleanup_date).toLocaleDateString('ko-KR') : '-'}
@@ -1632,10 +1690,13 @@ export function MobileVoucherManagement() {
                       borderRadius: '6px',
                       cursor: cleanupStats.total_batches && !loadingCleanup ? 'pointer' : 'not-allowed',
                       fontSize: '14px',
-                      fontWeight: '500'
+                      fontWeight: '500',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
                     }}
                   >
-                    🔍 시뮬레이션
+                    <Search size={16} /> 시뮬레이션
                   </button>
                   <button
                     onClick={() => executeCleanup(false)}
@@ -1648,10 +1709,13 @@ export function MobileVoucherManagement() {
                       borderRadius: '6px',
                       cursor: cleanupStats.total_batches && !loadingCleanup ? 'pointer' : 'not-allowed',
                       fontSize: '14px',
-                      fontWeight: '500'
+                      fontWeight: '500',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
                     }}
                   >
-                    🗑️ 실제 정리
+                    <Trash2 size={16} /> 실제 정리
                   </button>
                 </div>
               </div>
@@ -1665,8 +1729,8 @@ export function MobileVoucherManagement() {
               fontSize: '14px',
               color: '#6b7280'
             }}>
-              <h6 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                🛡️ 정리 정책
+              <h6 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Shield size={16} /> 정리 정책
               </h6>
               <ul style={{ margin: 0, paddingLeft: '16px' }}>
                 <li>30일 이전에 만료된 배치가 정리 대상입니다</li>
@@ -1713,10 +1777,12 @@ export function MobileVoucherManagement() {
                   border: 'none',
                   fontSize: '24px',
                   cursor: 'pointer',
-                  color: '#6b7280'
+                  color: '#6b7280',
+                  display: 'inline-flex',
+                  alignItems: 'center'
                 }}
               >
-                ✕
+                <X size={24} />
               </button>
             </div>
 
@@ -1885,10 +1951,12 @@ export function MobileVoucherManagement() {
                   border: 'none',
                   fontSize: '24px',
                   cursor: 'pointer',
-                  color: '#6b7280'
+                  color: '#6b7280',
+                  display: 'inline-flex',
+                  alignItems: 'center'
                 }}
               >
-                ✕
+                <X size={24} />
               </button>
             </div>
 
@@ -1922,10 +1990,13 @@ export function MobileVoucherManagement() {
                   border: 'none',
                   borderRadius: '6px',
                   cursor: batchVouchers.length > 0 ? 'pointer' : 'not-allowed',
-                  fontSize: '14px'
+                  fontSize: '14px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}
               >
-                📋 전체 링크 복사
+                <ClipboardList size={16} /> 전체 링크 복사
               </button>
               <button
                 onClick={() => copyLink(selectedBatch.link_token)}
@@ -1936,10 +2007,13 @@ export function MobileVoucherManagement() {
                   border: 'none',
                   borderRadius: '6px',
                   cursor: 'pointer',
-                  fontSize: '14px'
+                  fontSize: '14px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}
               >
-                📋 배치 링크 복사
+                <ClipboardList size={16} /> 배치 링크 복사
               </button>
             </div>
 

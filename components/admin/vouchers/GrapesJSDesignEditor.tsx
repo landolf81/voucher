@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import grapesjs, { Editor } from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
 import '@/styles/grapesjs-custom.css';
+import { Palette, Package, Lightbulb, Smartphone, FileText, Save, Settings, BookOpen } from 'lucide-react';
 
 interface GrapesJSDesignEditorProps {
   templateId?: string;
@@ -498,9 +499,12 @@ export function GrapesJSDesignEditor({
             margin: 0,
             fontSize: '16px',
             fontWeight: '500',
-            color: '#374151'
+            color: '#374151',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
           }}>
-            🎨 디자인 에디터 로딩 중...
+            <Palette size={18} /> 디자인 에디터 로딩 중...
           </p>
         </div>
       )}
@@ -532,9 +536,12 @@ export function GrapesJSDesignEditor({
               fontSize: '16px',
               fontWeight: '700',
               margin: 0,
-              color: '#1f2937'
+              color: '#1f2937',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
             }}>
-              📦 디자인 요소
+              <Package size={16} /> 디자인 요소
             </h4>
             <span style={{
               fontSize: '12px',
@@ -558,7 +565,7 @@ export function GrapesJSDesignEditor({
             fontSize: '12px',
             color: '#0369a1'
           }}>
-            💡 <strong>사용법:</strong><br/>
+            <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'text-bottom' }}><Lightbulb size={14} /></span> <strong>사용법:</strong><br/>
             • 블록을 캔버스로 드래그<br/>
             • 클릭하여 속성 편집<br/>
             • 모서리를 드래그하여 크기 조정
@@ -585,13 +592,16 @@ export function GrapesJSDesignEditor({
           }}>
             {/* 왼쪽: 디바이스 버튼 */}
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <span style={{ 
-                fontSize: '14px', 
-                fontWeight: '600', 
+              <span style={{
+                fontSize: '14px',
+                fontWeight: '600',
                 color: '#374151',
-                marginRight: '8px'
+                marginRight: '8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
               }}>
-                📱 화면 크기:
+                <Smartphone size={14} /> 화면 크기:
               </span>
               <button
                 onClick={() => editor?.DeviceManager.select('A4 세로')}
@@ -603,10 +613,13 @@ export function GrapesJSDesignEditor({
                   padding: '8px 12px',
                   fontSize: '12px',
                   fontWeight: '500',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
                 }}
               >
-                📄 A4 세로
+                <FileText size={14} /> A4 세로
               </button>
               <button
                 onClick={() => editor?.DeviceManager.select('A4 가로')}
@@ -618,10 +631,13 @@ export function GrapesJSDesignEditor({
                   padding: '8px 12px',
                   fontSize: '12px',
                   fontWeight: '500',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
                 }}
               >
-                📄 A4 가로
+                <FileText size={14} /> A4 가로
               </button>
               <button
                 onClick={() => editor?.DeviceManager.select('Mobile')}
@@ -633,10 +649,13 @@ export function GrapesJSDesignEditor({
                   padding: '8px 12px',
                   fontSize: '12px',
                   fontWeight: '500',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
                 }}
               >
-                📱 모바일
+                <Smartphone size={14} /> 모바일
               </button>
               <button
                 onClick={() => {
@@ -673,7 +692,10 @@ export function GrapesJSDesignEditor({
                   fontWeight: '600',
                   cursor: 'pointer',
                   boxShadow: '0 2px 4px rgba(5, 150, 105, 0.2)',
-                  transition: 'all 0.2s'
+                  transition: 'all 0.2s',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}
                 onMouseOver={(e) => {
                   e.currentTarget.style.backgroundColor = '#047857';
@@ -684,7 +706,7 @@ export function GrapesJSDesignEditor({
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
-                💾 저장하기
+                <Save size={16} /> 저장하기
               </button>
             </div>
           </div>
@@ -717,7 +739,7 @@ export function GrapesJSDesignEditor({
               alignItems: 'center',
               gap: '8px'
             }}>
-              🎨 속성 편집
+              <Palette size={16} /> 속성 편집
             </h4>
             <p style={{
               fontSize: '12px',
@@ -741,7 +763,7 @@ export function GrapesJSDesignEditor({
                 alignItems: 'center',
                 gap: '6px'
               }}>
-                ⚙️ 기본 속성
+                <Settings size={14} /> 기본 속성
               </h5>
               <div className="traits-container"></div>
             </div>
@@ -757,7 +779,7 @@ export function GrapesJSDesignEditor({
                 alignItems: 'center',
                 gap: '6px'
               }}>
-                🎨 스타일
+                <Palette size={14} /> 스타일
               </h5>
               <div className="styles-container"></div>
             </div>
@@ -773,7 +795,7 @@ export function GrapesJSDesignEditor({
                 alignItems: 'center',
                 gap: '6px'
               }}>
-                📚 레이어
+                <BookOpen size={14} /> 레이어
               </h5>
               <div className="layers-container"></div>
             </div>
@@ -787,7 +809,7 @@ export function GrapesJSDesignEditor({
             fontSize: '11px',
             color: '#92400e'
           }}>
-            💡 <strong>팁:</strong> 요소를 선택하면 여기서 세부 속성을 편집할 수 있습니다.
+            <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'text-bottom' }}><Lightbulb size={14} /></span> <strong>팁:</strong> 요소를 선택하면 여기서 세부 속성을 편집할 수 있습니다.
           </div>
         </div>
       </div>

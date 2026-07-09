@@ -35,8 +35,15 @@ npm run lint
 - **PDF Generation**: pdfmake with Pretendard font for Korean support
 - **QR/Barcode**: qrcode for generation, @zxing/browser for scanning
 - **Email Editor**: Unlayer (react-email-editor) for voucher templates
+- **Icons**: lucide-react (2026-07 이모지 아이콘 전면 교체)
 
 ## Critical Patterns & Conventions
+
+### UI Icons (lucide-react)
+- JSX에서 시각적 아이콘은 lucide-react 컴포넌트 사용 (`<Search size={16} />`). 새 이모지 아이콘 추가 금지.
+- 탭/메뉴 데이터의 icon 필드는 `LucideIcon` 컴포넌트 참조 타입 (`import type { LucideIcon } from 'lucide-react'`), 렌더링은 `<item.icon size={16} />`.
+- 이모지가 **의도적으로 남아 있는 곳** (SVG를 넣을 수 없어 교체 불가 — 다시 교체 시도하지 말 것): alert()/confirm()/toast·setMessage 문자열, console 로그, SMS/카카오/이메일 본문 문자열, GrapesJS 블록 라벨·캔버스 HTML 문자열, Unlayer 디자인 HTML, `window.open()` 인쇄용 HTML, `<option>` 태그 텍스트.
+- `MobileShell`의 `title` prop은 `React.ReactNode` — 아이콘+텍스트 조합 가능.
 
 ### Authentication Flow
 1. Email uses Magic Links (not OTP) - redirects handled via emailRedirectTo

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Construction } from 'lucide-react';
 
 export function VoucherSearchForm() {
   return (
@@ -24,8 +25,8 @@ export function VoucherSearchForm() {
         textAlign: 'center',
         backgroundColor: '#f9fafb'
       }}>
-        <p style={{ color: '#6b7280', fontSize: '16px' }}>
-          🚧 교환권 조회 기능이 구현 예정입니다.
+        <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#6b7280', fontSize: '16px' }}>
+          <Construction size={18} /> 교환권 조회 기능이 구현 예정입니다.
         </p>
       </div>
     </div>

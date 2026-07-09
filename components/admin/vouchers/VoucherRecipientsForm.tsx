@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { FileText, Download, Search, Trash2, Skull, Pencil, ChevronsLeft, ChevronsRight, ArrowLeft, ArrowRight } from 'lucide-react';
 import { formatPhoneForDisplay, formatPhoneInput, cleanPhoneInput } from '@/lib/phone-utils';
 
 interface VoucherTemplate {
@@ -730,10 +731,13 @@ export function VoucherRecipientsForm() {
               cursor: loading ? 'not-allowed' : 'pointer',
               fontSize: '14px',
               fontWeight: '500',
-              opacity: loading ? 0.6 : 1
+              opacity: loading ? 0.6 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
             }}
           >
-            📄 CSV 대량등록
+            <FileText size={16} /> CSV 대량등록
           </button>
           <button
             onClick={() => setShowIndividualForm(true)}
@@ -1087,10 +1091,13 @@ export function VoucherRecipientsForm() {
                   borderRadius: '4px',
                   textDecoration: 'none',
                   fontSize: '12px',
-                  fontWeight: '500'
+                  fontWeight: '500',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}
               >
-                📄 예시파일 다운로드
+                <FileText size={14} /> 예시파일 다운로드
               </a>
             </div>
           </div>
@@ -1212,11 +1219,14 @@ export function VoucherRecipientsForm() {
                   cursor: loading ? 'not-allowed' : 'pointer',
                   fontSize: '12px',
                   fontWeight: '500',
-                  opacity: loading ? 0.6 : 1
+                  opacity: loading ? 0.6 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}
                 title="현재 필터 조건에 맞는 교환권 목록을 Excel로 다운로드"
               >
-                📥 Excel 다운로드
+                <Download size={14} /> Excel 다운로드
               </button>
               <button
                 onClick={handleFilterReset}
@@ -1360,10 +1370,13 @@ export function VoucherRecipientsForm() {
                   cursor: loading ? 'not-allowed' : 'pointer',
                   fontSize: '13px',
                   fontWeight: '500',
-                  opacity: loading ? 0.6 : 1
+                  opacity: loading ? 0.6 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}
               >
-                🔍 검색
+                <Search size={14} /> 검색
               </button>
             </div>
           </form>
@@ -1402,13 +1415,16 @@ export function VoucherRecipientsForm() {
                       cursor: loading ? 'not-allowed' : 'pointer',
                       fontSize: '12px',
                       fontWeight: '500',
-                      opacity: loading ? 0.6 : 1
+                      opacity: loading ? 0.6 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
                     }}
                   >
-                    🗑️ 선택삭제 ({selectedRecipients.length})
+                    <Trash2 size={14} /> 선택삭제 ({selectedRecipients.length})
                   </button>
                 )}
-                
+
                 {summary.totalCount > 0 && (
                   <button
                     onClick={handleDeleteAllByTemplate}
@@ -1422,10 +1438,13 @@ export function VoucherRecipientsForm() {
                       cursor: loading ? 'not-allowed' : 'pointer',
                       fontSize: '12px',
                       fontWeight: '500',
-                      opacity: loading ? 0.6 : 1
+                      opacity: loading ? 0.6 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
                     }}
                   >
-                    💀 템플릿 전체삭제 ({summary.totalCount})
+                    <Skull size={14} /> 템플릿 전체삭제 ({summary.totalCount})
                   </button>
                 )}
               </div>
@@ -1574,7 +1593,7 @@ export function VoucherRecipientsForm() {
                             }}
                             title={['used', 'disposed'].includes(recipient.status) ? '사용되거나 폐기된 교환권은 수정할 수 없습니다' : '수정'}
                           >
-                            ✏️
+                            <Pencil size={12} />
                           </button>
                           <button
                             onClick={() => handleDelete(recipient)}
@@ -1592,7 +1611,7 @@ export function VoucherRecipientsForm() {
                             }}
                             title={['used', 'disposed'].includes(recipient.status) ? '사용되거나 폐기된 교환권은 삭제할 수 없습니다' : '삭제'}
                           >
-                            🗑️
+                            <Trash2 size={12} />
                           </button>
                         </div>
                       </td>
@@ -1628,12 +1647,14 @@ export function VoucherRecipientsForm() {
                     borderRadius: '4px',
                     padding: '6px 8px',
                     cursor: pagination.hasPrev ? 'pointer' : 'not-allowed',
-                    fontSize: '12px'
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center'
                   }}
                 >
-                  ⏮️
+                  <ChevronsLeft size={14} />
                 </button>
-                
+
                 <button
                   onClick={() => handlePageChange(pagination.page - 1)}
                   disabled={!pagination.hasPrev}
@@ -1644,10 +1665,13 @@ export function VoucherRecipientsForm() {
                     borderRadius: '4px',
                     padding: '6px 12px',
                     cursor: pagination.hasPrev ? 'pointer' : 'not-allowed',
-                    fontSize: '12px'
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
                   }}
                 >
-                  ⬅️ 이전
+                  <ArrowLeft size={14} /> 이전
                 </button>
 
                 {/* 페이지 번호 표시 */}
@@ -1689,12 +1713,15 @@ export function VoucherRecipientsForm() {
                     borderRadius: '4px',
                     padding: '6px 12px',
                     cursor: pagination.hasNext ? 'pointer' : 'not-allowed',
-                    fontSize: '12px'
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
                   }}
                 >
-                  다음 ➡️
+                  다음 <ArrowRight size={14} />
                 </button>
-                
+
                 <button
                   onClick={() => handlePageChange(pagination.totalPages)}
                   disabled={!pagination.hasNext}
@@ -1705,10 +1732,12 @@ export function VoucherRecipientsForm() {
                     borderRadius: '4px',
                     padding: '6px 8px',
                     cursor: pagination.hasNext ? 'pointer' : 'not-allowed',
-                    fontSize: '12px'
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center'
                   }}
                 >
-                  ⏭️
+                  <ChevronsRight size={14} />
                 </button>
               </div>
             </div>

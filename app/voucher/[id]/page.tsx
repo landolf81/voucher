@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import NextImage from 'next/image';
 import { useParams } from 'next/navigation';
 import { MobileVoucherRenderer } from '@/components/voucher/VoucherRenderer';
+import { Smartphone, XCircle, RefreshCw, Save, ClipboardList } from 'lucide-react';
 
 interface VoucherData {
   id: string;
@@ -260,7 +261,7 @@ export default function MobileVoucherPage() {
         backgroundColor: '#f8fafc'
       }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '32px', marginBottom: '16px' }}>📱</div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}><Smartphone size={32} /></div>
           <div>교환권을 불러오는 중...</div>
         </div>
       </div>
@@ -284,7 +285,7 @@ export default function MobileVoucherPage() {
           borderRadius: '12px',
           border: '1px solid #e5e7eb'
         }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>❌</div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}><XCircle size={48} color="#dc2626" /></div>
           <h2 style={{ fontSize: '20px', marginBottom: '8px', color: '#dc2626' }}>
             오류가 발생했습니다
           </h2>
@@ -347,9 +348,13 @@ export default function MobileVoucherPage() {
             fontSize: '24px',
             fontWeight: '600',
             color: '#1a202c',
-            marginBottom: '8px'
+            marginBottom: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
           }}>
-            📱 모바일 교환권
+            <Smartphone size={20} /> 모바일 교환권
           </h1>
           <p style={{
             fontSize: '14px',
@@ -387,7 +392,7 @@ export default function MobileVoucherPage() {
               padding: '40px',
               color: '#6b7280'
             }}>
-              <div style={{ fontSize: '32px', marginBottom: '16px' }}>🔄</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}><RefreshCw size={32} /></div>
               <div>교환권 이미지를 생성하는 중...</div>
             </div>
           )}
@@ -411,10 +416,14 @@ export default function MobileVoucherPage() {
               borderRadius: '8px',
               fontSize: '16px',
               fontWeight: '500',
-              cursor: downloading ? 'not-allowed' : 'pointer'
+              cursor: downloading ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
             }}
           >
-            {downloading ? '생성 중...' : '💾 이미지 저장'}
+            {downloading ? '생성 중...' : (<><Save size={16} /> 이미지 저장</>)}
           </button>
           
           <button
@@ -427,10 +436,13 @@ export default function MobileVoucherPage() {
               borderRadius: '8px',
               fontSize: '16px',
               fontWeight: '500',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
-            🔄
+            <RefreshCw size={18} />
           </button>
         </div>
 
@@ -497,8 +509,8 @@ export default function MobileVoucherPage() {
           fontSize: '14px',
           color: '#92400e'
         }}>
-          <div style={{ fontWeight: '600', marginBottom: '8px' }}>
-            📋 사용 안내
+          <div style={{ fontWeight: '600', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <ClipboardList size={16} /> 사용 안내
           </div>
           <ul style={{ margin: 0, paddingLeft: '16px' }}>
             <li>지정된 사용처에서만 사용 가능합니다.</li>

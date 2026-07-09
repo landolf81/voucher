@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import type { LucideIcon } from 'lucide-react';
+import { SquarePen, Users, Palette, Printer, Smartphone, RefreshCw, Lock } from 'lucide-react';
 import { VoucherTemplateForm } from './VoucherTemplateForm';
 import { VoucherRecipientsForm } from './VoucherRecipientsForm';
 import { VoucherIssueForm } from './VoucherIssueForm';
@@ -17,14 +19,14 @@ export function VoucherManagement() {
   const [currentTab, setCurrentTab] = useState<VoucherTab>('template');
 
   // 권한에 따른 탭 필터링
-  const getAllTabs = () => [
-    { id: 'template', label: '교환권 정보', icon: '📝', roles: ['admin', 'staff'] },
-    { id: 'recipients', label: '발행대상 등록', icon: '👥', roles: ['admin', 'staff'] },
-    { id: 'design', label: '디자인 관리', icon: '🎨', roles: ['admin', 'staff'] },
-    { id: 'issue', label: '발행(인쇄)', icon: '🖨️', roles: ['admin', 'staff'] },
-    { id: 'mobile', label: '모바일 발행', icon: '📱', roles: ['admin', 'staff'] },
-    { id: 'mobile-design', label: '모바일 디자인', icon: '🎨', roles: ['admin', 'staff'] },
-    { id: 'retrieve', label: '회수', icon: '🔄', roles: ['admin'] }, // 관리자 전용
+  const getAllTabs = (): { id: string; label: string; icon: LucideIcon; roles: string[] }[] => [
+    { id: 'template', label: '교환권 정보', icon: SquarePen, roles: ['admin', 'staff'] },
+    { id: 'recipients', label: '발행대상 등록', icon: Users, roles: ['admin', 'staff'] },
+    { id: 'design', label: '디자인 관리', icon: Palette, roles: ['admin', 'staff'] },
+    { id: 'issue', label: '발행(인쇄)', icon: Printer, roles: ['admin', 'staff'] },
+    { id: 'mobile', label: '모바일 발행', icon: Smartphone, roles: ['admin', 'staff'] },
+    { id: 'mobile-design', label: '모바일 디자인', icon: Palette, roles: ['admin', 'staff'] },
+    { id: 'retrieve', label: '회수', icon: RefreshCw, roles: ['admin'] }, // 관리자 전용
   ];
 
   const tabs = getAllTabs().filter(tab => 
@@ -65,7 +67,9 @@ export function VoucherManagement() {
               transition: 'all 0.2s'
             }}
           >
-            <span style={{ marginRight: '8px' }}>{tab.icon}</span>
+            <span style={{ marginRight: '8px', display: 'inline-flex', verticalAlign: 'text-bottom' }}>
+              <tab.icon size={16} />
+            </span>
             {tab.label}
           </button>
         ))}
@@ -92,7 +96,9 @@ export function VoucherManagement() {
             padding: '60px 20px',
             color: '#6b7280'
           }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔒</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+              <Lock size={48} />
+            </div>
             <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>
               접근 권한이 없습니다
             </h3>

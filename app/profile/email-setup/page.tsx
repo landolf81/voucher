@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useDevice } from '@/lib/hooks/useDevice';
+import { Mail, Lightbulb } from 'lucide-react';
 
 export default function EmailSetupPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -127,9 +128,9 @@ export default function EmailSetupPage() {
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto 16px',
-            fontSize: '28px'
+            color: '#2563eb'
           }}>
-            📧
+            <Mail size={28} />
           </div>
           <h1 style={{
             fontSize: '24px',
@@ -227,10 +228,12 @@ export default function EmailSetupPage() {
               marginBottom: '24px'
             }}>
               <div style={{
-                fontSize: '48px',
-                marginBottom: '12px'
+                marginBottom: '12px',
+                display: 'flex',
+                justifyContent: 'center',
+                color: '#0ea5e9'
               }}>
-                ✉️
+                <Mail size={40} />
               </div>
               <h3 style={{
                 fontSize: '18px',
@@ -281,7 +284,7 @@ export default function EmailSetupPage() {
             color: '#6b7280',
             lineHeight: '1.5'
           }}>
-            💡 <strong>안내:</strong> 이메일 등록 후 다음 로그인부터는<br />
+            <Lightbulb size={14} style={{ verticalAlign: 'text-bottom', marginRight: 4 }} /> <strong>안내:</strong> 이메일 등록 후 다음 로그인부터는<br />
             SMS 대신 이메일 인증만 사용됩니다.
           </p>
           

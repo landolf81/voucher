@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase';
 import { validateVoucherToken } from '@/lib/link-generator';
 import MobileVoucherBatchClient from './MobileVoucherBatchClient';
 import { MobileVoucherView } from '@/components/mobile/MobileVoucherView';
+import { Clock, XCircle, Loader2 } from 'lucide-react';
 
 interface PageProps {
   params: Promise<{
@@ -152,7 +153,7 @@ export default async function MobileVoucherBatchPage({ params }: PageProps) {
       return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full text-center">
-            <div className="text-red-500 text-6xl mb-4">⏰</div>
+            <div className="text-red-500 mb-4 flex justify-center"><Clock size={64} /></div>
             <h1 className="text-xl font-bold text-gray-900 mb-2">링크가 만료되었습니다</h1>
             <p className="text-gray-600 mb-4">
               이 교환권 링크는 {expiresAt.toLocaleDateString('ko-KR')}에 만료되었습니다.
@@ -170,7 +171,7 @@ export default async function MobileVoucherBatchPage({ params }: PageProps) {
       return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full text-center">
-            <div className="text-red-500 text-6xl mb-4">❌</div>
+            <div className="text-red-500 mb-4 flex justify-center"><XCircle size={64} /></div>
             <h1 className="text-xl font-bold text-gray-900 mb-2">발행 실패</h1>
             <p className="text-gray-600 mb-4">
               교환권 발행 중 오류가 발생했습니다.
@@ -188,7 +189,7 @@ export default async function MobileVoucherBatchPage({ params }: PageProps) {
       return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full text-center">
-            <div className="animate-spin text-blue-500 text-6xl mb-4">⏳</div>
+            <div className="text-blue-500 mb-4 flex justify-center"><Loader2 size={64} className="animate-spin" /></div>
             <h1 className="text-xl font-bold text-gray-900 mb-2">교환권 생성 중...</h1>
             <p className="text-gray-600 mb-4">
               교환권을 생성하고 있습니다. 잠시만 기다려주세요.

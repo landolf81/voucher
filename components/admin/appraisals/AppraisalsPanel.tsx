@@ -17,6 +17,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { getSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { MapPin, ChevronUp, ChevronDown, Paperclip } from 'lucide-react';
 
 interface Attachment {
   url: string;
@@ -369,11 +370,11 @@ export function AppraisalsPanel() {
                       )}
                     </div>
                     <div style={{ color: '#9ca3af', fontSize: 12, marginTop: 4 }}>
-                      {a.location && <span style={{ color: '#6b7280' }}>📍 {a.location}{a.property_type ? ` · ${a.property_type}` : ''} &nbsp;</span>}
+                      {a.location && <span style={{ color: '#6b7280', display: 'inline-flex', alignItems: 'center', gap: 4 }}><MapPin size={12} /> {a.location}{a.property_type ? ` · ${a.property_type}` : ''} &nbsp;</span>}
                       {a.created_by_name} · {new Date(a.created_at).toLocaleString('ko-KR', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
-                  <span style={{ color: '#cbd5e1' }}>{open ? '▲' : '▼'}</span>
+                  <span style={{ color: '#cbd5e1', display: 'inline-flex', alignItems: 'center' }}>{open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>
                 </div>
                 {open && (
                   <div style={{ padding: '0 16px 16px', borderTop: '1px solid #f8fafc' }}>
@@ -406,7 +407,7 @@ export function AppraisalsPanel() {
                             </a>
                           ) : (
                             <a key={i} href={att.url} target="_blank" rel="noreferrer" style={{ ...ghostBtn, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                              📎 {att.name}
+                              <Paperclip size={14} /> {att.name}
                             </a>
                           )
                         )}
@@ -561,7 +562,7 @@ export function AppraisalsPanel() {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={att.url} alt={att.name} style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 8, border: '1px solid #e5e7eb' }} />
                     ) : (
-                      <div style={{ ...ghostBtn, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📎 {att.name}</div>
+                      <div style={{ ...ghostBtn, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Paperclip size={14} /> {att.name}</div>
                     )}
                     <button onClick={() => removeAttachment(i)} style={{ position: 'absolute', top: -8, right: -8, width: 20, height: 20, borderRadius: 999, border: 'none', backgroundColor: '#ef4444', color: '#fff', fontSize: 12, cursor: 'pointer', lineHeight: '20px', padding: 0 }}>×</button>
                   </div>

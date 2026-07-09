@@ -14,7 +14,7 @@ export function MobileShell({
   children,
   noPadding = false,
 }: {
-  title?: string;
+  title?: React.ReactNode;
   children: React.ReactNode;
   noPadding?: boolean;
 }) {
@@ -44,7 +44,19 @@ export function MobileShell({
               padding: '0 16px',
             }}
           >
-            <h1 style={{ fontSize: '17px', fontWeight: 700, color: '#1a202c', margin: 0 }}>{title}</h1>
+            <h1
+              style={{
+                fontSize: '17px',
+                fontWeight: 700,
+                color: '#1a202c',
+                margin: 0,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              {title}
+            </h1>
           </header>
         )}
         <main

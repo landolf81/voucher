@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import grapesjs, { Editor } from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
+import { Palette, Save, X } from 'lucide-react';
 
 interface SimpleGrapesJSEditorProps {
   templateId?: string;
@@ -241,8 +242,8 @@ export function SimpleGrapesJSEditor({
             animation: 'spin 1s linear infinite',
             marginBottom: '16px'
           }}></div>
-          <p style={{ margin: 0, fontSize: '16px', fontWeight: '500', color: '#374151' }}>
-            🎨 디자인 에디터 로딩 중...
+          <p style={{ margin: 0, fontSize: '16px', fontWeight: '500', color: '#374151', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Palette size={18} /> 디자인 에디터 로딩 중...
           </p>
         </div>
       )}
@@ -269,10 +270,13 @@ export function SimpleGrapesJSEditor({
               padding: '10px 20px',
               fontSize: '14px',
               fontWeight: '600',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
             }}
           >
-            💾 저장
+            <Save size={16} /> 저장
           </button>
           <button
             onClick={() => window.close()}
@@ -284,10 +288,13 @@ export function SimpleGrapesJSEditor({
               padding: '10px 20px',
               fontSize: '14px',
               fontWeight: '600',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
             }}
           >
-            ✕ 닫기
+            <X size={16} /> 닫기
           </button>
         </div>
       </div>

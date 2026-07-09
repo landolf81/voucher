@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
+import { Smartphone, Keyboard, ClipboardList, Folder, XCircle, Download, Hourglass, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { SiteCodeModal } from '../sites/SiteCodeModal';
 
@@ -665,7 +666,7 @@ export function VoucherUsageContent() {
             cursor: 'pointer'
           }}
         >
-          📱 QR 스캔
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Smartphone size={16} /> QR 스캔</span>
         </button>
         <button
           onClick={() => setActiveTab('manual')}
@@ -680,7 +681,7 @@ export function VoucherUsageContent() {
             cursor: 'pointer'
           }}
         >
-          ⌨️ 수동 입력
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Keyboard size={16} /> 수동 입력</span>
         </button>
         <button
           onClick={() => setActiveTab('bulk')}
@@ -695,7 +696,7 @@ export function VoucherUsageContent() {
             cursor: 'pointer'
           }}
         >
-          📋 일괄 등록
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><ClipboardList size={16} /> 일괄 등록</span>
         </button>
         <button
           onClick={() => setActiveTab('csv')}
@@ -710,7 +711,7 @@ export function VoucherUsageContent() {
             cursor: 'pointer'
           }}
         >
-          📁 CSV 업로드
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Folder size={16} /> CSV 업로드</span>
         </button>
       </div>
 
@@ -772,7 +773,7 @@ export function VoucherUsageContent() {
                     />
                     {isScanning && (
                       <div style={{ textAlign: 'center', marginTop: 8, color: '#28a745', fontSize: '14px' }}>
-                        📱 QR 코드를 카메라에 비춰주세요<br/>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Smartphone size={16} /> QR 코드를 카메라에 비춰주세요</span><br/>
                         스캔된 교환권이 우측에 표시됩니다
                       </div>
                     )}
@@ -867,7 +868,7 @@ export function VoucherUsageContent() {
                             padding: '4px'
                           }}
                         >
-                          ❌
+                          <XCircle size={16} />
                         </button>
                       </div>
                     ))
@@ -1009,7 +1010,7 @@ export function VoucherUsageContent() {
                           padding: '4px'
                         }}
                       >
-                        ❌
+                        <XCircle size={14} />
                       </button>
                     </div>
                   ))}
@@ -1063,8 +1064,8 @@ export function VoucherUsageContent() {
               padding: '16px',
               marginBottom: '20px'
             }}>
-              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '8px', color: '#0369a1' }}>
-                📋 CSV 파일 형식 안내
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '14px', fontWeight: '600', marginBottom: '8px', color: '#0369a1' }}>
+                <ClipboardList size={16} /> CSV 파일 형식 안내
               </h4>
               <p style={{ fontSize: '13px', color: '#0369a1', marginBottom: '8px' }}>
                 CSV 파일은 다음 형식으로 작성해주세요: <strong>일련번호, 사용일자, 사용처코드, 비고</strong>
@@ -1084,10 +1085,13 @@ export function VoucherUsageContent() {
                     border: 'none',
                     borderRadius: '6px',
                     fontSize: '13px',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
                   }}
                 >
-                  📥 템플릿 다운로드
+                  <Download size={14} /> 템플릿 다운로드
                 </button>
                 <button
                   onClick={() => setShowSiteCodeModal(true)}
@@ -1098,10 +1102,13 @@ export function VoucherUsageContent() {
                     border: 'none',
                     borderRadius: '6px',
                     fontSize: '13px',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
                   }}
                 >
-                  📋 사업장 코드표 보기
+                  <ClipboardList size={14} /> 사업장 코드표 보기
                 </button>
               </div>
             </div>
@@ -1171,16 +1178,19 @@ export function VoucherUsageContent() {
                 fontSize: '16px',
                 fontWeight: '500',
                 cursor: (!csvFile || isUploadingCsv) ? 'not-allowed' : 'pointer',
-                opacity: (!csvFile || isUploadingCsv) ? 0.6 : 1
+                opacity: (!csvFile || isUploadingCsv) ? 0.6 : 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px'
               }}
             >
               {isUploadingCsv ? (
                 <>
-                  <span>⏳</span> 처리 중...
+                  <Hourglass size={16} /> 처리 중...
                 </>
               ) : (
                 <>
-                  <span>📁</span> CSV 업로드
+                  <Folder size={16} /> CSV 업로드
                 </>
               )}
             </button>
@@ -1366,7 +1376,7 @@ export function VoucherUsageContent() {
               >
                 {isProcessing ? '처리 중...' : (
                   <>
-                    <span>✅</span>
+                    <CheckCircle size={16} color="#ffffff" />
                     {activeTab === 'scan' 
                       ? `스캔된 교환권 일괄 사용 등록 (${scannedVouchers.filter(v => v.status !== 'error').length}개)`
                       : `추가된 교환권 일괄 사용 등록 (${scannedVouchers.filter(v => v.status !== 'error').length}개)`
@@ -1413,7 +1423,7 @@ export function VoucherUsageContent() {
             >
               {isProcessing ? '처리 중...' : (
                 <>
-                  <span>✅</span>
+                  <CheckCircle size={16} color="#ffffff" />
                   {activeTab === 'bulk' ? '일괄 사용 등록' : '사용 등록'}
                 </>
               )}
@@ -1452,8 +1462,8 @@ export function VoucherUsageContent() {
                   gap: '8px',
                   marginBottom: '4px'
                 }}>
-                  <span style={{ fontSize: '16px' }}>
-                    {result.success ? '✅' : '❌'}
+                  <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                    {result.success ? <CheckCircle size={16} color="#16a34a" /> : <XCircle size={16} color="#dc2626" />}
                   </span>
                   <strong style={{ fontFamily: 'monospace' }}>
                     {result.serial_no}

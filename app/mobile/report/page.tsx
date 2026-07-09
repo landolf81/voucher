@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { MobileLayout } from '@/components/mobile/MobileLayout';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { FileText, BarChart3 } from 'lucide-react';
 
 interface TemplateInfo {
   id: string;
@@ -822,7 +823,7 @@ export default function MobileReportPage() {
                 gap: '8px'
               }}
             >
-              📄 보고서 출력하기
+              <FileText size={18} /> 보고서 출력하기
             </button>
           </div>
         )}
@@ -837,7 +838,7 @@ export default function MobileReportPage() {
             textAlign: 'center',
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
           }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📊</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}><BarChart3 size={48} /></div>
             <h3 style={{
               fontSize: '18px',
               fontWeight: '600',

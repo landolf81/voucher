@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { Search, BarChart3, RefreshCw, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 
 interface CollectionResult {
   serial_no: string;
@@ -447,10 +448,13 @@ export function VoucherRetrieveForm() {
                     border: 'none',
                     fontSize: '14px',
                     fontWeight: '500',
-                    cursor: loading ? 'not-allowed' : 'pointer'
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
                   }}
                 >
-                  {loading ? '조회 중...' : '🔍 미사용 교환권 조회'}
+                  {loading ? '조회 중...' : <><Search size={14} /> 미사용 교환권 조회</>}
                 </button>
               </div>
             )}
@@ -464,7 +468,9 @@ export function VoucherRetrieveForm() {
                 padding: '16px',
                 marginBottom: '16px'
               }}>
-                <h5 style={{ margin: '0 0 8px 0', color: '#1e40af' }}>📊 미사용 교환권 현황</h5>
+                <h5 style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 8px 0', color: '#1e40af' }}>
+                  <BarChart3 size={16} /> 미사용 교환권 현황
+                </h5>
                 <div style={{ display: 'flex', gap: '24px' }}>
                   <div>
                     <span style={{ fontSize: '14px', color: '#64748b' }}>수량: </span>
@@ -672,7 +678,7 @@ export function VoucherRetrieveForm() {
                 gap: '8px'
               }}
             >
-              <span>🔄</span>
+              <RefreshCw size={16} color="#ffffff" />
               선택한 교환권 회수 ({selectedVouchers.length}건)
             </button>
             
@@ -693,7 +699,7 @@ export function VoucherRetrieveForm() {
                 gap: '8px'
               }}
             >
-              <span>⚠️</span>
+              <AlertTriangle size={16} color="#ffffff" />
               미사용 전체 회수 ({unusedStats.count}건)
             </button>
           </div>
@@ -717,7 +723,7 @@ export function VoucherRetrieveForm() {
           >
             {isProcessing ? '처리 중...' : (
               <>
-                <span>🔄</span>
+                <RefreshCw size={16} color="#ffffff" />
                 {activeTab === 'single' ? '교환권 회수' : '일괄 회수'}
               </>
             )}
@@ -754,8 +760,8 @@ export function VoucherRetrieveForm() {
                   gap: '8px',
                   marginBottom: '4px'
                 }}>
-                  <span style={{ fontSize: '16px' }}>
-                    {result.success ? '✅' : '❌'}
+                  <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                    {result.success ? <CheckCircle size={16} color="#16a34a" /> : <XCircle size={16} color="#dc2626" />}
                   </span>
                   <strong style={{ fontFamily: 'monospace' }}>
                     {result.serial_no}

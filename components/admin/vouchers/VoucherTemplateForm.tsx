@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { ClipboardList, Plus } from 'lucide-react';
 
 interface VoucherTemplate {
   id: string;
@@ -201,7 +202,7 @@ export function VoucherTemplateForm() {
             gap: '8px'
           }}
         >
-          {showForm ? '📋 목록보기' : '➕ 새 교환권 등록'}
+          {showForm ? <><ClipboardList size={16} /> 목록보기</> : <><Plus size={16} /> 새 교환권 등록</>}
         </button>
       </div>
 

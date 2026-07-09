@@ -7,6 +7,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { Building2, Smartphone, Palette, Save } from 'lucide-react';
 
 interface VoucherTemplate {
   id: string;
@@ -274,7 +275,7 @@ export function MobileTemplateManager() {
             fontSize: '16px',
             marginBottom: '12px'
           }}>
-            🏢
+            <Building2 size={18} />
           </div>
         )}
         <div style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>
@@ -365,9 +366,12 @@ export function MobileTemplateManager() {
         fontSize: '24px',
         fontWeight: 'bold',
         color: '#1a202c',
-        marginBottom: '24px'
+        marginBottom: '24px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px'
       }}>
-        📱 모바일 템플릿 관리
+        <Smartphone size={22} /> 모바일 템플릿 관리
       </h3>
 
       {!showEditor ? (
@@ -415,10 +419,13 @@ export function MobileTemplateManager() {
                 borderRadius: '8px',
                 cursor: selectedTemplate ? 'pointer' : 'not-allowed',
                 fontSize: '14px',
-                fontWeight: '500'
+                fontWeight: '500',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
               }}
             >
-              🎨 모바일 디자인 템플릿 편집
+              <Palette size={16} /> 모바일 디자인 템플릿 편집
             </button>
           </div>
 
@@ -887,10 +894,13 @@ export function MobileTemplateManager() {
                   borderRadius: '8px',
                   cursor: loading ? 'not-allowed' : 'pointer',
                   fontSize: '14px',
-                  fontWeight: '500'
+                  fontWeight: '500',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}
               >
-                {loading ? '저장 중...' : '💾 저장'}
+                {loading ? '저장 중...' : (<><Save size={16} /> 저장</>)}
               </button>
               <button
                 onClick={() => setShowEditor(false)}

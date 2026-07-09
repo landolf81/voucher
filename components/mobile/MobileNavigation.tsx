@@ -4,11 +4,13 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { getSupabaseClient } from '@/lib/supabase';
+import { Bot, Megaphone, Calendar, MessageCircle, Menu } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 interface NavItem {
   id: string;
   label: string;
-  icon: string;
+  icon: LucideIcon;
   path: string;
   roles?: string[];
   excludeRoles?: string[];
@@ -23,11 +25,11 @@ export function MobileNavigation() {
 
   // 업무관리 셸 네비게이션 (교환권 도구는 '더보기'로 이동)
   const navItems: NavItem[] = [
-    { id: 'home', label: 'AI', icon: '🤖', path: '/mobile' },
-    { id: 'notices', label: '공지', icon: '📢', path: '/mobile/notices', badgeKey: 'announcements' },
-    { id: 'schedule', label: '일정', icon: '📅', path: '/mobile/schedule' },
-    { id: 'messages', label: '쪽지', icon: '💬', path: '/mobile/messages', badgeKey: 'messages' },
-    { id: 'more', label: '더보기', icon: '☰', path: '/mobile/more' },
+    { id: 'home', label: 'AI', icon: Bot, path: '/mobile' },
+    { id: 'notices', label: '공지', icon: Megaphone, path: '/mobile/notices', badgeKey: 'announcements' },
+    { id: 'schedule', label: '일정', icon: Calendar, path: '/mobile/schedule' },
+    { id: 'messages', label: '쪽지', icon: MessageCircle, path: '/mobile/messages', badgeKey: 'messages' },
+    { id: 'more', label: '더보기', icon: Menu, path: '/mobile/more' },
   ];
 
   const refreshUnread = useCallback(async () => {
@@ -119,13 +121,15 @@ export function MobileNavigation() {
             >
               <span
                 style={{
-                  fontSize: '24px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   lineHeight: '1',
                   transform: isActive ? 'scale(1.1)' : 'scale(1)',
                   transition: 'transform 0.2s ease',
                 }}
               >
-                {item.icon}
+                <item.icon size={24} />
               </span>
               <span style={{ fontSize: '12px', fontWeight: isActive ? 600 : 500, lineHeight: '1' }}>{item.label}</span>
               {badge > 0 && (

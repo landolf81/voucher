@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { ClipboardList } from 'lucide-react';
 
 interface Site {
   id: string;
@@ -149,9 +150,12 @@ export function SiteCodeModal({ isOpen, onClose, isAdminMode = false }: SiteCode
           <h3 style={{
             fontSize: '18px',
             fontWeight: '600',
-            margin: 0
+            margin: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8
           }}>
-            📋 사업장 코드표
+            <ClipboardList size={18} /> 사업장 코드표
           </h3>
           <button
             onClick={onClose}
