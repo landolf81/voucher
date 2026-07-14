@@ -15,7 +15,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from
 import { getSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { useDevice } from '@/lib/hooks/useDevice';
-import { X, Bot, AlertTriangle, ChevronDown } from 'lucide-react';
+import { X, Bot, AlertTriangle, ChevronDown, ThumbsUp, ThumbsDown } from 'lucide-react';
 
 type Role = 'user' | 'assistant';
 type Status = 'pending' | 'processing' | 'completed' | 'error';
@@ -28,6 +28,27 @@ interface ChatMessage {
   status: Status;
   created_at: string;
 }
+
+type FeedbackRating = 'up' | 'down';
+type FeedbackReason = 'inaccurate' | 'misunderstood' | 'insufficient' | 'tone' | 'slow' | 'other';
+
+interface MessageFeedback {
+  id: string;
+  message_id: string;
+  rating: FeedbackRating;
+  reason: FeedbackReason | null;
+  comment: string | null;
+}
+
+// 싫어요 사유 선택지 (chat_message_feedback.reason CHECK 와 일치해야 함)
+const FEEDBACK_REASONS: { value: FeedbackReason; label: string }[] = [
+  { value: 'inaccurate', label: '부정확함' },
+  { value: 'misunderstood', label: '질문 이해 못함' },
+  { value: 'insufficient', label: '답변 불충분' },
+  { value: 'tone', label: '말투·호칭 문제' },
+  { value: 'slow', label: '너무 느림' },
+  { value: 'other', label: '기타' },
+];
 
 interface ChatSession {
   id: string;
@@ -73,6 +94,14 @@ export function ChatAssistant() {
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
+
+  // ── 답변 피드백 상태 ───────────────────────────
+  // message_id → 피드백. 세션의 피드백 전체를 한 번에 로드해 유지.
+  const [feedbackMap, setFeedbackMap] = useState<Record<string, MessageFeedback>>({});
+  const [downFormFor, setDownFormFor] = useState<string | null>(null); // 사유 입력 폼이 열린 메시지 id
+  const [downReason, setDownReason] = useState<FeedbackReason | null>(null);
+  const [downComment, setDownComment] = useState('');
+  const [savingFeedback, setSavingFeedback] = useState(false);
 
   const messagesRef = useRef<HTMLDivElement>(null);
   const loadOlderRef = useRef<(() => void) | null>(null);
@@ -159,6 +188,124 @@ export function ChatAssistant() {
       setMessages(rows);
     },
     [supabase]
+  );
+
+  // ── 답변 피드백 로드/저장 ─────────────────────
+  // 세션 단위로 전량 로드 (피드백 수가 적어 페이징 불필요)
+  const loadFeedback = useCallback(
+    async (sessionId: string) => {
+      const { data, error } = await db
+        .from('chat_message_feedback')
+        .select('id, message_id, rating, reason, comment')
+        .eq('session_id', sessionId);
+      if (error) {
+        console.error('피드백 로드 실패:', error);
+        return;
+      }
+      const map: Record<string, MessageFeedback> = {};
+      for (const row of (data as unknown as MessageFeedback[]) || []) map[row.message_id] = row;
+      setFeedbackMap(map);
+    },
+    [supabase]
+  );
+
+  // 해당 assistant 답변의 직전 user 질문 (관리자 열람용 스냅샷)
+  const findQuestionFor = useCallback(
+    (message: ChatMessage): string => {
+      const idx = messages.findIndex((m) => m.id === message.id);
+      for (let i = idx - 1; i >= 0; i--) {
+        if (messages[i].role === 'user') return messages[i].content;
+      }
+      return '';
+    },
+    [messages]
+  );
+
+  const upsertFeedback = useCallback(
+    async (message: ChatMessage, rating: FeedbackRating, reason: FeedbackReason | null, comment: string | null) => {
+      if (!user?.id) return;
+      setSavingFeedback(true);
+      try {
+        const { data, error } = await db
+          .from('chat_message_feedback')
+          .upsert(
+            {
+              message_id: message.id,
+              session_id: message.session_id,
+              user_id: user.id,
+              user_name: user.name,
+              rating,
+              reason,
+              comment: comment?.trim() || null,
+              question_content: findQuestionFor(message),
+              answer_content: message.content,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: 'message_id' }
+          )
+          .select('id, message_id, rating, reason, comment')
+          .single();
+        if (error) {
+          console.error('피드백 저장 실패:', error);
+          alert('피드백 저장에 실패했습니다.');
+          return;
+        }
+        const row = data as unknown as MessageFeedback;
+        setFeedbackMap((prev) => ({ ...prev, [row.message_id]: row }));
+        setDownFormFor(null);
+      } finally {
+        setSavingFeedback(false);
+      }
+    },
+    [supabase, user?.id, user?.name, findQuestionFor]
+  );
+
+  const removeFeedback = useCallback(
+    async (messageId: string) => {
+      const { error } = await db.from('chat_message_feedback').delete().eq('message_id', messageId);
+      if (error) {
+        console.error('피드백 삭제 실패:', error);
+        return;
+      }
+      setFeedbackMap((prev) => {
+        const next = { ...prev };
+        delete next[messageId];
+        return next;
+      });
+      setDownFormFor(null);
+    },
+    [supabase]
+  );
+
+  // 좋아요: 토글 (재클릭 시 취소)
+  const handleThumbUp = useCallback(
+    (message: ChatMessage) => {
+      if (savingFeedback) return;
+      const cur = feedbackMap[message.id];
+      if (cur?.rating === 'up') {
+        removeFeedback(message.id);
+      } else {
+        setDownFormFor(null);
+        upsertFeedback(message, 'up', null, null);
+      }
+    },
+    [feedbackMap, savingFeedback, upsertFeedback, removeFeedback]
+  );
+
+  // 싫어요: 사유 폼 토글 (기존 값 프리필)
+  const handleThumbDown = useCallback(
+    (message: ChatMessage) => {
+      if (savingFeedback) return;
+      if (downFormFor === message.id) {
+        setDownFormFor(null);
+        return;
+      }
+      const cur = feedbackMap[message.id];
+      setDownReason(cur?.rating === 'down' ? cur.reason : null);
+      setDownComment(cur?.rating === 'down' ? cur.comment || '' : '');
+      setDownFormFor(message.id);
+    },
+    [downFormFor, feedbackMap, savingFeedback]
   );
 
   // 위로 스크롤 시 이전 대화 더 불러오기 (스크롤 위치 보존)
@@ -286,10 +433,16 @@ export function ChatAssistant() {
     loadSessions();
   }, [loadSessions]);
 
-  // 활성 세션 변경 시 메시지 로드
+  // 활성 세션 변경 시 메시지 + 피드백 로드
   useEffect(() => {
-    if (activeSessionId) loadMessages(activeSessionId);
-  }, [activeSessionId, loadMessages]);
+    if (activeSessionId) {
+      loadMessages(activeSessionId);
+      loadFeedback(activeSessionId);
+    } else {
+      setFeedbackMap({});
+    }
+    setDownFormFor(null);
+  }, [activeSessionId, loadMessages, loadFeedback]);
 
   // 초기/세션 로드로 메시지가 바뀌면 "페인트 직전"에 하단으로 고정 → 점프가 안 보임
   useLayoutEffect(() => {
@@ -575,9 +728,155 @@ export function ChatAssistant() {
                   >
                     {m.content}
                   </div>
-                  <span style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 4px 0' }}>
-                    {formatMessageTime(m.created_at)}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '4px 4px 0' }}>
+                    <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                      {formatMessageTime(m.created_at)}
+                    </span>
+                    {/* 답변 피드백 (완료된 assistant 답변에만) */}
+                    {m.role === 'assistant' && m.status === 'completed' && (
+                      <span style={{ display: 'inline-flex', gap: '2px' }}>
+                        <button
+                          onClick={() => handleThumbUp(m)}
+                          disabled={savingFeedback}
+                          title={feedbackMap[m.id]?.rating === 'up' ? '좋아요 취소' : '좋아요'}
+                          aria-label="좋아요"
+                          style={{
+                            border: 'none',
+                            background: 'transparent',
+                            padding: '2px 4px',
+                            cursor: savingFeedback ? 'default' : 'pointer',
+                            color: feedbackMap[m.id]?.rating === 'up' ? '#2563eb' : '#c4c9d2',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <ThumbsUp size={14} fill={feedbackMap[m.id]?.rating === 'up' ? 'currentColor' : 'none'} />
+                        </button>
+                        <button
+                          onClick={() => handleThumbDown(m)}
+                          disabled={savingFeedback}
+                          title={feedbackMap[m.id]?.rating === 'down' ? '싫어요 수정' : '싫어요'}
+                          aria-label="싫어요"
+                          style={{
+                            border: 'none',
+                            background: 'transparent',
+                            padding: '2px 4px',
+                            cursor: savingFeedback ? 'default' : 'pointer',
+                            color: feedbackMap[m.id]?.rating === 'down' ? '#dc2626' : '#c4c9d2',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <ThumbsDown size={14} fill={feedbackMap[m.id]?.rating === 'down' ? 'currentColor' : 'none'} />
+                        </button>
+                      </span>
+                    )}
+                  </div>
+
+                  {/* 싫어요 사유 입력 폼 (인라인) */}
+                  {downFormFor === m.id && (
+                    <div
+                      style={{
+                        marginTop: '6px',
+                        padding: '10px 12px',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '10px',
+                        backgroundColor: '#fff',
+                        width: '100%',
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      <p style={{ margin: '0 0 8px', fontSize: '12px', fontWeight: 600, color: '#374151' }}>
+                        어떤 점이 아쉬웠나요?
+                      </p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+                        {FEEDBACK_REASONS.map((r) => (
+                          <button
+                            key={r.value}
+                            onClick={() => setDownReason(r.value)}
+                            style={{
+                              padding: '4px 10px',
+                              borderRadius: '999px',
+                              border: `1px solid ${downReason === r.value ? '#dc2626' : '#d1d5db'}`,
+                              backgroundColor: downReason === r.value ? '#fef2f2' : '#fff',
+                              color: downReason === r.value ? '#dc2626' : '#4b5563',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {r.label}
+                          </button>
+                        ))}
+                      </div>
+                      <textarea
+                        value={downComment}
+                        onChange={(e) => setDownComment(e.target.value)}
+                        placeholder="자세한 내용 (선택)"
+                        rows={2}
+                        style={{
+                          width: '100%',
+                          boxSizing: 'border-box',
+                          resize: 'none',
+                          padding: '8px 10px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '8px',
+                          fontSize: isMobile ? '16px' : '13px',
+                          fontFamily: 'inherit',
+                          marginBottom: '8px',
+                        }}
+                      />
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
+                        {feedbackMap[m.id]?.rating === 'down' && (
+                          <button
+                            onClick={() => removeFeedback(m.id)}
+                            disabled={savingFeedback}
+                            style={{
+                              padding: '6px 12px',
+                              border: '1px solid #d1d5db',
+                              borderRadius: '8px',
+                              backgroundColor: '#fff',
+                              color: '#6b7280',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              marginRight: 'auto',
+                            }}
+                          >
+                            피드백 삭제
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setDownFormFor(null)}
+                          style={{
+                            padding: '6px 12px',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '8px',
+                            backgroundColor: '#fff',
+                            color: '#4b5563',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          취소
+                        </button>
+                        <button
+                          onClick={() => upsertFeedback(m, 'down', downReason, downComment)}
+                          disabled={savingFeedback || !downReason}
+                          style={{
+                            padding: '6px 14px',
+                            border: 'none',
+                            borderRadius: '8px',
+                            backgroundColor: savingFeedback || !downReason ? '#fca5a5' : '#dc2626',
+                            color: '#fff',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            cursor: savingFeedback || !downReason ? 'not-allowed' : 'pointer',
+                          }}
+                        >
+                          {savingFeedback ? '저장 중…' : '제출'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))

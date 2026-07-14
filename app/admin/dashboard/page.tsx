@@ -23,6 +23,7 @@ import {
   Bot,
   ChevronUp,
   ChevronDown,
+  MessageSquareWarning,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -39,9 +40,10 @@ import { ScheduleCalendar } from '@/components/admin/schedule/ScheduleCalendar';
 import { MessagesPanel } from '@/components/admin/messages/MessagesPanel';
 import { AnnouncementsPanel } from '@/components/admin/announcements/AnnouncementsPanel';
 import { AppraisalsPanel } from '@/components/admin/appraisals/AppraisalsPanel';
+import { ChatFeedbackPanel } from '@/components/admin/chat/ChatFeedbackPanel';
 import { getSupabaseClient } from '@/lib/supabase';
 
-type MenuType = 'overview' | 'vouchers' | 'usage' | 'inquiry' | 'users' | 'sites' | 'members' | 'associations' | 'schedule' | 'messages' | 'notices' | 'appraisals';
+type MenuType = 'overview' | 'vouchers' | 'usage' | 'inquiry' | 'users' | 'sites' | 'members' | 'associations' | 'schedule' | 'messages' | 'notices' | 'appraisals' | 'chat-feedback';
 
 interface MenuNode {
   id: string;
@@ -115,6 +117,7 @@ export default function AdminDashboard() {
       { id: 'associations', label: '영농회 관리', icon: Wheat, roles: ['admin'], badge: 0 },
       { id: 'sites', label: '사업장 관리', icon: Building2, roles: ['admin', 'staff'], badge: 0 },
       { id: 'users', label: '사용자 관리', icon: Users, roles: ['admin'], badge: 0 },
+      { id: 'chat-feedback', label: '챗봇 피드백', icon: MessageSquareWarning, roles: ['admin'], badge: 0 },
     ];
 
     return tree.filter((item) => (item.children ? item.children.length > 0 : has(item.roles)));
@@ -190,6 +193,8 @@ export default function AdminDashboard() {
         return <SiteManagement />;
       case 'users':
         return <UserManagement />;
+      case 'chat-feedback':
+        return <ChatFeedbackPanel />;
       default:
         return <OverviewContent />;
     }
