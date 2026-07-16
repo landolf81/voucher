@@ -44,9 +44,10 @@ export function MemberManagement() {
     fetchPositionOptions();
   }, []);
 
+  // 검색어는 검색 버튼(폼 제출)으로만 적용, 셀렉트 필터는 즉시 적용
   useEffect(() => {
     fetchMembers();
-  }, [page, searchQuery, selectedAssociation, selectedCrop, selectedPosition]);
+  }, [page, selectedAssociation, selectedCrop, selectedPosition]);
 
   // 직접 입력으로 등록된 직책도 필터 목록에 포함
   const fetchPositionOptions = async () => {
@@ -119,8 +120,11 @@ export function MemberManagement() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setPage(1);
-    fetchMembers();
+    if (page !== 1) {
+      setPage(1); // 페이지 변경이 useEffect로 재조회를 유발
+    } else {
+      fetchMembers();
+    }
   };
 
   const totalPages = Math.ceil(total / pageSize);
