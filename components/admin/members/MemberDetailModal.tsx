@@ -25,7 +25,7 @@ interface MemberPosition {
   created_at: string;
 }
 
-const POSITION_PRESETS = ['대의원', '비상임이사', '비상임감사', '영농회장', '부녀회장'] as const;
+const POSITION_PRESETS = ['조합장', '대의원', '비상임이사', '비상임감사', '영농회장', '부녀회장'] as const;
 const CUSTOM_POSITION = '__custom__';
 
 interface MemberDetailModalProps {
