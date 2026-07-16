@@ -64,16 +64,10 @@ export async function PUT(
     const { id } = await context.params;
     const body: UpdateMemberRequest = await request.json();
 
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     // Check if member exists
     const { data: existing } = await supabase
       .from('members')
-      .select('id, member_id, site_id')
+      .select('id, member_id, association_id')
       .eq('id', id)
       .single();
 
@@ -81,32 +75,34 @@ export async function PUT(
       return NextResponse.json({ error: 'Member not found' }, { status: 404 });
     }
 
-    // If changing member_id or site_id, check for duplicates
+    // If changing member_id or association_id, check for duplicates (POST와 동일하게 영농회 기준)
     if (
       (body.member.member_id && body.member.member_id !== existing.member_id) ||
-      (body.member.site_id && body.member.site_id !== existing.site_id)
+      (body.member.association_id && body.member.association_id !== existing.association_id)
     ) {
       const checkMemberId = body.member.member_id || existing.member_id;
-      const checkSiteId = body.member.site_id || existing.site_id;
+      const checkAssociationId = body.member.association_id || existing.association_id;
 
-      const { data: duplicate } = await supabase
-        .from('members')
-        .select('id')
-        .eq('site_id', checkSiteId)
-        .eq('member_id', checkMemberId)
-        .neq('id', id)
-        .single();
+      if (checkAssociationId) {
+        const { data: duplicate } = await supabase
+          .from('members')
+          .select('id')
+          .eq('association_id', checkAssociationId)
+          .eq('member_id', checkMemberId)
+          .neq('id', id)
+          .single();
 
-      if (duplicate) {
-        return NextResponse.json(
-          { error: '이미 존재하는 조합원 ID입니다.' },
-          { status: 400 }
-        );
+        if (duplicate) {
+          return NextResponse.json(
+            { error: '이미 존재하는 조합원 ID입니다.' },
+            { status: 400 }
+          );
+        }
       }
     }
 
     // Update crop names if crop IDs changed
-    const updateData: any = { ...body.member, updated_by: user.id };
+    const updateData: any = { ...body.member };
 
     if (body.member.main_crop_id) {
       const { data: mainCrop } = await supabase
@@ -161,7 +157,6 @@ export async function PUT(
           .insert({
             ...body.grafting_schedule,
             member_id: id,
-            created_by: user.id,
           });
       }
     }
@@ -185,18 +180,11 @@ export async function DELETE(
     );
     const { id } = await context.params;
 
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     // Soft delete by setting is_active to false
     const { error } = await supabase
       .from('members')
       .update({
         is_active: false,
-        updated_by: user.id,
       })
       .eq('id', id);
 

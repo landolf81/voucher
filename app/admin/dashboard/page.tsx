@@ -225,14 +225,41 @@ export default function AdminDashboard() {
             padding: '24px',
             borderBottom: '1px solid #e2e8f0'
           }}>
-            <h1 style={{
-              fontSize: '20px',
-              fontWeight: 'bold',
-              color: '#1a202c',
-              margin: 0
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '8px'
             }}>
-              관리자 패널
-            </h1>
+              <h1 style={{
+                fontSize: '20px',
+                fontWeight: 'bold',
+                color: '#1a202c',
+                margin: 0
+              }}>
+                관리자 패널
+              </h1>
+              <button
+                onClick={logout}
+                style={{
+                  padding: '6px 10px',
+                  backgroundColor: '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  flexShrink: 0
+                }}
+              >
+                <LogOut size={14} />
+                로그아웃
+              </button>
+            </div>
             <p style={{
               fontSize: '14px',
               color: '#64748b',
@@ -289,35 +316,6 @@ export default function AdminDashboard() {
             )}
           </nav>
 
-          {/* 로그아웃 */}
-          <div style={{
-            position: 'absolute',
-            bottom: '20px',
-            left: '16px',
-            right: '16px'
-          }}>
-            <button
-              onClick={logout}
-              style={{
-                width: '100%',
-                padding: '12px',
-                backgroundColor: '#ef4444',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '16px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}
-            >
-              <LogOut size={18} />
-              로그아웃
-            </button>
-          </div>
         </aside>
 
         {/* 메인 컨텐츠 */}

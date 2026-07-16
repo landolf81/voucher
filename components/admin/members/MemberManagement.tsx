@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import type { MemberOverview, MemberListResponse, Crop } from '@/types/member';
 import { MemberFormModal } from './MemberFormModal';
+import { MemberDetailModal } from './MemberDetailModal';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Association {
@@ -30,6 +31,8 @@ export function MemberManagement() {
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [detailMember, setDetailMember] = useState<MemberOverview | null>(null);
+  const [editingMember, setEditingMember] = useState<MemberOverview | null>(null);
 
   useEffect(() => {
     fetchAssociations();
@@ -140,14 +143,30 @@ export function MemberManagement() {
 
       {/* 조합원 등록/수정 모달 */}
       <MemberFormModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isModalOpen || editingMember !== null}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingMember(null);
+        }}
         onSuccess={() => {
           fetchMembers();
           setIsModalOpen(false);
+          setEditingMember(null);
         }}
         associations={associations}
         crops={crops}
+        editingMember={editingMember ?? undefined}
+      />
+
+      {/* 조합원 상세보기 모달 */}
+      <MemberDetailModal
+        isOpen={detailMember !== null}
+        onClose={() => setDetailMember(null)}
+        member={detailMember}
+        onEdit={() => {
+          setEditingMember(detailMember);
+          setDetailMember(null);
+        }}
       />
 
       {/* Filters */}
@@ -376,7 +395,7 @@ export function MemberManagement() {
                       </td>
                       <td style={tableCellStyle}>
                         <button
-                          onClick={() => alert(`조합원 상세보기 - ID: ${member.id}`)}
+                          onClick={() => setDetailMember(member)}
                           style={{
                             padding: '4px 8px',
                             fontSize: '12px',
@@ -384,10 +403,25 @@ export function MemberManagement() {
                             color: '#3730a3',
                             border: 'none',
                             borderRadius: '4px',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            marginRight: '6px'
                           }}
                         >
                           상세
+                        </button>
+                        <button
+                          onClick={() => setEditingMember(member)}
+                          style={{
+                            padding: '4px 8px',
+                            fontSize: '12px',
+                            backgroundColor: '#fef3c7',
+                            color: '#92400e',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          수정
                         </button>
                       </td>
                     </tr>
