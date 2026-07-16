@@ -28,6 +28,17 @@ interface MemberPosition {
 const POSITION_PRESETS = ['조합장', '대의원', '비상임이사', '비상임감사', '영농회장', '부녀회장'] as const;
 const CUSTOM_POSITION = '__custom__';
 
+function todayISO(): string {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+// 재임 중: 종료일이 없거나 아직 지나지 않은 경우
+function isCurrentPosition(p: MemberPosition): boolean {
+  return !p.end_date || p.end_date.split('T')[0] >= todayISO();
+}
+
 interface MemberDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -250,7 +261,7 @@ export function MemberDetailModal({ isOpen, onClose, member, onEdit }: MemberDet
     const position = positionType === CUSTOM_POSITION ? positionCustom.trim() : positionType;
     if (!position) return;
 
-    const isCurrent = !positionEnd;
+    const isCurrent = !positionEnd || positionEnd >= todayISO();
     setPositionSaving(true);
     const { error: insertError } = await db.from('member_positions').insert({
       member_id: member.id,
@@ -278,12 +289,9 @@ export function MemberDetailModal({ isOpen, onClose, member, onEdit }: MemberDet
   const endPosition = async (p: MemberPosition) => {
     if (!member) return;
     if (!confirm(`'${p.position}' 직책을 오늘 날짜로 종료 처리할까요?`)) return;
-    const today = new Date();
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
     const { error: updateError } = await db
       .from('member_positions')
-      .update({ end_date: todayStr })
+      .update({ end_date: todayISO() })
       .eq('id', p.id);
     if (updateError) {
       alert('종료 처리에 실패했습니다.');
@@ -302,7 +310,7 @@ export function MemberDetailModal({ isOpen, onClose, member, onEdit }: MemberDet
       return;
     }
     // 재임 중이던 영농회장/부녀회장 경력을 지우면 영농회 이름도 정리
-    if (!p.end_date) await syncAssociationChairman(p.position, 'clear');
+    if (isCurrentPosition(p)) await syncAssociationChairman(p.position, 'clear');
     await loadPositions(member.id);
   };
 
@@ -473,7 +481,7 @@ export function MemberDetailModal({ isOpen, onClose, member, onEdit }: MemberDet
                         <tr key={p.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                           <td style={scheduleCellStyle}>
                             {p.position}
-                            {!p.end_date && (
+                            {isCurrentPosition(p) && (
                               <span style={{
                                 marginLeft: '6px',
                                 padding: '1px 6px',
@@ -493,7 +501,7 @@ export function MemberDetailModal({ isOpen, onClose, member, onEdit }: MemberDet
                           <td style={scheduleCellStyle}>{p.notes || '-'}</td>
                           {canWriteSchedule && (
                             <td style={{ ...scheduleCellStyle, textAlign: 'right' }}>
-                              {!p.end_date && (
+                              {isCurrentPosition(p) && (
                                 <button
                                   onClick={() => endPosition(p)}
                                   style={{

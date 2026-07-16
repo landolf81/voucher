@@ -52,13 +52,14 @@ export async function GET(request: Request) {
       query = query.or(`main_crop_id.eq.${params.crop_id},sub_crop_id.eq.${params.crop_id}`);
     }
 
-    // 직책 필터 (재임 중인 직책 기준)
+    // 직책 필터 (재임 중 기준: 종료일이 없거나 아직 지나지 않음)
     if (params.position) {
+      const today = new Date().toISOString().split('T')[0];
       const { data: positionRows, error: positionError } = await supabase
         .from('member_positions')
         .select('member_id')
         .eq('position', params.position)
-        .is('end_date', null);
+        .or(`end_date.is.null,end_date.gte.${today}`);
 
       if (positionError) {
         console.error('Failed to fetch member positions:', positionError);
