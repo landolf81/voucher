@@ -21,6 +21,7 @@ export function MemberManagement() {
   const [pageSize] = useState(50);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [hasSearched, setHasSearched] = useState(false);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -44,10 +45,11 @@ export function MemberManagement() {
     fetchPositionOptions();
   }, []);
 
-  // 검색어는 검색 버튼(폼 제출)으로만 적용, 셀렉트 필터는 즉시 적용
+  // 첫 진입 시에는 조회하지 않고, 검색 버튼을 누른 이후부터 필터·페이지 변경 시 재조회
   useEffect(() => {
+    if (!hasSearched) return;
     fetchMembers();
-  }, [page, selectedAssociation, selectedCrop, selectedPosition]);
+  }, [hasSearched, page, selectedAssociation, selectedCrop, selectedPosition]);
 
   // 직접 입력으로 등록된 직책도 필터 목록에 포함
   const fetchPositionOptions = async () => {
@@ -120,6 +122,10 @@ export function MemberManagement() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!hasSearched) {
+      setHasSearched(true); // useEffect가 첫 조회를 수행
+      return;
+    }
     if (page !== 1) {
       setPage(1); // 페이지 변경이 useEffect로 재조회를 유발
     } else {
@@ -359,7 +365,15 @@ export function MemberManagement() {
         boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
         overflow: 'hidden'
       }}>
-        {loading ? (
+        {!hasSearched ? (
+          <div style={{
+            padding: '40px',
+            textAlign: 'center',
+            color: '#6b7280'
+          }}>
+            검색 버튼을 눌러 조합원 목록을 조회하세요.
+          </div>
+        ) : loading ? (
           <div style={{
             padding: '40px',
             textAlign: 'center',

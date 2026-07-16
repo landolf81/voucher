@@ -26,18 +26,14 @@ export async function GET(request: Request) {
       position: searchParams.get('position') || undefined,
       page: parseInt(searchParams.get('page') || '1'),
       page_size: parseInt(searchParams.get('page_size') || '50'),
-      sort_by: (searchParams.get('sort_by') as any) || 'created_at',
+      sort_by: (searchParams.get('sort_by') as any) || undefined,
       sort_order: (searchParams.get('sort_order') as any) || 'desc',
     };
 
-    // Build query with site and association joins
+    // 영농회 코드·성명 정렬을 위해 조인 뷰 사용
     let query = supabase
-      .from('members')
-      .select(`
-        *,
-        sites:site_id (id, site_name),
-        associations:association_id (id, name)
-      `, { count: 'exact' });
+      .from('members_list_view')
+      .select('*', { count: 'exact' });
 
     // Apply filters
     if (params.is_active !== undefined) {
@@ -87,8 +83,14 @@ export async function GET(request: Request) {
       query = query.or(`name.ilike.%${params.q}%,member_id.ilike.%${params.q}%,phone.ilike.%${params.q}%`);
     }
 
-    // Apply sorting
-    query = query.order(params.sort_by!, { ascending: params.sort_order === 'asc' });
+    // Apply sorting (기본: 영농회 코드 → 성명 순)
+    if (params.sort_by) {
+      query = query.order(params.sort_by, { ascending: params.sort_order === 'asc' });
+    } else {
+      query = query
+        .order('association_code', { ascending: true })
+        .order('name', { ascending: true });
+    }
 
     // Apply pagination
     const from = (params.page! - 1) * params.page_size!;
@@ -113,14 +115,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Transform data to include site_name and association_name
+    // Transform data (뷰에 site_name/association_name 포함)
     const transformedData = (data || []).map((member: any) => ({
       ...member,
-      site_name: member.sites?.site_name || '',
-      association_name: member.associations?.name || '',
-      // Remove nested objects
-      sites: undefined,
-      associations: undefined,
+      site_name: member.site_name || '',
+      association_name: member.association_name || '',
       // Default values for voucher stats (to be implemented later)
       issued_voucher_count: member.issued_voucher_count || 0,
       used_voucher_count: member.used_voucher_count || 0,
