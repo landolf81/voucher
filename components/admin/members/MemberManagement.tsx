@@ -219,7 +219,7 @@ export function MemberManagement() {
               color: '#374151',
               marginBottom: '6px'
             }}>
-              검색 (성명/ID/연락처)
+              검색 (성명/영농회/직책)
             </label>
             <input
               type="text"

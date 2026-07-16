@@ -79,9 +79,27 @@ export async function GET(request: Request) {
       query = query.in('id', memberIds);
     }
 
-    // Search by name, member_id, or phone
+    // 통합 검색: 성명 / 영농회 / 직책(재임 중)
     if (params.q) {
-      query = query.or(`name.ilike.%${params.q}%,member_id.ilike.%${params.q}%,phone.ilike.%${params.q}%`);
+      const orClauses = [`name.ilike.%${params.q}%`, `association_name.ilike.%${params.q}%`];
+
+      const today = new Date().toISOString().split('T')[0];
+      const { data: posRows, error: posError } = await supabase
+        .from('member_positions')
+        .select('member_id')
+        .ilike('position', `%${params.q}%`)
+        .or(`end_date.is.null,end_date.gte.${today}`);
+
+      if (posError) {
+        console.error('Failed to search member positions:', posError);
+      } else {
+        const posMemberIds = [...new Set((posRows || []).map((r: any) => r.member_id))];
+        if (posMemberIds.length > 0) {
+          orClauses.push(`id.in.(${posMemberIds.join(',')})`);
+        }
+      }
+
+      query = query.or(orClauses.join(','));
     }
 
     // Apply sorting (기본: 영농회 코드 → 성명 순)

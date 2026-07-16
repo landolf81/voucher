@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import type { Member, MemberOverview, GraftingSchedule } from '@/types/member';
 import { getSupabaseClient } from '@/lib/supabase';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { useIsMobile } from '@/lib/hooks/useDevice';
 import { X, Trash2 } from 'lucide-react';
 
 interface MemberMemo {
@@ -51,6 +52,10 @@ export function MemberDetailModal({ isOpen, onClose, member, onEdit }: MemberDet
   const db = supabase as any;
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  const isMobile = useIsMobile();
+  const canWrite = user?.role === 'admin' || user?.role === 'staff';
+  // 모바일에서는 경력(직책) 조회 전용 — 등록 폼·종료/삭제 버튼 숨김
+  const showPositionActions = canWrite && !isMobile;
 
   const [detail, setDetail] = useState<Member | null>(null);
   const [schedules, setSchedules] = useState<GraftingSchedule[]>([]);
@@ -63,7 +68,7 @@ export function MemberDetailModal({ isOpen, onClose, member, onEdit }: MemberDet
   const [memoSaving, setMemoSaving] = useState(false);
 
   // 접목 일정 등록
-  const canWriteSchedule = user?.role === 'admin' || user?.role === 'staff';
+  const canWriteSchedule = canWrite;
   const [scheduleDate, setScheduleDate] = useState('');
   const [schedulePeriod, setSchedulePeriod] = useState<'오전' | '오후'>('오전');
   const [scheduleNotes, setScheduleNotes] = useState('');
@@ -430,35 +435,7 @@ export function MemberDetailModal({ isOpen, onClose, member, onEdit }: MemberDet
             <Field label="증권번호" value={m.security_number || '-'} />
           </Section>
 
-          {/* 영농 정보 */}
-          <Section title="영농 정보">
-            <Field label="주작물" value={mainCropName} />
-            <Field label="부작물" value={subCropName} />
-            <Field label="접목 작업장 주소" value={m.grafting_workplace_address || '-'} wide />
-          </Section>
-
-          {/* 가입 정보 */}
-          <Section title="가입 정보">
-            <Field label="가입일" value={formatDate(m.join_date)} />
-            <Field label="탈퇴일" value={formatDate(m.leave_date)} />
-            <Field
-              label="상태"
-              value={
-                <span style={{
-                  padding: '2px 8px',
-                  borderRadius: '9999px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  backgroundColor: m.is_active ? '#dcfce7' : '#f3f4f6',
-                  color: m.is_active ? '#166534' : '#6b7280'
-                }}>
-                  {m.is_active ? '활성' : '비활성'}
-                </span>
-              }
-            />
-          </Section>
-
-          {/* 경력 (직책 이력) */}
+          {/* 경력 (직책 이력) — 기본 정보 바로 아래 */}
           <Section title={`경력 (${positions.length})`}>
             <div style={{ gridColumn: '1 / -1' }}>
               {positions.length === 0 ? (
@@ -473,7 +450,7 @@ export function MemberDetailModal({ isOpen, onClose, member, onEdit }: MemberDet
                         <th style={scheduleHeaderStyle}>직책</th>
                         <th style={scheduleHeaderStyle}>기간</th>
                         <th style={scheduleHeaderStyle}>비고</th>
-                        {canWriteSchedule && <th style={scheduleHeaderStyle}></th>}
+                        {showPositionActions && <th style={scheduleHeaderStyle}></th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -499,7 +476,7 @@ export function MemberDetailModal({ isOpen, onClose, member, onEdit }: MemberDet
                             {formatDate(p.start_date)} ~ {p.end_date ? formatDate(p.end_date) : ''}
                           </td>
                           <td style={scheduleCellStyle}>{p.notes || '-'}</td>
-                          {canWriteSchedule && (
+                          {showPositionActions && (
                             <td style={{ ...scheduleCellStyle, textAlign: 'right' }}>
                               {isCurrentPosition(p) && (
                                 <button
@@ -543,7 +520,7 @@ export function MemberDetailModal({ isOpen, onClose, member, onEdit }: MemberDet
                 </div>
               )}
 
-              {canWriteSchedule && (
+              {showPositionActions && (
                 <div style={{
                   display: 'flex',
                   gap: '8px',
@@ -650,6 +627,34 @@ export function MemberDetailModal({ isOpen, onClose, member, onEdit }: MemberDet
                 </div>
               )}
             </div>
+          </Section>
+
+          {/* 영농 정보 */}
+          <Section title="영농 정보">
+            <Field label="주작물" value={mainCropName} />
+            <Field label="부작물" value={subCropName} />
+            <Field label="접목 작업장 주소" value={m.grafting_workplace_address || '-'} wide />
+          </Section>
+
+          {/* 가입 정보 */}
+          <Section title="가입 정보">
+            <Field label="가입일" value={formatDate(m.join_date)} />
+            <Field label="탈퇴일" value={formatDate(m.leave_date)} />
+            <Field
+              label="상태"
+              value={
+                <span style={{
+                  padding: '2px 8px',
+                  borderRadius: '9999px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  backgroundColor: m.is_active ? '#dcfce7' : '#f3f4f6',
+                  color: m.is_active ? '#166534' : '#6b7280'
+                }}>
+                  {m.is_active ? '활성' : '비활성'}
+                </span>
+              }
+            />
           </Section>
 
           {/* 교환권 현황 (목록 통계 기준) */}

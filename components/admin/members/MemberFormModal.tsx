@@ -88,13 +88,6 @@ export function MemberFormModal({
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // 전화번호 포맷팅
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/[^0-9]/g, '');
-    if (value.length > 11) value = value.slice(0, 11);
-    setFormData(prev => ({ ...prev, phone: value }));
-  };
-
   // 증권번호 포맷팅 (733054-0-000000)
   const handleSecurityNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/[^0-9-]/g, '');
@@ -318,19 +311,6 @@ export function MemberFormModal({
                   />
                 </div>
 
-                {/* 연락처 */}
-                <div>
-                  <label style={labelStyle}>연락처</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handlePhoneChange}
-                    placeholder="01012345678"
-                    style={inputStyle}
-                  />
-                </div>
-
                 {/* 증권번호 */}
                 <div>
                   <label style={labelStyle}>증권번호</label>
@@ -343,19 +323,6 @@ export function MemberFormModal({
                     style={inputStyle}
                   />
                 </div>
-              </div>
-
-              {/* 주소 (전체 너비) */}
-              <div style={{ marginTop: '16px' }}>
-                <label style={labelStyle}>주소</label>
-                <input
-                  type="text"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  placeholder="경상북도 성주군..."
-                  style={inputStyle}
-                />
               </div>
             </div>
 
