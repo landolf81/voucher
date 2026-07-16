@@ -398,39 +398,26 @@ export function MemberManagement() {
               }}>
                 <thead>
                   <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                    <th style={tableHeaderStyle}>조합원 ID</th>
+                    <th style={tableHeaderStyle}>증권번호</th>
                     <th style={tableHeaderStyle}>성명</th>
                     <th style={tableHeaderStyle}>영농회</th>
                     <th style={tableHeaderStyle}>주작물</th>
-                    <th style={tableHeaderStyle}>연락처</th>
-                    <th style={tableHeaderStyle}>교환권 발행</th>
-                    <th style={tableHeaderStyle}>교환권 사용</th>
-                    <th style={tableHeaderStyle}>잔액</th>
+                    <th style={tableHeaderStyle}>생년월일</th>
+                    <th style={tableHeaderStyle}>성별</th>
+                    <th style={tableHeaderStyle}>가입일자</th>
                     <th style={tableHeaderStyle}>작업</th>
                   </tr>
                 </thead>
                 <tbody>
                   {members.map(member => (
                     <tr key={member.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                      <td style={tableCellStyle}>{member.member_id}</td>
+                      <td style={tableCellStyle}>{member.security_number || '-'}</td>
                       <td style={tableCellStyle}>{member.name}</td>
                       <td style={tableCellStyle}>{member.association_name || '-'}</td>
                       <td style={tableCellStyle}>{member.main_crop_name || '-'}</td>
-                      <td style={tableCellStyle}>{member.phone || '-'}</td>
-                      <td style={tableCellStyle}>
-                        {member.issued_voucher_count}건 / {member.total_issued_amount.toLocaleString()}원
-                      </td>
-                      <td style={tableCellStyle}>
-                        {member.used_voucher_count}건 / {member.total_used_amount.toLocaleString()}원
-                      </td>
-                      <td style={tableCellStyle}>
-                        <span style={{
-                          color: member.remaining_amount > 0 ? '#059669' : '#6b7280',
-                          fontWeight: '500'
-                        }}>
-                          {member.remaining_amount.toLocaleString()}원
-                        </span>
-                      </td>
+                      <td style={tableCellStyle}>{member.date_of_birth ? member.date_of_birth.split('T')[0] : '-'}</td>
+                      <td style={tableCellStyle}>{member.gender || '-'}</td>
+                      <td style={tableCellStyle}>{member.join_date ? member.join_date.split('T')[0] : '-'}</td>
                       <td style={tableCellStyle}>
                         <button
                           onClick={() => setDetailMember(member)}
