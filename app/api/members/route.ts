@@ -23,6 +23,7 @@ export async function GET(request: Request) {
       association_id: searchParams.get('association_id') || undefined,
       crop_id: searchParams.get('crop_id') || undefined,
       is_active: searchParams.get('is_active') === 'false' ? false : true,
+      position: searchParams.get('position') || undefined,
       page: parseInt(searchParams.get('page') || '1'),
       page_size: parseInt(searchParams.get('page_size') || '50'),
       sort_by: (searchParams.get('sort_by') as any) || 'created_at',
@@ -53,6 +54,32 @@ export async function GET(request: Request) {
 
     if (params.crop_id) {
       query = query.or(`main_crop_id.eq.${params.crop_id},sub_crop_id.eq.${params.crop_id}`);
+    }
+
+    // 직책 필터 (재임 중인 직책 기준)
+    if (params.position) {
+      const { data: positionRows, error: positionError } = await supabase
+        .from('member_positions')
+        .select('member_id')
+        .eq('position', params.position)
+        .is('end_date', null);
+
+      if (positionError) {
+        console.error('Failed to fetch member positions:', positionError);
+        return NextResponse.json({ error: positionError.message }, { status: 500 });
+      }
+
+      const memberIds = [...new Set((positionRows || []).map((r: any) => r.member_id))];
+      if (memberIds.length === 0) {
+        const response: MemberListResponse = {
+          members: [],
+          total: 0,
+          page: params.page!,
+          page_size: params.page_size!,
+        };
+        return NextResponse.json(response);
+      }
+      query = query.in('id', memberIds);
     }
 
     // Search by name, member_id, or phone

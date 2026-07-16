@@ -135,6 +135,7 @@ export interface MemberSearchParams {
   crop_id?: string;
   is_active?: boolean;
   has_grafting?: boolean;
+  position?: string; // 직책 필터 (재임 중 기준)
   page?: number;
   page_size?: number;
   sort_by?: 'name' | 'member_id' | 'created_at';

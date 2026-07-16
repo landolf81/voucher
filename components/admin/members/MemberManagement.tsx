@@ -4,7 +4,10 @@ import React, { useState, useEffect } from 'react';
 import type { MemberOverview, MemberListResponse, Crop } from '@/types/member';
 import { MemberFormModal } from './MemberFormModal';
 import { MemberDetailModal } from './MemberDetailModal';
+import { getSupabaseClient } from '@/lib/supabase';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
+
+const POSITION_PRESETS = ['조합장', '대의원', '비상임이사', '비상임감사', '영농회장', '부녀회장'];
 
 interface Association {
   id: string;
@@ -23,7 +26,8 @@ export function MemberManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAssociation, setSelectedAssociation] = useState('');
   const [selectedCrop, setSelectedCrop] = useState('');
-  const [isActive, setIsActive] = useState(true);
+  const [selectedPosition, setSelectedPosition] = useState('');
+  const [positionOptions, setPositionOptions] = useState<string[]>(POSITION_PRESETS);
 
   // Master data
   const [associations, setAssociations] = useState<Association[]>([]);
@@ -37,11 +41,25 @@ export function MemberManagement() {
   useEffect(() => {
     fetchAssociations();
     fetchCrops();
+    fetchPositionOptions();
   }, []);
 
   useEffect(() => {
     fetchMembers();
-  }, [page, searchQuery, selectedAssociation, selectedCrop, isActive]);
+  }, [page, searchQuery, selectedAssociation, selectedCrop, selectedPosition]);
+
+  // 직접 입력으로 등록된 직책도 필터 목록에 포함
+  const fetchPositionOptions = async () => {
+    try {
+      const supabase = getSupabaseClient() as any;
+      const { data } = await supabase.from('member_positions').select('position');
+      const inDb: string[] = [...new Set(((data || []) as { position: string }[]).map(r => r.position))];
+      const extras = inDb.filter(p => !POSITION_PRESETS.includes(p)).sort();
+      setPositionOptions([...POSITION_PRESETS, ...extras]);
+    } catch (error) {
+      console.error('Failed to fetch position options:', error);
+    }
+  };
 
   const fetchAssociations = async () => {
     try {
@@ -75,12 +93,12 @@ export function MemberManagement() {
       const params = new URLSearchParams({
         page: page.toString(),
         page_size: pageSize.toString(),
-        is_active: isActive.toString(),
       });
 
       if (searchQuery) params.append('q', searchQuery);
       if (selectedAssociation) params.append('association_id', selectedAssociation);
       if (selectedCrop) params.append('crop_id', selectedCrop);
+      if (selectedPosition) params.append('position', selectedPosition);
 
       const response = await fetch(`/api/members?${params}`);
       const data: MemberListResponse = await response.json();
@@ -276,11 +294,11 @@ export function MemberManagement() {
               color: '#374151',
               marginBottom: '6px'
             }}>
-              상태
+              직책 (재임 중)
             </label>
             <select
-              value={isActive.toString()}
-              onChange={(e) => setIsActive(e.target.value === 'true')}
+              value={selectedPosition}
+              onChange={(e) => { setSelectedPosition(e.target.value); setPage(1); }}
               style={{
                 width: '100%',
                 padding: '8px 12px',
@@ -289,8 +307,10 @@ export function MemberManagement() {
                 fontSize: '14px'
               }}
             >
-              <option value="true">활성</option>
-              <option value="false">비활성</option>
+              <option value="">전체</option>
+              {positionOptions.map(p => (
+                <option key={p} value={p}>{p}</option>
+              ))}
             </select>
           </div>
         </div>
