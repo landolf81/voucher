@@ -28,6 +28,7 @@ export function MemberManagement() {
   const [selectedAssociation, setSelectedAssociation] = useState('');
   const [selectedCrop, setSelectedCrop] = useState('');
   const [selectedPosition, setSelectedPosition] = useState('');
+  const [selectedMemberType, setSelectedMemberType] = useState('');
   const [positionOptions, setPositionOptions] = useState<string[]>(POSITION_PRESETS);
 
   // Master data
@@ -49,7 +50,7 @@ export function MemberManagement() {
   useEffect(() => {
     if (!hasSearched) return;
     fetchMembers();
-  }, [hasSearched, page, selectedAssociation, selectedCrop, selectedPosition]);
+  }, [hasSearched, page, selectedAssociation, selectedCrop, selectedPosition, selectedMemberType]);
 
   // 직접 입력으로 등록된 직책도 필터 목록에 포함
   const fetchPositionOptions = async () => {
@@ -102,6 +103,7 @@ export function MemberManagement() {
       if (selectedAssociation) params.append('association_id', selectedAssociation);
       if (selectedCrop) params.append('crop_id', selectedCrop);
       if (selectedPosition) params.append('position', selectedPosition);
+      if (selectedMemberType) params.append('member_type', selectedMemberType);
 
       const response = await fetch(`/api/members?${params}`);
       const data: MemberListResponse = await response.json();
@@ -323,6 +325,33 @@ export function MemberManagement() {
               ))}
             </select>
           </div>
+
+          <div>
+            <label style={{
+              display: 'block',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: '#374151',
+              marginBottom: '6px'
+            }}>
+              구분
+            </label>
+            <select
+              value={selectedMemberType}
+              onChange={(e) => { setSelectedMemberType(e.target.value); setPage(1); }}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '14px'
+              }}
+            >
+              <option value="">전체</option>
+              <option value="조합원">조합원</option>
+              <option value="비조합원">비조합원</option>
+            </select>
+          </div>
         </div>
 
         <button
@@ -412,7 +441,23 @@ export function MemberManagement() {
                   {members.map(member => (
                     <tr key={member.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
                       <td style={tableCellStyle}>{member.security_number || '-'}</td>
-                      <td style={tableCellStyle}>{member.name}</td>
+                      <td style={tableCellStyle}>
+                        {member.name}
+                        {member.member_type === '비조합원' && (
+                          <span style={{
+                            marginLeft: '6px',
+                            padding: '2px 6px',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            backgroundColor: '#f3f4f6',
+                            color: '#6b7280',
+                            borderRadius: '4px',
+                            verticalAlign: 'middle'
+                          }}>
+                            비조합원
+                          </span>
+                        )}
+                      </td>
                       <td style={tableCellStyle}>{member.association_name || '-'}</td>
                       <td style={tableCellStyle}>{member.main_crop_name || '-'}</td>
                       <td style={tableCellStyle}>{member.date_of_birth ? member.date_of_birth.split('T')[0] : '-'}</td>

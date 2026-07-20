@@ -83,7 +83,7 @@ export async function PUT(
       const checkMemberId = body.member.member_id || existing.member_id;
       const checkAssociationId = body.member.association_id || existing.association_id;
 
-      if (checkAssociationId) {
+      if (checkMemberId && checkAssociationId) {
         const { data: duplicate } = await supabase
           .from('members')
           .select('id')

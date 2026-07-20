@@ -369,7 +369,21 @@ export function MemberDetailModal({ isOpen, onClose, member, onEdit }: MemberDet
           borderTopRightRadius: '12px'
         }}>
           <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1a202c', margin: 0 }}>
-            조합원 상세 — {m.name}
+            {m.member_type === '비조합원' ? '인물 상세' : '조합원 상세'} — {m.name}
+            {m.member_type === '비조합원' && (
+              <span style={{
+                marginLeft: '8px',
+                padding: '2px 8px',
+                fontSize: '12px',
+                fontWeight: 600,
+                backgroundColor: '#f3f4f6',
+                color: '#6b7280',
+                borderRadius: '6px',
+                verticalAlign: 'middle'
+              }}>
+                비조합원
+              </span>
+            )}
           </h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {canWriteSchedule && onEdit && (
@@ -429,7 +443,7 @@ export function MemberDetailModal({ isOpen, onClose, member, onEdit }: MemberDet
           {/* 기본 정보 */}
           <Section title="기본 정보">
             <Field label="성명" value={m.name} />
-            <Field label="조합원 ID" value={m.member_id} />
+            {!isMobile && <Field label="조합원 ID" value={m.member_id || '-'} />}
             <Field label="영농회" value={associationName} />
             <Field label="생년월일" value={formatDate(m.date_of_birth)} />
             <Field label="증권번호" value={m.security_number || '-'} />

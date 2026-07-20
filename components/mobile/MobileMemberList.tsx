@@ -163,7 +163,24 @@ export function MobileMemberList() {
                   }}
                 >
                   <span style={{ ...cellStyle, color: '#6b7280' }}>{member.association_name || '-'}</span>
-                  <span style={{ ...cellStyle, fontWeight: 600 }}>{member.name}</span>
+                  <span style={{ ...cellStyle, fontWeight: 600 }}>
+                    {member.name}
+                    {member.member_type === '비조합원' && (
+                      <span
+                        style={{
+                          marginLeft: '4px',
+                          padding: '1px 5px',
+                          fontSize: '10px',
+                          fontWeight: 600,
+                          backgroundColor: '#f3f4f6',
+                          color: '#6b7280',
+                          borderRadius: '4px',
+                        }}
+                      >
+                        비조합원
+                      </span>
+                    )}
+                  </span>
                   <span style={{ ...cellStyle, color: '#6b7280' }}>
                     {member.date_of_birth ? member.date_of_birth.split('T')[0] : '-'}
                   </span>

@@ -14,7 +14,12 @@ interface MemberFormModalProps {
   onSuccess: () => void;
   associations: Association[];
   crops: Crop[];
-  editingMember?: MemberFormData & { id: string };
+  // 비조합원은 member_id·date_of_birth가 null일 수 있음 (MemberOverview 그대로 전달)
+  editingMember?: Omit<MemberFormData, 'member_id' | 'date_of_birth'> & {
+    id: string;
+    member_id: string | null;
+    date_of_birth: string | null;
+  };
 }
 
 export function MemberFormModal({
@@ -29,6 +34,7 @@ export function MemberFormModal({
     site_id: '',
     association_id: '',
     name: '',
+    member_type: '조합원',
     member_id: '',
     security_number: '',
     date_of_birth: '',
@@ -51,6 +57,7 @@ export function MemberFormModal({
         site_id: editingMember.site_id || '',
         association_id: editingMember.association_id || '',
         name: editingMember.name || '',
+        member_type: editingMember.member_type || '조합원',
         member_id: editingMember.member_id || '',
         security_number: editingMember.security_number || '',
         date_of_birth: editingMember.date_of_birth || '',
@@ -68,6 +75,7 @@ export function MemberFormModal({
         site_id: '',
         association_id: associations.length === 1 ? associations[0].id : '',
         name: '',
+        member_type: '조합원',
         member_id: '',
         security_number: '',
         date_of_birth: '',
@@ -94,6 +102,8 @@ export function MemberFormModal({
     setFormData(prev => ({ ...prev, security_number: value }));
   };
 
+  const isNonMember = formData.member_type === '비조합원';
+
   const validateForm = (): boolean => {
     if (!formData.association_id) {
       setError('영농회를 선택해주세요.');
@@ -103,11 +113,12 @@ export function MemberFormModal({
       setError('성명을 입력해주세요.');
       return false;
     }
-    if (!formData.member_id.trim()) {
+    // 비조합원(영농회장·부녀회장 등)은 조합원 ID·생년월일 없이 등록 가능
+    if (!isNonMember && !formData.member_id.trim()) {
       setError('조합원 ID를 입력해주세요.');
       return false;
     }
-    if (!formData.date_of_birth) {
+    if (!isNonMember && !formData.date_of_birth) {
       setError('생년월일을 입력해주세요.');
       return false;
     }
@@ -136,6 +147,8 @@ export function MemberFormModal({
           member: {
             ...formData,
             // 빈 문자열을 null로 변환
+            member_id: formData.member_id.trim() || null,
+            date_of_birth: formData.date_of_birth || null,
             site_id: formData.site_id || null,
             association_id: formData.association_id || null,
             security_number: formData.security_number || null,
@@ -245,6 +258,23 @@ export function MemberFormModal({
               </h3>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                {/* 구분 (조합원/비조합원) */}
+                <div>
+                  <label style={labelStyle}>
+                    구분 <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <select
+                    name="member_type"
+                    value={formData.member_type}
+                    onChange={handleChange}
+                    style={inputStyle}
+                    required
+                  >
+                    <option value="조합원">조합원</option>
+                    <option value="비조합원">비조합원</option>
+                  </select>
+                </div>
+
                 {/* 영농회 */}
                 <div>
                   <label style={labelStyle}>
@@ -267,16 +297,16 @@ export function MemberFormModal({
                 {/* 조합원 ID */}
                 <div>
                   <label style={labelStyle}>
-                    조합원 ID <span style={{ color: '#ef4444' }}>*</span>
+                    조합원 ID {!isNonMember && <span style={{ color: '#ef4444' }}>*</span>}
                   </label>
                   <input
                     type="text"
                     name="member_id"
                     value={formData.member_id}
                     onChange={handleChange}
-                    placeholder="예: 001"
+                    placeholder={isNonMember ? '비조합원은 생략 가능' : '예: 001'}
                     style={inputStyle}
-                    required
+                    required={!isNonMember}
                   />
                 </div>
 
@@ -299,7 +329,7 @@ export function MemberFormModal({
                 {/* 생년월일 */}
                 <div>
                   <label style={labelStyle}>
-                    생년월일 <span style={{ color: '#ef4444' }}>*</span>
+                    생년월일 {!isNonMember && <span style={{ color: '#ef4444' }}>*</span>}
                   </label>
                   <input
                     type="date"
@@ -307,7 +337,7 @@ export function MemberFormModal({
                     value={formData.date_of_birth}
                     onChange={handleChange}
                     style={inputStyle}
-                    required
+                    required={!isNonMember}
                   />
                 </div>
 

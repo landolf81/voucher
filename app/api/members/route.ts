@@ -23,6 +23,7 @@ export async function GET(request: Request) {
       association_id: searchParams.get('association_id') || undefined,
       crop_id: searchParams.get('crop_id') || undefined,
       is_active: searchParams.get('is_active') === 'false' ? false : true,
+      member_type: (searchParams.get('member_type') as any) || undefined,
       position: searchParams.get('position') || undefined,
       page: parseInt(searchParams.get('page') || '1'),
       page_size: parseInt(searchParams.get('page_size') || '50'),
@@ -46,6 +47,10 @@ export async function GET(request: Request) {
 
     if (params.association_id) {
       query = query.eq('association_id', params.association_id);
+    }
+
+    if (params.member_type) {
+      query = query.eq('member_type', params.member_type);
     }
 
     if (params.crop_id) {
@@ -170,19 +175,21 @@ export async function POST(request: Request) {
     );
     const body: CreateMemberRequest = await request.json();
 
-    // Check if member_id already exists (association_id 기준으로 변경)
-    const { data: existing } = await supabase
-      .from('members')
-      .select('id')
-      .eq('association_id', body.member.association_id)
-      .eq('member_id', body.member.member_id)
-      .single();
+    // Check if member_id already exists (association_id 기준, 비조합원 등 ID 없는 경우는 생략)
+    if (body.member.member_id) {
+      const { data: existing } = await supabase
+        .from('members')
+        .select('id')
+        .eq('association_id', body.member.association_id)
+        .eq('member_id', body.member.member_id)
+        .single();
 
-    if (existing) {
-      return NextResponse.json(
-        { error: '이미 존재하는 조합원 ID입니다.' },
-        { status: 400 }
-      );
+      if (existing) {
+        return NextResponse.json(
+          { error: '이미 존재하는 조합원 ID입니다.' },
+          { status: 400 }
+        );
+      }
     }
 
     // Get crop names if crop IDs are provided

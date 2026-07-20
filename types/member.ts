@@ -1,5 +1,8 @@
 // Types for Member Management System
 
+// 조합원 대장의 인물 구분 — 비조합원 영농회장·부녀회장 등도 함께 관리
+export type MemberType = '조합원' | '비조합원';
+
 export interface Crop {
   id: string;
   crop_name: string;
@@ -18,9 +21,10 @@ export interface Member {
   association_id?: string;
   association_name?: string;
   name: string;
-  member_id: string;
+  member_type: MemberType;
+  member_id: string | null; // 비조합원은 없음
   security_number?: string;
-  date_of_birth: string; // ISO date string
+  date_of_birth: string | null; // ISO date string, 비조합원은 없을 수 있음
   gender?: string; // 남자/여자
   phone: string;
   address: string;
@@ -88,6 +92,7 @@ export interface MemberFormData {
   site_id: string;
   association_id?: string;
   name: string;
+  member_type: MemberType;
   member_id: string;
   security_number?: string;
   date_of_birth: string;
@@ -136,6 +141,7 @@ export interface MemberSearchParams {
   crop_id?: string;
   is_active?: boolean;
   has_grafting?: boolean;
+  member_type?: MemberType; // 조합원/비조합원 필터
   position?: string; // 직책 필터 (재임 중 기준)
   page?: number;
   page_size?: number;
