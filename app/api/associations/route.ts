@@ -55,9 +55,43 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // 영농회별 조합원 수 집계 (탈퇴·비활성 제외, 여성은 gender='여자' 기준)
+    const counts: Record<string, { total: number; female: number }> = {};
+    const pageSize = 1000;
+    for (let from = 0; ; from += pageSize) {
+      const { data: rows, error: memberError } = await supabase
+        .from('members')
+        .select('association_id, gender')
+        .eq('member_type', '조합원')
+        .eq('is_active', true)
+        .is('leave_date', null)
+        .range(from, from + pageSize - 1);
+
+      if (memberError) {
+        console.error('영농회별 조합원 수 집계 오류:', memberError);
+        break;
+      }
+      if (!rows || rows.length === 0) break;
+
+      for (const row of rows) {
+        if (!row.association_id) continue;
+        const count = counts[row.association_id] ??= { total: 0, female: 0 };
+        count.total++;
+        if (row.gender === '여자') count.female++;
+      }
+
+      if (rows.length < pageSize) break;
+    }
+
+    const data = (associations || []).map(assoc => ({
+      ...assoc,
+      member_count: counts[assoc.id]?.total ?? 0,
+      female_member_count: counts[assoc.id]?.female ?? 0
+    }));
+
     return NextResponse.json({
       success: true,
-      data: associations || []
+      data
     });
 
   } catch (error) {

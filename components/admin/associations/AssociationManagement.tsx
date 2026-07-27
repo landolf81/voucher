@@ -8,6 +8,8 @@ interface Association {
   short_code?: string;
   chairman_name?: string;        // 영농회장
   women_chairman_name?: string;  // 부녀회장
+  member_count?: number;         // 조합원 수 (탈퇴·비활성 제외)
+  female_member_count?: number;  // 여성 조합원 수
   status: string;
   created_at: string;
   updated_at: string;
@@ -316,6 +318,7 @@ export function AssociationManagement() {
                 <tr style={{ backgroundColor: '#f9fafb' }}>
                   <th style={thStyle}>영농회명</th>
                   <th style={thStyle}>코드</th>
+                  <th style={{ ...thStyle, textAlign: 'center' }}>조합원수</th>
                   <th style={thStyle}>영농회장</th>
                   <th style={thStyle}>부녀회장</th>
                   <th style={{ ...thStyle, textAlign: 'center' }}>상태</th>
@@ -340,6 +343,10 @@ export function AssociationManagement() {
                       }}>
                         {assoc.short_code || '-'}
                       </span>
+                    </td>
+                    <td style={{ ...tdStyle, textAlign: 'center' }}>
+                      <span style={{ fontWeight: '600', color: '#1a202c' }}>{assoc.member_count ?? 0}</span>
+                      <span style={{ color: '#9333ea' }}>({assoc.female_member_count ?? 0})</span>
                     </td>
                     <td style={tdStyle}>{assoc.chairman_name || '-'}</td>
                     <td style={tdStyle}>{assoc.women_chairman_name || '-'}</td>
@@ -369,6 +376,21 @@ export function AssociationManagement() {
                   </tr>
                 ))}
               </tbody>
+              <tfoot>
+                <tr style={{ backgroundColor: '#f9fafb' }}>
+                  <td style={{ ...tdStyle, fontWeight: '600', color: '#1a202c' }}>합계</td>
+                  <td style={tdStyle}></td>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>
+                    <span style={{ fontWeight: '600', color: '#1a202c' }}>
+                      {associations.reduce((sum, a) => sum + (a.member_count ?? 0), 0)}
+                    </span>
+                    <span style={{ color: '#9333ea' }}>
+                      ({associations.reduce((sum, a) => sum + (a.female_member_count ?? 0), 0)})
+                    </span>
+                  </td>
+                  <td style={tdStyle} colSpan={4}></td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         )}
