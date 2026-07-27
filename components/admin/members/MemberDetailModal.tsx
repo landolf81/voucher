@@ -446,6 +446,7 @@ export function MemberDetailModal({ isOpen, onClose, member, onEdit }: MemberDet
             {!isMobile && <Field label="조합원 ID" value={m.member_id || '-'} />}
             <Field label="영농회" value={associationName} />
             <Field label="생년월일" value={formatDate(m.date_of_birth)} />
+            <Field label="성별" value={m.gender || '-'} />
             <Field label="증권번호" value={m.security_number || '-'} />
           </Section>
 
@@ -662,10 +663,10 @@ export function MemberDetailModal({ isOpen, onClose, member, onEdit }: MemberDet
                   borderRadius: '9999px',
                   fontSize: '12px',
                   fontWeight: 600,
-                  backgroundColor: m.is_active ? '#dcfce7' : '#f3f4f6',
-                  color: m.is_active ? '#166534' : '#6b7280'
+                  backgroundColor: m.leave_date ? '#fee2e2' : m.is_active ? '#dcfce7' : '#f3f4f6',
+                  color: m.leave_date ? '#991b1b' : m.is_active ? '#166534' : '#6b7280'
                 }}>
-                  {m.is_active ? '활성' : '비활성'}
+                  {m.leave_date ? '탈퇴' : m.is_active ? '활성' : '비활성'}
                 </span>
               }
             />

@@ -38,6 +38,7 @@ export function MemberFormModal({
     member_id: '',
     security_number: '',
     date_of_birth: '',
+    gender: '',
     phone: '',
     address: '',
     join_date: '',
@@ -61,6 +62,7 @@ export function MemberFormModal({
         member_id: editingMember.member_id || '',
         security_number: editingMember.security_number || '',
         date_of_birth: editingMember.date_of_birth || '',
+        gender: editingMember.gender || '',
         phone: editingMember.phone || '',
         address: editingMember.address || '',
         join_date: editingMember.join_date || '',
@@ -79,6 +81,7 @@ export function MemberFormModal({
         member_id: '',
         security_number: '',
         date_of_birth: '',
+        gender: '',
         phone: '',
         address: '',
         join_date: new Date().toISOString().split('T')[0],
@@ -149,6 +152,7 @@ export function MemberFormModal({
             // 빈 문자열을 null로 변환
             member_id: formData.member_id.trim() || null,
             date_of_birth: formData.date_of_birth || null,
+            gender: formData.gender || null,
             site_id: formData.site_id || null,
             association_id: formData.association_id || null,
             security_number: formData.security_number || null,
@@ -339,6 +343,21 @@ export function MemberFormModal({
                     style={inputStyle}
                     required={!isNonMember}
                   />
+                </div>
+
+                {/* 성별 */}
+                <div>
+                  <label style={labelStyle}>성별</label>
+                  <select
+                    name="gender"
+                    value={formData.gender}
+                    onChange={handleChange}
+                    style={inputStyle}
+                  >
+                    <option value="">선택하세요</option>
+                    <option value="남자">남자</option>
+                    <option value="여자">여자</option>
+                  </select>
                 </div>
 
                 {/* 증권번호 */}

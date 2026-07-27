@@ -96,6 +96,7 @@ export interface MemberFormData {
   member_id: string;
   security_number?: string;
   date_of_birth: string;
+  gender?: string; // 남자/여자
   phone: string;
   address: string;
   join_date?: string;
