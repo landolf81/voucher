@@ -118,6 +118,10 @@ VOUCHER_HMAC_SECRET=
 
 ## Known Issues & Solutions
 
+### 개발 중 "옛날 화면이 보이는" 문제 (2026-07-27 해결)
+- 원인: 로컬 프로덕션 테스트(`npm run build && npm start`)로 등록된 서비스워커(sw.js)가 dev 서버의 `/_next/static` 청크를 cache-first로 서빙. dev 청크 URL은 내용과 무관하게 고정이라 코드를 수정해도 옛 JS가 계속 실행됨 (일반 새로고침=옛 화면, 강제 새로고침=새 화면).
+- 해결: `PWARegister.tsx`가 dev 모드에서 기존 SW 등록 해제 + Cache Storage 전체 삭제. `/api/*` Cache-Control도 `no-store`로 변경 (next.config.js).
+
 ### Email/Auth Issues
 - Supabase email mismatch: Check Dashboard → Authentication → Settings
 - Magic Link emails only (no OTP for email auth)

@@ -72,7 +72,7 @@ const nextConfig = {
       {
         source: '/api/:path*',
         headers: [
-          { key: 'Cache-Control', value: 'public, max-age=0, s-maxage=10, stale-while-revalidate=59' }
+          { key: 'Cache-Control', value: 'no-store' }
         ]
       },
       {
